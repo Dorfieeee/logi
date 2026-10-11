@@ -117,11 +117,15 @@ const wardogsSquadIconOptions = [
     "/stratmap/icons/wardogs/weapons_vendor.webp",
 ] as const
 
-/** Role icons are intentionally available only for their supported game. */
+/**
+ * Wardogs uses its full tactical marker catalog for both squads and roles.
+ * Keeping these selectors in sync lets a role use every icon available to a
+ * squad block.
+ */
 export const roleIconOptionsByGame: Record<GameId, readonly string[]> = {
     hell_let_loose: hllRoleIconOptions,
     hell_let_loose_vietnam: hllVietnamRoleIconOptions,
-    wardogs: wardogsRoleIconOptions,
+    wardogs: wardogsSquadIconOptions,
     world_of_warcraft_forever: wowForeverRoleIconOptions,
 }
 
@@ -131,7 +135,7 @@ export function getRoleIconOptions(gameId: GameId) {
 
 export function getSquadIconOptions(gameId: GameId): readonly string[] {
     return gameId === "wardogs"
-        ? wardogsSquadIconOptions
+        ? getRoleIconOptions(gameId)
         : roleIconOptionsByGame[gameId]
 }
 

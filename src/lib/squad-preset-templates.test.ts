@@ -20,7 +20,7 @@ test("squad preset icon options are scoped to their game", () => {
     assert.ok(wardogsIcons.includes("/img/roles/icn_builder.png"))
     assert.ok(!wardogsIcons.includes("/img/roles/icn_officer.png"))
     assert.ok(wowForeverIcons.includes("/img/roles/wowf/class/mage.png"))
-    assert.ok(!wardogsIcons.includes("/stratmap/icons/wardogs/artillery.webp"))
+    assert.ok(wardogsIcons.includes("/stratmap/icons/wardogs/artillery.webp"))
     assert.ok(
         wardogsSquadIcons.includes("/stratmap/icons/wardogs/artillery.webp")
     )
@@ -29,4 +29,5 @@ test("squad preset icon options are scoped to their game", () => {
             "/stratmap/icons/wardogs/weapons_vendor.webp"
         )
     )
+    assert.deepEqual(wardogsIcons, wardogsSquadIcons)
 })
