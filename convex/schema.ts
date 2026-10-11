@@ -67,6 +67,8 @@ const users = defineTable({
     note: v.optional(v.string()),
     nicknames: v.optional(v.record(v.string(), v.string())),
     platformIds: v.optional(v.array(v.string())),
+    // Self-declared external registration metadata, not verified Steam identity.
+    steamName: v.optional(v.string()),
     avatar: v.string(),
     managedGuildIds: v.array(v.string()),
     guildId: v.optional(v.string()),

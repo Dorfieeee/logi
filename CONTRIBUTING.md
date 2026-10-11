@@ -37,6 +37,11 @@ Then edit the correct layer first.
 5. Run tests and typecheck before finishing.
 6. Update the matching public wiki page in `content/` whenever a user-visible feature, permission, workflow, condition, or screen changes. Add new wiki coverage for new features.
 
+Convex validates existing documents during deployment. Keep retired persisted
+fields optional until their stored values have been migrated or expired and
+removed. Application drafts, for example, may still contain `completedQuestions`
+and `language`; current code uses `completedWindows` and the workspace language.
+
 ## Testing Commands
 
 ```bash
