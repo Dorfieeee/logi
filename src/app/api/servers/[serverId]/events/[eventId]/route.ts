@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
-
 import {
+    createServerEventDeleteHandler,
     createServerEventPatchHandler,
     createServerEventPostHandler,
 } from "@/lib/api/event-route-handlers"
 import {
+    deleteServerEvent,
     completeServerTraining,
     concludeServerEvent,
     saveServerEvent,
@@ -65,6 +65,23 @@ const patchHandler = createServerEventPatchHandler({
     logRouteError,
     getUserSafeErrorMessage,
 })
+
+const deleteHandler = createServerEventDeleteHandler({
+    origin: new URL(getSiteUrl()).origin,
+    canAdminServer,
+    deleteServerEvent,
+    revalidateCacheEntries,
+    appCacheTags,
+    logRouteError,
+    getUserSafeErrorMessage,
+})
+
+export async function DELETE(
+    request: Request,
+    context: { params: Promise<{ serverId: string; eventId: string }> }
+) {
+    return deleteHandler(request, context)
+}
 
 const postHandler = createServerEventPostHandler({
     origin: new URL(getSiteUrl()).origin,

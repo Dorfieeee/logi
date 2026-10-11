@@ -115,3 +115,45 @@ test("roster HTTP writes pass only the closed input and server actor and never r
     assert.equal(denied.status, 403)
     assert.ok(!(await denied.text()).includes("synthetic-private-token"))
 })
+
+test("roster HTTP preserves moved squads, section order and reserve assignments", async () => {
+    const moved = {
+        ...body,
+        squads: [
+            {
+                name: "FL4",
+                group: "Infantry",
+                order: 0,
+                color: "#ffffff",
+                players: [
+                    { id: "reserve-player", ack: false, roleName: "Medic" },
+                ],
+            },
+            {
+                name: "FL1",
+                group: "Infantry",
+                order: 1,
+                color: "#ffffff",
+                players: [
+                    {
+                        id: "leader",
+                        ack: true,
+                        confirmed: true,
+                        roleName: "Leader",
+                    },
+                ],
+            },
+        ],
+    }
+    let saved: unknown
+    const response = await rosterWriteHandler({
+        origin,
+        actor: async () => actor,
+        write: async (_server, _actor, input) => {
+            saved = input
+            return "rosters:one"
+        },
+    })(request(moved), "guilds:one")
+    assert.equal(response.status, 200)
+    assert.deepEqual(saved, moved)
+})

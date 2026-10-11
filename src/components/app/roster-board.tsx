@@ -12,6 +12,9 @@ import {
     Settings2,
     Trash2,
     EyeOff,
+    ArrowUp,
+    ArrowDown,
+    GripVertical,
     WandSparkles,
 } from "lucide-react"
 import {
@@ -24,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
     useDeferredValue,
+    useCallback,
     useEffect,
     useMemo,
     useRef,
@@ -53,6 +57,12 @@ import {
     type RosterPublishChoice,
     type RosterPublishContext,
 } from "@/components/app/roster-publish-dialog"
+import {
+    firstAvailableRosterSlot,
+    moveRosterSection,
+    moveRosterSquad,
+    rosterSectionOrder,
+} from "@/domain/rosters/layout"
 import {
     Select,
     SelectContent,
@@ -164,10 +174,19 @@ export function RosterBoard({
     const [reserveSearch, setReserveSearch] = useState("")
     const [notAttendingSearch, setNotAttendingSearch] = useState("")
     const [dragState, setDragState] = useState<DragState | null>(null)
+    // Squads have no persisted ID. Reset card-local editors when order changes,
+    // otherwise an editor keyed by order would move to a different squad.
+    const [layoutRevision, setLayoutRevision] = useState(0)
     const [focusedGroup, setFocusedGroup] = useState<string | null>(null)
     const [userPickerOpen, setUserPickerOpen] = useState(false)
     const [notAttendingPickerOpen, setNotAttendingPickerOpen] = useState(false)
-    const [isDirty, setIsDirty] = useState(false)
+    const [isDirty, setDirtyState] = useState(false)
+    const dirtyRef = useRef(false)
+    const rosterIdRef = useRef(roster?.id)
+    const setIsDirty = useCallback((dirty: boolean) => {
+        dirtyRef.current = dirty
+        setDirtyState(dirty)
+    }, [])
     const [publishDialogOpen, setPublishDialogOpen] = useState(false)
     const [publishedUpdateDialogOpen, setPublishedUpdateDialogOpen] =
         useState(false)
@@ -188,24 +207,28 @@ export function RosterBoard({
     const autoScrollFrameRef = useRef<number | null>(null)
     const deferredReserveSearch = useDeferredValue(reserveSearch)
     const deferredNotAttendingSearch = useDeferredValue(notAttendingSearch)
-    const isLayoutMode = mode === "layout"
-    const isAssignmentMode = mode === "assignment"
+    const isAssignmentMode = canAdmin && mode !== "layout"
     const formattedMap =
         formatHllPresetLabel(event?.map) ??
         event?.map ??
         dictionary.common.unknown
 
     useEffect(() => {
+        // The live subscription may resolve after the manager starts dragging,
+        // or refresh because unrelated event/group data changed. Keep that
+        // roster's unsaved draft instead of silently discarding their edits.
+        if (dirtyRef.current && rosterIdRef.current === roster?.id) return
+        rosterIdRef.current = roster?.id
         setBoard(roster)
         setIsDirty(false)
-    }, [roster])
+    }, [roster, setIsDirty])
 
     useEffect(() => {
         setMode(defaultMode)
     }, [defaultMode])
 
     useEffect(() => {
-        if (!dragState || !isAssignmentMode) {
+        if (!dragState || !canAdmin) {
             dragPointerYRef.current = null
             if (autoScrollFrameRef.current !== null) {
                 window.cancelAnimationFrame(autoScrollFrameRef.current)
@@ -267,7 +290,7 @@ export function RosterBoard({
                 autoScrollFrameRef.current = null
             }
         }
-    }, [dragState, isAssignmentMode])
+    }, [dragState, canAdmin])
 
     const [isPending, startTransition] = useTransition()
     const [isConfirmingMeetingChannel, setIsConfirmingMeetingChannel] =
@@ -447,11 +470,25 @@ export function RosterBoard({
         // Preset groups are also used as a catalogue for editing, so many of them
         // legitimately have no squads in a particular roster. Do not render those
         // empty headers in either roster view or editor mode.
-        return result.filter(
-            (entry) =>
-                entry.squads.length > 0 ||
-                entry.subgroups.some((subgroup) => subgroup.squads.length > 0)
-        )
+        return result
+            .filter(
+                (entry) =>
+                    entry.squads.length > 0 ||
+                    entry.subgroups.some(
+                        (subgroup) => subgroup.squads.length > 0
+                    )
+            )
+            .sort(
+                (a, b) =>
+                    rosterSectionOrder(sortedSquads, [
+                        a.group.name,
+                        ...a.subgroups.map((sub) => sub.group.name),
+                    ]) -
+                    rosterSectionOrder(sortedSquads, [
+                        b.group.name,
+                        ...b.subgroups.map((sub) => sub.group.name),
+                    ])
+            )
     }, [board, groups, sortedSquads])
 
     const assignedCount = useMemo(
@@ -601,7 +638,10 @@ export function RosterBoard({
             ? board?.squads[dragState.squadIndex]?.players[
                   dragState.playerIndex
               ]?.id
-            : dragState?.userId
+            : dragState?.type === "reserve" ||
+                dragState?.type === "notAttending"
+              ? dragState.userId
+              : undefined
     const draggedName = draggedUserId
         ? usersById.get(draggedUserId)?.name
         : undefined
@@ -1001,23 +1041,127 @@ export function RosterBoard({
     }
 
     function moveSquad(index: number, direction: -1 | 1) {
+        if (!canAdmin || !board) return
+        const currentSquad = board.squads[index]
+        const siblings = sortedSquads.filter(
+            (squad) => squad.group === currentSquad.group
+        )
+        const siblingIndex = siblings.indexOf(currentSquad)
+        const target = siblings[siblingIndex + direction]
+        if (!target) return
+        setLayoutRevision((value) => value + 1)
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
-            const targetIndex = index + direction
-            if (targetIndex < 0 || targetIndex >= next.squads.length)
-                return current
-            ;[next.squads[index], next.squads[targetIndex]] = [
-                next.squads[targetIndex],
-                next.squads[index],
-            ]
-            next.squads = next.squads.map((squad, order) => ({
-                ...squad,
-                order,
-            }))
-            return next
+            const source =
+                direction === -1 ? index : current.squads.indexOf(target)
+            const before =
+                direction === -1 ? current.squads.indexOf(target) : index
+            return {
+                ...current,
+                squads: moveRosterSquad(
+                    current.squads,
+                    source,
+                    currentSquad.group,
+                    before
+                ),
+            }
         })
+    }
+
+    function moveSection(groupIndex: number, direction: -1 | 1) {
+        if (!canAdmin) return
+        const source = squadGroups[groupIndex]
+        const target = squadGroups[groupIndex + direction]
+        if (!source || !target) return
+        setLayoutRevision((value) => value + 1)
+        setIsDirty(true)
+        setBoard((current) =>
+            current
+                ? {
+                      ...current,
+                      squads: moveRosterSection(
+                          current.squads,
+                          [
+                              source.group.name,
+                              ...source.subgroups.map((sub) => sub.group.name),
+                          ],
+                          [
+                              target.group.name,
+                              ...target.subgroups.map((sub) => sub.group.name),
+                          ],
+                          direction === -1 ? "before" : "after"
+                      ),
+                  }
+                : current
+        )
+    }
+
+    function handleDropOnSection(groupName: string, childGroups: string[]) {
+        if (!canAdmin || !dragState) return
+        if (dragState.type === "squad") {
+            setLayoutRevision((value) => value + 1)
+            setIsDirty(true)
+            setBoard((current) =>
+                current
+                    ? {
+                          ...current,
+                          squads: moveRosterSquad(
+                              current.squads,
+                              dragState.squadIndex,
+                              groupName
+                          ),
+                      }
+                    : current
+            )
+        } else if (dragState.type === "section") {
+            setLayoutRevision((value) => value + 1)
+            setIsDirty(true)
+            setBoard((current) =>
+                current
+                    ? {
+                          ...current,
+                          squads: moveRosterSection(
+                              current.squads,
+                              dragState.groups,
+                              [groupName, ...childGroups]
+                          ),
+                      }
+                    : current
+            )
+        }
+        setDragState(null)
+    }
+
+    function handleDropOnSquad(squadIndex: number) {
+        if (!canAdmin || !dragState || !board) return
+        if (dragState.type === "section") return
+        if (dragState.type === "squad") {
+            setLayoutRevision((value) => value + 1)
+            setIsDirty(true)
+            setBoard((current) =>
+                current
+                    ? {
+                          ...current,
+                          squads: moveRosterSquad(
+                              current.squads,
+                              dragState.squadIndex,
+                              current.squads[squadIndex].group,
+                              squadIndex
+                          ),
+                      }
+                    : current
+            )
+            setDragState(null)
+            return
+        }
+        const slotIndex = firstAvailableRosterSlot(board.squads[squadIndex])
+        if (slotIndex < 0) {
+            toast.info(dictionary.roster.squadFull)
+            setDragState(null)
+            return
+        }
+        handleDropOnSlot(squadIndex, slotIndex)
     }
 
     function updateSquadField(
@@ -1053,14 +1197,17 @@ export function RosterBoard({
         })
     }
 
-    function addRosterSquad() {
+    function addRosterSquad(
+        group: string = dictionary.roster.defaultSquadGroup
+    ) {
+        if (!canAdmin) return
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
             const next = structuredClone(current)
             next.squads.push({
                 name: `${dictionary.roster.newSquadName} ${next.squads.length + 1}`,
-                group: dictionary.roster.defaultSquadGroup,
+                group,
                 order: next.squads.length,
                 color: "#64748b",
                 players: [
@@ -1078,6 +1225,7 @@ export function RosterBoard({
     }
 
     function removeRosterSquad(squadIndex: number) {
+        setLayoutRevision((value) => value + 1)
         setIsDirty(true)
         setBoard((current) => {
             if (!current || current.squads.length <= 1) return current
@@ -1108,7 +1256,11 @@ export function RosterBoard({
     }
 
     function handleDropOnSlot(squadIndex: number, playerIndex: number) {
-        if (!dragState) return
+        if (!canAdmin || !dragState) return
+        if (dragState.type === "squad" || dragState.type === "section") {
+            handleDropOnSquad(squadIndex)
+            return
+        }
         if (dragState.type === "reserve") {
             moveReserveToSlot(dragState.userId, squadIndex, playerIndex)
         } else if (dragState.type === "notAttending") {
@@ -1125,7 +1277,7 @@ export function RosterBoard({
     }
 
     function handleDropOnReserve(targetReserveId?: string) {
-        if (!dragState) return
+        if (!canAdmin || !dragState) return
         if (dragState.type === "reserve" && targetReserveId) {
             reorderReserves(dragState.userId, targetReserveId)
         }
@@ -1143,7 +1295,7 @@ export function RosterBoard({
     }
 
     function handleDropOnNotAttending() {
-        if (!dragState) return
+        if (!canAdmin || !dragState) return
         if (dragState.type === "reserve") {
             moveReserveToNotAttending(dragState.userId)
         }
@@ -1179,6 +1331,7 @@ export function RosterBoard({
 
     function applyTemplateChange() {
         if (!pendingPreset) return
+        setLayoutRevision((value) => value + 1)
 
         setBoard((current) => {
             if (!current) return current
@@ -1604,6 +1757,9 @@ export function RosterBoard({
 
     return (
         <div
+            data-testid="roster-board"
+            inert={isPending}
+            aria-busy={isPending}
             className={cn(
                 "space-y-2",
                 canAdmin && (!board.published || isDirty) && "pb-20 md:pb-0"
@@ -1994,74 +2150,90 @@ export function RosterBoard({
                             }
                         />
                     </div>
-                    <div className="flex flex-col gap-4">
-                        {mode !== "view" ? (
-                            <RosterBoardAttendeeLists
-                                board={board}
-                                users={users}
-                                reserveUsers={reserveUsers}
-                                groupedNotAttendingUsers={
-                                    groupedNotAttendingUsers
-                                }
-                                allUsersSorted={allUsersSorted}
-                                assignmentsByUserId={assignmentsByUserId}
-                                groupsById={groupsById}
-                                dictionary={dictionary}
-                                reserveSearch={reserveSearch}
-                                setReserveSearch={setReserveSearch}
-                                notAttendingSearch={notAttendingSearch}
-                                setNotAttendingSearch={setNotAttendingSearch}
-                                focusedGroup={focusedGroup}
-                                isAssignmentMode={isAssignmentMode}
-                                canAdmin={canAdmin}
-                                userPickerOpen={userPickerOpen}
-                                setUserPickerOpen={setUserPickerOpen}
-                                notAttendingPickerOpen={notAttendingPickerOpen}
-                                setNotAttendingPickerOpen={
-                                    setNotAttendingPickerOpen
-                                }
-                                addPlayerToReserve={addPlayerToReserve}
-                                addPlayerToNotAttending={
-                                    addPlayerToNotAttending
-                                }
-                                handleDropOnReserve={handleDropOnReserve}
-                                handleDropOnNotAttending={
-                                    handleDropOnNotAttending
-                                }
-                                setDragState={setDragState}
-                                serverDiscordId={event.guildId}
-                                noticeReasonByUserId={noticeReasonByUserId}
-                                notAttendingIndicatorByUserId={
-                                    notAttendingIndicatorByUserId
-                                }
-                                reminder={
-                                    reminder ? (
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="text-muted-foreground text-xs">
-                                                {dictionary.matchDetail.roster.noResponse.replace(
-                                                    "{count}",
-                                                    String(reminder.count)
-                                                )}
-                                            </span>
-                                            <ReminderButton
-                                                serverId={serverId}
-                                                eventId={event.id}
-                                                audience="unanswered"
-                                                state={reminder}
-                                                dictionary={dictionary}
-                                            />
-                                        </div>
-                                    ) : undefined
-                                }
-                            />
+                    <div
+                        className={cn(
+                            "grid items-start gap-4",
+                            canAdmin && "xl:grid-cols-[minmax(0,1fr)_20rem]"
+                        )}
+                    >
+                        {canAdmin ? (
+                            <aside
+                                data-testid="roster-reserves-sidebar"
+                                aria-label={dictionary.common.reserves}
+                                className="min-w-0 xl:sticky xl:top-20 xl:order-last"
+                            >
+                                <RosterBoardAttendeeLists
+                                    assignUserToSlot={assignUserToSlot}
+                                    board={board}
+                                    users={users}
+                                    reserveUsers={reserveUsers}
+                                    groupedNotAttendingUsers={
+                                        groupedNotAttendingUsers
+                                    }
+                                    allUsersSorted={allUsersSorted}
+                                    assignmentsByUserId={assignmentsByUserId}
+                                    groupsById={groupsById}
+                                    dictionary={dictionary}
+                                    reserveSearch={reserveSearch}
+                                    setReserveSearch={setReserveSearch}
+                                    notAttendingSearch={notAttendingSearch}
+                                    setNotAttendingSearch={
+                                        setNotAttendingSearch
+                                    }
+                                    focusedGroup={focusedGroup}
+                                    isAssignmentMode={isAssignmentMode}
+                                    canAdmin={canAdmin}
+                                    userPickerOpen={userPickerOpen}
+                                    setUserPickerOpen={setUserPickerOpen}
+                                    notAttendingPickerOpen={
+                                        notAttendingPickerOpen
+                                    }
+                                    setNotAttendingPickerOpen={
+                                        setNotAttendingPickerOpen
+                                    }
+                                    addPlayerToReserve={addPlayerToReserve}
+                                    addPlayerToNotAttending={
+                                        addPlayerToNotAttending
+                                    }
+                                    handleDropOnReserve={handleDropOnReserve}
+                                    handleDropOnNotAttending={
+                                        handleDropOnNotAttending
+                                    }
+                                    setDragState={setDragState}
+                                    serverDiscordId={event.guildId}
+                                    noticeReasonByUserId={noticeReasonByUserId}
+                                    notAttendingIndicatorByUserId={
+                                        notAttendingIndicatorByUserId
+                                    }
+                                    reminder={
+                                        reminder ? (
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-muted-foreground text-xs">
+                                                    {dictionary.matchDetail.roster.noResponse.replace(
+                                                        "{count}",
+                                                        String(reminder.count)
+                                                    )}
+                                                </span>
+                                                <ReminderButton
+                                                    serverId={serverId}
+                                                    eventId={event.id}
+                                                    audience="unanswered"
+                                                    state={reminder}
+                                                    dictionary={dictionary}
+                                                />
+                                            </div>
+                                        ) : undefined
+                                    }
+                                />
+                            </aside>
                         ) : null}
-                        <div className="space-y-2.5">
-                            {isLayoutMode ? (
+                        <div className="min-w-0 space-y-2.5">
+                            {canAdmin ? (
                                 <div className="md:col-span-2">
                                     <Button
                                         variant="outline"
                                         className="h-9 rounded-xl"
-                                        onClick={addRosterSquad}
+                                        onClick={() => addRosterSquad()}
                                     >
                                         <Plus className="size-4" />
                                         {dictionary.roster.addSquad}
@@ -2071,9 +2243,75 @@ export function RosterBoard({
                             {squadGroups.map((groupEntry, groupIndex) => (
                                 <div
                                     key={`${groupEntry.group.name}-${groupIndex}`}
-                                    className="space-y-2"
+                                    className={cn(
+                                        "space-y-2 rounded-xl",
+                                        dragState?.type === "section" &&
+                                            "outline-border outline-1 outline-dashed"
+                                    )}
+                                    data-testid="roster-section"
+                                    data-group={groupEntry.group.name}
+                                    onDragOver={(event) => {
+                                        if (
+                                            canAdmin &&
+                                            (dragState?.type === "squad" ||
+                                                dragState?.type === "section")
+                                        )
+                                            event.preventDefault()
+                                    }}
+                                    onDrop={(event) => {
+                                        if (
+                                            dragState?.type !== "squad" &&
+                                            dragState?.type !== "section"
+                                        )
+                                            return
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        handleDropOnSection(
+                                            groupEntry.group.name,
+                                            groupEntry.subgroups.map(
+                                                (sub) => sub.group.name
+                                            )
+                                        )
+                                    }}
                                 >
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        {canAdmin ? (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    draggable
+                                                    aria-label={`${dictionary.roster.dragSection}: ${groupEntry.group.name}`}
+                                                    className="text-muted-foreground hover:bg-muted cursor-grab rounded p-1 active:cursor-grabbing"
+                                                    onDragStart={(event) => {
+                                                        event.dataTransfer.setData(
+                                                            "text/plain",
+                                                            groupEntry.group
+                                                                .name
+                                                        )
+                                                        event.dataTransfer.effectAllowed =
+                                                            "move"
+                                                        setDragState({
+                                                            type: "section",
+                                                            groups: [
+                                                                groupEntry.group
+                                                                    .name,
+                                                                ...groupEntry.subgroups.map(
+                                                                    (sub) =>
+                                                                        sub
+                                                                            .group
+                                                                            .name
+                                                                ),
+                                                            ],
+                                                        })
+                                                    }}
+                                                    onDragEnd={() =>
+                                                        setDragState(null)
+                                                    }
+                                                >
+                                                    <GripVertical className="size-4" />
+                                                </button>
+                                            </>
+                                        ) : null}
                                         <div
                                             className="h-4 w-1 rounded-full"
                                             style={{
@@ -2090,175 +2328,161 @@ export function RosterBoard({
                                         <h3 className="text-xs font-bold tracking-[0.2em] uppercase">
                                             {groupEntry.group.name}
                                         </h3>
+                                        {canAdmin ? (
+                                            <div className="ml-auto flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-7"
+                                                    disabled={groupIndex === 0}
+                                                    aria-label={`${dictionary.roster.moveUp}: ${groupEntry.group.name}`}
+                                                    onClick={() =>
+                                                        moveSection(
+                                                            groupIndex,
+                                                            -1
+                                                        )
+                                                    }
+                                                >
+                                                    <ArrowUp className="size-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-7"
+                                                    disabled={
+                                                        groupIndex ===
+                                                        squadGroups.length - 1
+                                                    }
+                                                    aria-label={`${dictionary.roster.moveDown}: ${groupEntry.group.name}`}
+                                                    onClick={() =>
+                                                        moveSection(
+                                                            groupIndex,
+                                                            1
+                                                        )
+                                                    }
+                                                >
+                                                    <ArrowDown className="size-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7"
+                                                    onClick={() =>
+                                                        addRosterSquad(
+                                                            groupEntry.group
+                                                                .name
+                                                        )
+                                                    }
+                                                >
+                                                    <Plus className="size-3.5" />
+                                                    {dictionary.roster.addSquad}
+                                                </Button>
+                                            </div>
+                                        ) : null}
                                     </div>
-                                    <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                                        {groupEntry.squads.map((squad) => (
-                                            <SquadCard
-                                                // A squad's name and group are editable. Using either as
-                                                // the React key remounts the card on every edit, which made
-                                                // the editor appear to reshuffle its units. `order` is the
-                                                // stable, unique identity for a squad within a roster.
-                                                key={squad.order}
-                                                squad={squad}
-                                                board={board}
-                                                squadIndex={board.squads.indexOf(
-                                                    squad
-                                                )}
-                                                mode={mode}
-                                                dictionary={dictionary}
-                                                setFocusedGroup={
-                                                    setFocusedGroup
-                                                }
-                                                updateSquadField={
-                                                    updateSquadField
-                                                }
-                                                removeRosterSquad={
-                                                    removeRosterSquad
-                                                }
-                                                moveSquad={moveSquad}
-                                                updatePlayerField={
-                                                    updatePlayerField
-                                                }
-                                                updatePlayerIcon={
-                                                    updatePlayerIcon
-                                                }
-                                                updatePlayerAttendanceStatus={
-                                                    updatePlayerAttendanceStatus
-                                                }
-                                                removeRosterSlot={
-                                                    removeRosterSlot
-                                                }
-                                                moveSlotToReserve={
-                                                    moveSlotToReserve
-                                                }
-                                                moveSlotToNotAttending={
-                                                    moveSlotToNotAttending
-                                                }
-                                                clearSlotAssignment={
-                                                    clearSlotAssignment
-                                                }
-                                                handleDropOnSlot={
-                                                    handleDropOnSlot
-                                                }
-                                                addRosterSlot={addRosterSlot}
-                                                assignUserToSlot={
-                                                    assignUserToSlot
-                                                }
-                                                assignPlaceholderToSlot={
-                                                    assignPlaceholderToSlot
-                                                }
-                                                allUsersSorted={allUsersSorted}
-                                                usersById={usersById}
-                                                assignmentsByUserId={
-                                                    assignmentsByUserId
-                                                }
-                                                groupsById={groupsById}
-                                                participantStatusByUserId={
-                                                    participantStatusByUserId
-                                                }
-                                                signupGroupByUserId={
-                                                    signupGroupByUserId
-                                                }
-                                                canAdmin={canAdmin}
-                                                setDragState={setDragState}
-                                                serverDiscordId={event.guildId}
-                                                noticeReasonByUserId={
-                                                    noticeReasonByUserId
-                                                }
-                                                draggedName={draggedName}
-                                                defaultExpanded={
-                                                    squad === firstSquad
-                                                }
-                                            />
-                                        ))}
-                                        {groupEntry.subgroups.length > 0 &&
-                                            groupEntry.subgroups.map((sub) =>
-                                                sub.squads.map((squad) => (
-                                                    <SquadCard
-                                                        key={squad.order}
-                                                        squad={squad}
-                                                        board={board}
-                                                        squadIndex={board.squads.indexOf(
-                                                            squad
-                                                        )}
-                                                        mode={mode}
-                                                        dictionary={dictionary}
-                                                        setFocusedGroup={
-                                                            setFocusedGroup
-                                                        }
-                                                        updateSquadField={
-                                                            updateSquadField
-                                                        }
-                                                        removeRosterSquad={
-                                                            removeRosterSquad
-                                                        }
-                                                        moveSquad={moveSquad}
-                                                        updatePlayerField={
-                                                            updatePlayerField
-                                                        }
-                                                        updatePlayerIcon={
-                                                            updatePlayerIcon
-                                                        }
-                                                        updatePlayerAttendanceStatus={
-                                                            updatePlayerAttendanceStatus
-                                                        }
-                                                        removeRosterSlot={
-                                                            removeRosterSlot
-                                                        }
-                                                        moveSlotToReserve={
-                                                            moveSlotToReserve
-                                                        }
-                                                        moveSlotToNotAttending={
-                                                            moveSlotToNotAttending
-                                                        }
-                                                        clearSlotAssignment={
-                                                            clearSlotAssignment
-                                                        }
-                                                        handleDropOnSlot={
-                                                            handleDropOnSlot
-                                                        }
-                                                        addRosterSlot={
-                                                            addRosterSlot
-                                                        }
-                                                        assignUserToSlot={
-                                                            assignUserToSlot
-                                                        }
-                                                        assignPlaceholderToSlot={
-                                                            assignPlaceholderToSlot
-                                                        }
-                                                        allUsersSorted={
-                                                            allUsersSorted
-                                                        }
-                                                        usersById={usersById}
-                                                        assignmentsByUserId={
-                                                            assignmentsByUserId
-                                                        }
-                                                        groupsById={groupsById}
-                                                        participantStatusByUserId={
-                                                            participantStatusByUserId
-                                                        }
-                                                        signupGroupByUserId={
-                                                            signupGroupByUserId
-                                                        }
-                                                        canAdmin={canAdmin}
-                                                        setDragState={
-                                                            setDragState
-                                                        }
-                                                        serverDiscordId={
-                                                            event.guildId
-                                                        }
-                                                        noticeReasonByUserId={
-                                                            noticeReasonByUserId
-                                                        }
-                                                        draggedName={
-                                                            draggedName
-                                                        }
-                                                        defaultExpanded={
-                                                            squad === firstSquad
-                                                        }
-                                                    />
-                                                ))
-                                            )}
+                                    <div
+                                        className={cn(
+                                            "grid gap-2.5 md:grid-cols-2",
+                                            canAdmin
+                                                ? "2xl:grid-cols-3"
+                                                : "xl:grid-cols-3 2xl:grid-cols-4"
+                                        )}
+                                    >
+                                        {[
+                                            ...groupEntry.squads,
+                                            ...groupEntry.subgroups.flatMap(
+                                                (sub) => sub.squads
+                                            ),
+                                        ]
+                                            .sort((a, b) => a.order - b.order)
+                                            .map((squad) => (
+                                                <SquadCard
+                                                    key={`${mode}-${layoutRevision}-${squad.order}`}
+                                                    squad={squad}
+                                                    board={board}
+                                                    squadIndex={board.squads.indexOf(
+                                                        squad
+                                                    )}
+                                                    mode={mode}
+                                                    onDropSquad={
+                                                        handleDropOnSquad
+                                                    }
+                                                    dragState={dragState}
+                                                    addSquadToGroup={
+                                                        addRosterSquad
+                                                    }
+                                                    dictionary={dictionary}
+                                                    setFocusedGroup={
+                                                        setFocusedGroup
+                                                    }
+                                                    updateSquadField={
+                                                        updateSquadField
+                                                    }
+                                                    removeRosterSquad={
+                                                        removeRosterSquad
+                                                    }
+                                                    moveSquad={moveSquad}
+                                                    updatePlayerField={
+                                                        updatePlayerField
+                                                    }
+                                                    updatePlayerIcon={
+                                                        updatePlayerIcon
+                                                    }
+                                                    updatePlayerAttendanceStatus={
+                                                        updatePlayerAttendanceStatus
+                                                    }
+                                                    removeRosterSlot={
+                                                        removeRosterSlot
+                                                    }
+                                                    moveSlotToReserve={
+                                                        moveSlotToReserve
+                                                    }
+                                                    moveSlotToNotAttending={
+                                                        moveSlotToNotAttending
+                                                    }
+                                                    clearSlotAssignment={
+                                                        clearSlotAssignment
+                                                    }
+                                                    handleDropOnSlot={
+                                                        handleDropOnSlot
+                                                    }
+                                                    addRosterSlot={
+                                                        addRosterSlot
+                                                    }
+                                                    assignUserToSlot={
+                                                        assignUserToSlot
+                                                    }
+                                                    assignPlaceholderToSlot={
+                                                        assignPlaceholderToSlot
+                                                    }
+                                                    allUsersSorted={
+                                                        allUsersSorted
+                                                    }
+                                                    usersById={usersById}
+                                                    assignmentsByUserId={
+                                                        assignmentsByUserId
+                                                    }
+                                                    groupsById={groupsById}
+                                                    participantStatusByUserId={
+                                                        participantStatusByUserId
+                                                    }
+                                                    signupGroupByUserId={
+                                                        signupGroupByUserId
+                                                    }
+                                                    canAdmin={canAdmin}
+                                                    setDragState={setDragState}
+                                                    serverDiscordId={
+                                                        event.guildId
+                                                    }
+                                                    noticeReasonByUserId={
+                                                        noticeReasonByUserId
+                                                    }
+                                                    draggedName={draggedName}
+                                                    defaultExpanded={
+                                                        squad === firstSquad
+                                                    }
+                                                />
+                                            ))}
                                     </div>
                                 </div>
                             ))}

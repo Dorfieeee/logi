@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 
 import { ResourceTable, StatusBadge } from "@/components/app/resource-table"
 import { TablePageLayout } from "@/components/app/table-page-layout"
@@ -83,6 +84,7 @@ export default async function RostersPage({
             }
         >
             <ResourceTable
+                clickableRows
                 className="h-full"
                 dictionary={dictionary}
                 rows={paginated.rows}
@@ -104,9 +106,15 @@ export default async function RostersPage({
                     {
                         key: "event",
                         title: dictionary.tables.event,
-                        render: (roster) =>
-                            eventById.get(roster.eventId)?.name ??
-                            dictionary.tables.unassigned,
+                        render: (roster) => (
+                            <Link
+                                className="font-medium hover:underline focus-visible:underline"
+                                href={`/${locale}/dashboard/servers/${serverId}/rosters/${roster.id}`}
+                            >
+                                {eventById.get(roster.eventId)?.name ??
+                                    dictionary.tables.unassigned}
+                            </Link>
+                        ),
                     },
                     {
                         key: "squads",

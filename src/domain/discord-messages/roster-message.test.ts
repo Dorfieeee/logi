@@ -163,6 +163,17 @@ test("squads are grouped by the clan's root groups in their order", () => {
     )
 })
 
+test("saved section order overrides the group catalogue in published Discord rosters", () => {
+    const reordered = roster.squads.map((squad) => ({
+        ...squad,
+        order: squad.group === "Pěchota" ? -1 : squad.order,
+    }))
+    assert.deepEqual(
+        rosterSections(reordered, groups).map((section) => section.title),
+        ["Pěchota", "Velení"]
+    )
+})
+
 test("variant A: photo, then the whole roster as text, three buttons and the publish footer", () => {
     const view = rosterMessageView(
         {

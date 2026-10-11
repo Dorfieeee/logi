@@ -54,6 +54,7 @@ import {
 } from "./discordPanelGraphicsTable"
 import { storedMatchTemplateValidator } from "./matchTemplateValidators"
 import { resultPublicPayload, resultRevision } from "./resultValidators"
+import { tacticalPlanValidator } from "./tacticalPlanValidator"
 import { defineSchema, defineTable } from "convex/server"
 import { apiKeyReadAccess } from "./apiKeyValidators"
 import { v } from "convex/values"
@@ -972,6 +973,8 @@ export default defineSchema({
         serverPassword: v.optional(v.string()),
         side: v.optional(v.string()),
         map: v.optional(v.string()),
+        timeOfDay: v.optional(v.string()),
+        tacticalPlan: v.optional(tacticalPlanValidator),
         cap: v.optional(v.string()),
         notes: v.optional(v.string()),
         // Missing means announce registration immediately, preserving legacy events.
@@ -1111,6 +1114,27 @@ export default defineSchema({
         .index("eventId", ["eventId"])
         .index("sideATeamId", ["sideATeamId"])
         .index("sideBTeamId", ["sideBTeamId"]),
+    eventDeletionRequests: defineTable({
+        // Snapshot retained until Discord confirms deletion, independent of the deleted event.
+        eventId: v.string(),
+        guildId: v.string(),
+        messages: v.array(
+            v.object({ channelId: v.string(), messageId: v.string() })
+        ),
+        channelIds: v.array(v.string()),
+        roleIds: v.array(v.string()),
+        scheduledEventIds: v.array(v.string()),
+        status: v.union(
+            v.literal("pending"),
+            v.literal("processing"),
+            v.literal("failed")
+        ),
+        attempts: v.number(),
+        nextAttemptAt: v.string(),
+        leaseUntil: v.optional(v.string()),
+        error: v.optional(v.string()),
+        createdAt: v.string(),
+    }).index("status_nextAttemptAt", ["status", "nextAttemptAt"]),
     eventScheduleJobs: defineTable({
         eventId: v.id("events"),
         kind: v.union(
@@ -2125,6 +2149,7 @@ export default defineSchema({
             v.literal("create"),
             v.literal("update"),
             v.literal("cancel"),
+            v.literal("delete"),
             v.literal("refresh_match_team")
         ),
         eventId: v.id("events"),

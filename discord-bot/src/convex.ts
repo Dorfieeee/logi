@@ -44,6 +44,15 @@ export async function closeConvexClient() {
 }
 
 export const references = {
+    pendingEventDeletions: makeFunctionReference<"query">(
+        "eventDeletion:pending"
+    ),
+    claimEventDeletion: makeFunctionReference<"mutation">(
+        "eventDeletion:claim"
+    ),
+    finishEventDeletion: makeFunctionReference<"mutation">(
+        "eventDeletion:finish"
+    ),
     getGameDataConnections: makeFunctionReference<"query">(
         "gameData:listConnections"
     ),

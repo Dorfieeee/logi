@@ -173,9 +173,8 @@ export function roleSymbol(role: string | null | undefined) {
 export type RosterSection = { title: string; squads: RosterCardSquad[] }
 
 /**
- * Squads grouped like the roster photo: by the clan's root groups in their
- * order (a sub-group's squads under its root), then squads of unknown
- * groups under their own group name, each section by squad order.
+ * Squads grouped by root group, with each section positioned by its first
+ * squad's saved order so that dashboard section moves also reach Discord.
  */
 export function rosterSections(
     squads: readonly RosterCardSquad[],
@@ -215,6 +214,7 @@ export function rosterSections(
     return order
         .map((key) => sections.get(key)!)
         .filter((section) => section.squads.length > 0)
+        .sort((a, b) => a.squads[0].order - b.squads[0].order)
 }
 
 const filledOf = (squad: RosterCardSquad) =>

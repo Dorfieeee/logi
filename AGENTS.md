@@ -59,6 +59,8 @@ The main stack is TypeScript (strict mode), React 19, Next.js, Convex, Discord.j
 - [Clan meta from a maintained summary](./docs/integrations/website/clan-meta.md) — what `/api/v1/clan/meta` promises per field, the once-a-minute summary refresh off the request path, the reads the endpoint makes and the operator notes
 - [Global team catalogue handoff](./docs/integrations/website/v0.15/README.md) — explicit `teams` grant, global catalogue collection/detail reads, fan-out change feed and merge semantics, immutable match snapshots, actor-backed `matchTeams` commands and the API-parity exception for catalogue writes, logo uploads and team requests
 
+- [Roster and match workflow acceptance](./docs/verification/2026-10-11-roster-match-workflows.md) — roster drag/drop, sticky reserves, tactical plans, editable signups, deletion and local browser/build evidence
+
 ### User-facing and legal Markdown
 
 - [public/docs/privacy-policy.md](./public/docs/privacy-policy.md) — source content for the privacy policy

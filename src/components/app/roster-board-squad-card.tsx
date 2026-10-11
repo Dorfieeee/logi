@@ -11,12 +11,23 @@ import {
     CircleX,
     Clock3,
     GripVertical,
+    MoreHorizontal,
     Plus,
     Trash2,
 } from "lucide-react"
 import { useState } from "react"
 import Image from "next/image"
 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
     Command,
     CommandEmpty,
@@ -190,6 +201,9 @@ export function SquadCard({
     board,
     squadIndex,
     mode,
+    onDropSquad,
+    dragState,
+    addSquadToGroup,
     dictionary,
     setFocusedGroup,
     updateSquadField,
@@ -223,6 +237,9 @@ export function SquadCard({
     board: Roster
     squadIndex: number
     mode: RosterBoardMode
+    onDropSquad: (squadIndex: number) => void
+    dragState: DragState | null
+    addSquadToGroup: (group: string) => void
     dictionary: Dictionary
     setFocusedGroup: (group: string) => void
     updateSquadField: (
@@ -283,9 +300,13 @@ export function SquadCard({
     // On phones a squad folds to its header (Mobile board); desktop shows all.
     const [expanded, setExpanded] = useState(defaultExpanded)
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-    const isLayoutMode = mode === "layout"
-    const isAssignmentMode = mode === "assignment"
-    const isViewMode = mode === "view"
+    const [localMode, setLocalMode] = useState<RosterBoardMode | null>(null)
+    const [contextMenuOpen, setContextMenuOpen] = useState(false)
+    const [squadDropOver, setSquadDropOver] = useState(false)
+    const effectiveMode = localMode ?? mode
+    const isLayoutMode = canAdmin && effectiveMode === "layout"
+    const isAssignmentMode = canAdmin && effectiveMode !== "layout"
+    const isViewMode = effectiveMode === "view"
     const filledSlotCount = squad.players.filter((player) =>
         Boolean(player.id || getCustomPlayerName(player))
     ).length
@@ -300,13 +321,182 @@ export function SquadCard({
 
     return (
         <Card
-            className="border-border/70 bg-card gap-2 rounded-2xl p-4"
+            className={cn(
+                "border-border/70 bg-card min-w-0 gap-2 rounded-2xl p-4",
+                squadDropOver && "ring-primary ring-2"
+            )}
+            data-testid="roster-squad"
+            data-squad={squad.name}
+            onContextMenu={(event) => {
+                if (!canAdmin) return
+                event.preventDefault()
+                setContextMenuOpen(true)
+            }}
+            onDragOver={(event) => {
+                if (canAdmin && dragState && dragState.type !== "section") {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setSquadDropOver(true)
+                }
+            }}
+            onDragLeave={(event) => {
+                if (
+                    !event.currentTarget.contains(
+                        event.relatedTarget as Node | null
+                    )
+                )
+                    setSquadDropOver(false)
+            }}
+            onDrop={(event) => {
+                if (!canAdmin || !dragState || dragState.type === "section")
+                    return
+                event.preventDefault()
+                event.stopPropagation()
+                setSquadDropOver(false)
+                onDropSquad(squadIndex)
+            }}
             style={{
                 boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${squad.color} 60%, transparent)`,
             }}
             onClick={() => setFocusedGroup(squad.group)}
         >
             <CardHeader className="px-0">
+                {canAdmin ? (
+                    <div className="flex items-center gap-1">
+                        <button
+                            type="button"
+                            draggable
+                            aria-label={`${dictionary.roster.dragSquad}: ${squad.name}`}
+                            className="text-muted-foreground hover:bg-muted cursor-grab rounded p-1 active:cursor-grabbing"
+                            onDragStart={(event) => {
+                                event.stopPropagation()
+                                event.dataTransfer.setData(
+                                    "text/plain",
+                                    squad.name
+                                )
+                                event.dataTransfer.effectAllowed = "move"
+                                setDragState({ type: "squad", squadIndex })
+                            }}
+                            onDragEnd={() => {
+                                setDragState(null)
+                                setSquadDropOver(false)
+                            }}
+                        >
+                            <GripVertical className="size-4" />
+                        </button>
+                        {localMode ? (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => setLocalMode(null)}
+                            >
+                                {dictionary.roster.finishEditing}
+                            </Button>
+                        ) : null}
+                        <DropdownMenu
+                            open={contextMenuOpen}
+                            onOpenChange={setContextMenuOpen}
+                        >
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="ml-auto size-7"
+                                    aria-label={`${dictionary.roster.squadActions}: ${squad.name}`}
+                                >
+                                    <MoreHorizontal className="size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        setLocalMode("layout")
+                                        setExpanded(true)
+                                    }}
+                                >
+                                    {dictionary.roster.editSquad}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        setLocalMode("assignment")
+                                        setExpanded(true)
+                                    }}
+                                >
+                                    {dictionary.roster.editPlayers}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => addRosterSlot(squadIndex)}
+                                >
+                                    {dictionary.roster.addSlot}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() =>
+                                        addSquadToGroup(squad.group)
+                                    }
+                                >
+                                    {dictionary.roster.addSquad}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger>
+                                        {dictionary.roster.moveToSection}
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuSubContent>
+                                        {Array.from(
+                                            new Set(
+                                                [...groupsById.values()]
+                                                    .map((group) => group.name)
+                                                    .concat(
+                                                        board.squads.map(
+                                                            (item) => item.group
+                                                        )
+                                                    )
+                                            )
+                                        )
+                                            .filter(
+                                                (name) => name !== squad.group
+                                            )
+                                            .map((name) => (
+                                                <DropdownMenuItem
+                                                    key={name}
+                                                    onSelect={() =>
+                                                        updateSquadField(
+                                                            squadIndex,
+                                                            "group",
+                                                            name
+                                                        )
+                                                    }
+                                                >
+                                                    {name}
+                                                </DropdownMenuItem>
+                                            ))}
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+                                <DropdownMenuItem
+                                    onSelect={() => moveSquad(squadIndex, -1)}
+                                >
+                                    {dictionary.roster.moveUp}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => moveSquad(squadIndex, 1)}
+                                >
+                                    {dictionary.roster.moveDown}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    disabled={board.squads.length <= 1}
+                                    onSelect={() =>
+                                        removeRosterSquad(squadIndex)
+                                    }
+                                >
+                                    {dictionary.roster.removeSquad}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                ) : null}
                 {isLayoutMode ? (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between gap-2">
@@ -318,6 +508,8 @@ export function SquadCard({
                                     variant="ghost"
                                     size="icon"
                                     className="size-8 rounded-xl"
+                                    aria-label={dictionary.roster.removeSquad}
+                                    disabled={board.squads.length <= 1}
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         removeRosterSquad(squadIndex)
@@ -329,6 +521,7 @@ export function SquadCard({
                                     variant="ghost"
                                     size="icon"
                                     className="size-8 rounded-xl"
+                                    aria-label={dictionary.roster.moveUp}
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         moveSquad(squadIndex, -1)
@@ -340,6 +533,7 @@ export function SquadCard({
                                     variant="ghost"
                                     size="icon"
                                     className="size-8 rounded-xl"
+                                    aria-label={dictionary.roster.moveDown}
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         moveSquad(squadIndex, 1)
@@ -351,6 +545,7 @@ export function SquadCard({
                         </div>
                         <div className="flex flex-row gap-3">
                             <Input
+                                aria-label={dictionary.roster.squadName}
                                 defaultValue={squad.name}
                                 onBlur={(event) =>
                                     updateSquadField(
@@ -362,6 +557,7 @@ export function SquadCard({
                                 className="h-9 rounded-xl p-2"
                             />
                             <Input
+                                aria-label={dictionary.roster.squadGroup}
                                 defaultValue={squad.group}
                                 onBlur={(event) =>
                                     updateSquadField(
@@ -374,6 +570,7 @@ export function SquadCard({
                             />
                             <Input
                                 type="color"
+                                aria-label={dictionary.roster.squadColor}
                                 value={squad.color}
                                 onChange={(event) =>
                                     updateSquadField(
@@ -491,6 +688,8 @@ export function SquadCard({
                     return (
                         <div
                             key={`${squadIndex}-${playerIndex}`}
+                            data-testid="roster-slot"
+                            data-slot-index={playerIndex}
                             onDragOver={(event) => {
                                 if (isAssignmentMode) event.preventDefault()
                             }}
@@ -508,8 +707,17 @@ export function SquadCard({
                                         current === playerIndex ? null : current
                                     )
                             }}
-                            onDrop={() => {
+                            onDrop={(event) => {
+                                if (
+                                    !canAdmin ||
+                                    !dragState ||
+                                    dragState.type === "section"
+                                )
+                                    return
+                                event.preventDefault()
+                                event.stopPropagation()
                                 setDragOverIndex(null)
+                                setSquadDropOver(false)
                                 handleDropOnSlot(squadIndex, playerIndex)
                             }}
                             className={cn(
@@ -1195,7 +1403,14 @@ function FilledSlot({
     return (
         <div
             draggable={Boolean(slotUser) && editable}
-            onDragStart={onDragStart}
+            onDragStart={(event) => {
+                event.dataTransfer.setData(
+                    "text/plain",
+                    slotUser?.discordId ?? ""
+                )
+                event.dataTransfer.effectAllowed = "move"
+                onDragStart()
+            }}
             onDragEnd={onDragEnd}
             className={cn(
                 "border-border/60 bg-background flex min-h-10 min-w-0 items-center gap-1.5 rounded-lg border px-1.5 py-1",

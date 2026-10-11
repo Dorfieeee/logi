@@ -83,6 +83,16 @@ can be overridden, and already placed icons can still be resized individually.
 
 ## Match briefing
 
+### Wardogs match plan
+
+In the match's **Match** step, the map and time of day may remain **TBD / not selected**. HLL maps also allow this empty selection. Wardogs stores the planned time separately from the map, so editing the match preserves both.
+
+After choosing Bakurani, Ozeti or Zestafona, select **Create tactical plan**. Enter a layout name or zone reference. Select **Control Zone**, **Hot Zone**, or one of the selected teams and click the map to position it. X/Y fields provide a keyboard-accessible alternative; coordinates and zone radius are percentages of the map image. Zones and team positions can be removed individually. Changing the map clears the old plan.
+
+The preview uses Logi's existing terrain images, faction headquarters and spawn zones. Team labels follow the selected teams and their factions. The plan is saved with the draft or match, appears in the final review and match overview, and remains editable through the match form. **Download map (SVG)** exports the plan with the terrain image embedded, so it can be shared without an external map-image URL. It does not create a separate Stratmaps resource. The Control Zone is drawn as a square with an editable half-width; the Hot Zone is drawn as a circle with an editable radius. Both are planning conventions over image coordinates, not world-coordinate measurements.
+
+These are manual planning positions. The organiser supplies the agreed control zone, hot zone, layout and radius; the preview does not claim to reconstruct an official server layout or track a moving hot zone. The game's [official overview](https://www.wardogs.com/) describes three teams and a randomized 2×2 km Control Zone, but does not publish the coordinates of each layout. The checked-in map catalogue supplies the terrain and faction bases; no new third-party map images are downloaded for this feature.
+
 For Discord forum output, all of the following are required: the event must be
 a match, **Create forum channel** must be enabled, a usable forum category must
 be configured, and the bot must have Discord permission to create/edit that

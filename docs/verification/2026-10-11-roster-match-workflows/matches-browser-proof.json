@@ -1,0 +1,79 @@
+{
+  "local": true,
+  "production": false,
+  "checks": [
+    {
+      "name": "Creation signup roles are editable",
+      "pass": true
+    },
+    {
+      "name": "Edited signup groups caps and general signup persisted",
+      "pass": true
+    },
+    {
+      "name": "Signup settings survive browser reload",
+      "pass": true
+    },
+    {
+      "name": "Published signup configuration matches saved draft",
+      "pass": true
+    },
+    {
+      "name": "Cancel leaves match and roster intact",
+      "pass": true
+    },
+    {
+      "name": "Member deletion is denied by real HTTP",
+      "pass": true
+    },
+    {
+      "name": "Manager cannot delete another workspace event by changing the event ID",
+      "pass": true
+    },
+    {
+      "name": "Cross-origin delete is denied by real HTTP",
+      "pass": true
+    },
+    {
+      "name": "UI deletion HTTP succeeds",
+      "pass": true
+    },
+    {
+      "name": "Confirmed deletion removes match",
+      "pass": true
+    },
+    {
+      "name": "Confirmed deletion removes dependent roster",
+      "pass": true
+    },
+    {
+      "name": "No browser runtime errors",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "url": "http://127.0.0.1:30310/api/servers/qh7faf0f0a03k8k5qms71se76n8g37hq/event-drafts",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:30310/api/servers/qh7faf0f0a03k8k5qms71se76n8g37hq/event-drafts",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:30310/api/servers/qh7faf0f0a03k8k5qms71se76n8g37hq/events/p57frqb4mg2tghazt8n74ewnfd8g3f0d",
+      "method": "DELETE",
+      "status": 200
+    }
+  ],
+  "screenshots": [
+    "match-create-editable-signup-roles.png",
+    "match-delete-confirmation.png",
+    "match-deleted-list.png"
+  ],
+  "eventId": "p57frqb4mg2tghazt8n74ewnfd8g3f0d",
+  "rosterId": "wn774e1vkd6txcmc0x4ngw4w798g2b7q"
+}

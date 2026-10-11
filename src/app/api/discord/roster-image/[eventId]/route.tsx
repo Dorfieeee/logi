@@ -78,7 +78,13 @@ type Player = {
     roleIcon?: string
     note?: string
 }
-type Squad = { name: string; color: string; icon?: string; players: Player[] }
+type Squad = {
+    name: string
+    color: string
+    order: number
+    icon?: string
+    players: Player[]
+}
 type GroupSection = { group: string; color: string; squads: Squad[] }
 
 function getFilledPlayerName(player: Player, userName?: string | null) {
@@ -411,7 +417,7 @@ export async function GET(
                     .slice()
                     .sort((a, b) => a.order - b.order),
                 ...subgroupSquads,
-            ]
+            ].sort((a, b) => a.order - b.order)
             squadByGroupName.delete(root.name)
 
             return {
@@ -439,7 +445,9 @@ export async function GET(
             }
         })
 
-    const allGroupedSections = [...groupedSections, ...remainingGroups]
+    const allGroupedSections = [...groupedSections, ...remainingGroups].sort(
+        (a, b) => a.squads[0].order - b.squads[0].order
+    )
 
     const reserveUsers = data.roster.reservePlayerIds
         .map((id) => usersById.get(id))

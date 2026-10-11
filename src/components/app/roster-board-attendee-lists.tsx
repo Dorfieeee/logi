@@ -21,6 +21,13 @@ import {
     CommandList,
 } from "@/components/ui/command"
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import {
     HoverCard,
     HoverCardContent,
     HoverCardTrigger,
@@ -79,6 +86,7 @@ export function RosterBoardAttendeeLists({
     noticeReasonByUserId,
     notAttendingIndicatorByUserId,
     reminder,
+    assignUserToSlot,
 }: {
     board: Roster
     users: AppUser[]
@@ -109,15 +117,37 @@ export function RosterBoardAttendeeLists({
     notAttendingIndicatorByUserId: Map<string, "declined" | "no_response">
     /** "Bez odpovědi: N členů · Připomenout" under the reserves (D3). */
     reminder?: ReactNode
+    assignUserToSlot: (
+        userId: string,
+        squadIndex: number,
+        playerIndex: number
+    ) => void
 }) {
+    const slotOptions = board.squads.flatMap((squad, squadIndex) =>
+        squad.players.flatMap((player, playerIndex) =>
+            player.id || player.customName?.trim()
+                ? []
+                : [
+                      {
+                          value: `${squadIndex}:${playerIndex}`,
+                          label: `${squad.name} · ${player.roleName || dictionary.roster.role} (${playerIndex + 1})`,
+                      },
+                  ]
+        )
+    )
     return (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
             <Card
+                data-testid="roster-reserves"
                 className="border-border/70 bg-card gap-0 rounded-2xl"
                 onDragOver={(event) =>
                     isAssignmentMode && event.preventDefault()
                 }
-                onDrop={() => handleDropOnReserve()}
+                onDrop={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    handleDropOnReserve()
+                }}
             >
                 <CardHeader className="grid grid-rows-[1.5rem_2rem] gap-2 p-4">
                     <div className="flex h-6 items-center gap-2">
@@ -141,6 +171,7 @@ export function RosterBoardAttendeeLists({
                                         variant="ghost"
                                         size="icon"
                                         className="size-6 rounded-lg"
+                                        aria-label={dictionary.common.reserves}
                                         onClick={(event) => {
                                             event.stopPropagation()
                                             setUserPickerOpen(true)
@@ -228,8 +259,15 @@ export function RosterBoardAttendeeLists({
                     </label>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                    <ScrollArea className="h-[11rem] pr-1">
+                    {canAdmin && isAssignmentMode ? (
+                        <p className="text-muted-foreground mb-2 text-xs">
+                            {dictionary.roster.dragHelp}
+                        </p>
+                    ) : null}
+                    <ScrollArea className="h-[min(34vh,24rem)] pr-1">
                         <GroupedUserList
+                            slotOptions={slotOptions}
+                            assignUserToSlot={assignUserToSlot}
                             users={reserveUsers}
                             dictionary={dictionary}
                             assignmentsByUserId={assignmentsByUserId}
@@ -259,7 +297,11 @@ export function RosterBoardAttendeeLists({
                 onDragOver={(event) =>
                     isAssignmentMode && event.preventDefault()
                 }
-                onDrop={() => handleDropOnNotAttending()}
+                onDrop={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    handleDropOnNotAttending()
+                }}
             >
                 <CardHeader className="grid grid-rows-[1.5rem_2rem] gap-2 p-4">
                     <div className="flex h-6 items-center gap-2">
@@ -283,6 +325,9 @@ export function RosterBoardAttendeeLists({
                                         variant="ghost"
                                         size="icon"
                                         className="size-6 rounded-lg"
+                                        aria-label={
+                                            dictionary.roster.notAttending
+                                        }
                                         onClick={(event) => {
                                             event.stopPropagation()
                                             setNotAttendingPickerOpen(true)
@@ -371,8 +416,10 @@ export function RosterBoardAttendeeLists({
                     </label>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                    <ScrollArea className="h-[11rem] pr-1">
+                    <ScrollArea className="h-[min(18vh,12rem)] pr-1">
                         <GroupedUserList
+                            slotOptions={slotOptions}
+                            assignUserToSlot={assignUserToSlot}
                             users={groupedNotAttendingUsers}
                             dictionary={dictionary}
                             assignmentsByUserId={assignmentsByUserId}
@@ -413,6 +460,8 @@ function GroupedUserList({
     serverDiscordId,
     noticeReasonByUserId,
     notAttendingIndicatorByUserId,
+    slotOptions,
+    assignUserToSlot,
 }: {
     users: RosterUser[]
     dictionary: Dictionary
@@ -429,6 +478,12 @@ function GroupedUserList({
     serverDiscordId: string
     noticeReasonByUserId: Map<string, string>
     notAttendingIndicatorByUserId: Map<string, "declined" | "no_response">
+    slotOptions: Array<{ value: string; label: string }>
+    assignUserToSlot: (
+        userId: string,
+        squadIndex: number,
+        playerIndex: number
+    ) => void
 }) {
     // One grid in ranking order with the group on the right (design D3);
     // the focused group's players come first.
@@ -456,7 +511,7 @@ function GroupedUserList({
                             <div className="bg-border/40 h-px flex-1" />
                         </div>
                     )}
-                    <div className="grid gap-2 md:grid-cols-2">
+                    <div className="grid gap-2">
                         {sections[sectionName].map((user) => {
                             const assignment = assignmentsByUserId.get(
                                 user.discordId
@@ -485,17 +540,29 @@ function GroupedUserList({
                                         isAssignmentMode &&
                                         event.preventDefault()
                                     }
-                                    onDrop={() => onDropUser(user.discordId)}
+                                    onDrop={(event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        onDropUser(user.discordId)
+                                    }}
                                     className="min-w-0"
                                 >
                                     <div
+                                        data-testid="roster-reserve-player"
+                                        data-player={user.discordId}
                                         draggable={isAssignmentMode && canAdmin}
-                                        onDragStart={() =>
+                                        onDragStart={(event) => {
+                                            event.dataTransfer.setData(
+                                                "text/plain",
+                                                user.discordId
+                                            )
+                                            event.dataTransfer.effectAllowed =
+                                                "move"
                                             setDragState({
                                                 type: dragType,
                                                 userId: user.discordId,
                                             })
-                                        }
+                                        }}
                                         onDragEnd={() => setDragState(null)}
                                         className={[
                                             "border-border/70 bg-background flex min-h-10 min-w-0 items-center gap-2 rounded-lg border px-2 py-1.5",
@@ -631,6 +698,53 @@ function GroupedUserList({
                                             <span className="text-muted-foreground max-w-20 shrink-0 truncate text-[10px]">
                                                 {user._reserveSection}
                                             </span>
+                                        ) : null}
+                                        {isAssignmentMode && canAdmin ? (
+                                            <Select
+                                                value=""
+                                                onValueChange={(value) => {
+                                                    const [
+                                                        squadIndex,
+                                                        playerIndex,
+                                                    ] = value
+                                                        .split(":")
+                                                        .map(Number)
+                                                    assignUserToSlot(
+                                                        user.discordId,
+                                                        squadIndex,
+                                                        playerIndex
+                                                    )
+                                                }}
+                                            >
+                                                <SelectTrigger
+                                                    className="size-7 shrink-0 gap-0 px-1 [&>svg:last-child]:hidden"
+                                                    aria-label={`${dictionary.roster.assignReserve}: ${user.name}`}
+                                                    disabled={
+                                                        !slotOptions.length
+                                                    }
+                                                >
+                                                    <UserPlus className="size-4" />
+                                                    <span className="sr-only">
+                                                        <SelectValue
+                                                            placeholder={
+                                                                dictionary
+                                                                    .roster
+                                                                    .chooseSlot
+                                                            }
+                                                        />
+                                                    </span>
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {slotOptions.map((slot) => (
+                                                        <SelectItem
+                                                            key={slot.value}
+                                                            value={slot.value}
+                                                        >
+                                                            {slot.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         ) : null}
                                     </div>
                                 </div>

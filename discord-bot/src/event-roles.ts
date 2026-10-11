@@ -65,6 +65,7 @@ export async function syncEventRoles(
             if (attendeeRoleId || reserveRoleId)
                 await convex.mutation(references.setDiscordEventRoles, {
                     secret: env.internalSecret,
+                    guildId: guild.id,
                     eventId: event.id as never,
                 })
             return { attendeeRoleId: undefined, reserveRoleId: undefined }
@@ -95,6 +96,7 @@ export async function syncEventRoles(
         )
             await convex.mutation(references.setDiscordEventRoles, {
                 secret: env.internalSecret,
+                guildId: guild.id,
                 eventId: event.id as never,
                 attendeeRoleId,
                 reserveRoleId,

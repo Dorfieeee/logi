@@ -62,12 +62,14 @@ import { ConfirmActionDialog } from "@/components/app/confirm-action-dialog"
 import type { MessageStyle } from "@/domain/discord-messages/message-style"
 import { DiscordMarkdownTextarea } from "@/components/app/discord-markdown"
 import { TeamRequestDialog } from "@/components/app/team-request-dialog"
+import { TacticalPlanEditor, TacticalPlanMap } from "./tactical-plan"
 import { matchTeamGame } from "@/lib/teams/match-team-selection"
 import { eventWriteErrorMessage } from "@/lib/event-write-error"
 import type { TeamDto, TeamRecord } from "@/domain/teams/team"
 import { GAME_LABELS, type GameId } from "@/domain/games/game"
 import { AvatarPicker } from "@/components/app/avatar-picker"
 import { matchTeamSides } from "@/domain/teams/match-teams"
+import { tacticalPlanCopy } from "./tactical-plan-copy"
 import { getStratmapMaps } from "@/lib/game-stratmaps"
 import { TeamLogo } from "@/components/app/team-logo"
 import type { Dictionary } from "@/i18n/dictionaries"
@@ -501,9 +503,12 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
 
     // Map choices.
     const maps = getStratmapMaps(values.gameId)
-    const timeOptions = values.mapId
-        ? getHllTimeOptions(values.mapId, values.gameId)
-        : []
+    const timeOptions =
+        values.gameId === "wardogs"
+            ? ["day", "morning", "evening", "night"].map((value) => ({ value }))
+            : values.mapId
+              ? getHllTimeOptions(values.mapId, values.gameId)
+              : []
     const modeOptions =
         values.mapId && values.timeOfDay
             ? getHllModeOptions(values.mapId, values.timeOfDay, values.gameId)
@@ -521,9 +526,6 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
               edit.event.map)
             : null
 
-    const offeredGroups = groupsOfGame.filter((group) =>
-        values.signupGroupIds.includes(group.id)
-    )
     const limitOf = (groupId: string) =>
         values.signupGroupLimits.find((limit) => limit.groupId === groupId)?.max
 
@@ -874,6 +876,7 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
             extraSide: null,
             mapId: "",
             timeOfDay: "",
+            tacticalPlan: null,
             mapMode: "",
             cap: "",
             activity: "",
@@ -1874,13 +1877,21 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                 {t.match.map}
                                             </FieldLabel>
                                             <Select
-                                                value={values.mapId || NONE}
+                                                value={
+                                                    values.mapId ||
+                                                    (unknownStoredMap &&
+                                                    !values.mapCleared
+                                                        ? "__stored_map"
+                                                        : NONE)
+                                                }
                                                 onValueChange={(mapId) =>
                                                     update({
                                                         mapId:
                                                             mapId === NONE
                                                                 ? ""
                                                                 : mapId,
+                                                        mapCleared:
+                                                            mapId === NONE,
                                                         timeOfDay:
                                                             mapId === NONE
                                                                 ? ""
@@ -1889,6 +1900,7 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                                       values.gameId
                                                                   ),
                                                         cap: "",
+                                                        tacticalPlan: null,
                                                     })
                                                 }
                                             >
@@ -1903,8 +1915,20 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                     />
                                                 </SelectTrigger>
                                                 <SelectContent>
+                                                    {unknownStoredMap ? (
+                                                        <SelectItem
+                                                            value="__stored_map"
+                                                            disabled
+                                                        >
+                                                            {unknownStoredMap}
+                                                        </SelectItem>
+                                                    ) : null}
                                                     <SelectItem value={NONE}>
-                                                        {t.match.choose}
+                                                        {
+                                                            tacticalPlanCopy(
+                                                                locale
+                                                            ).tbd
+                                                        }
                                                     </SelectItem>
                                                     {maps.map((map) => (
                                                         <SelectItem
@@ -1945,7 +1969,11 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value={NONE}>
-                                                        {t.match.choose}
+                                                        {
+                                                            tacticalPlanCopy(
+                                                                locale
+                                                            ).tbd
+                                                        }
                                                     </SelectItem>
                                                     {timeOptions.map(
                                                         (option) => (
@@ -2089,12 +2117,58 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                             </div>
                                         ) : null}
                                     </div>
-                                    {unknownStoredMap && !values.mapId ? (
+                                    {unknownStoredMap &&
+                                    !values.mapId &&
+                                    !values.mapCleared ? (
                                         <Hint>
                                             {fill(t.match.storedMap, {
                                                 map: unknownStoredMap,
                                             })}
                                         </Hint>
+                                    ) : null}
+                                    {values.gameId === "wardogs" ? (
+                                        <TacticalPlanEditor
+                                            mapId={values.mapId}
+                                            value={values.tacticalPlan ?? null}
+                                            onChange={(tacticalPlan) =>
+                                                update({ tacticalPlan })
+                                            }
+                                            locale={locale}
+                                            timeLabel={timeLabel(
+                                                values.timeOfDay
+                                            )}
+                                            teams={[
+                                                {
+                                                    slot: "a",
+                                                    name:
+                                                        ownDisplay?.name ??
+                                                        props.clan.name,
+                                                    side: values.ownSide,
+                                                },
+                                                ...(values.opponent
+                                                    ? [
+                                                          {
+                                                              slot: "b" as const,
+                                                              name: values
+                                                                  .opponent
+                                                                  .name,
+                                                              side: values.opponentSide,
+                                                          },
+                                                      ]
+                                                    : []),
+                                                ...(values.extraTeam
+                                                    ? [
+                                                          {
+                                                              slot: "c" as const,
+                                                              name: values
+                                                                  .extraTeam
+                                                                  .name,
+                                                              side: values.extraSide,
+                                                          },
+                                                      ]
+                                                    : []),
+                                            ]}
+                                        />
                                     ) : null}
                                 </div>
                             ) : null}
@@ -2645,7 +2719,7 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                             )}
                                         </div>
                                     </div>
-                                    {isEdit ? (
+                                    {
                                         <div className="flex flex-col gap-1.5">
                                             <FieldLabel id="nm-required-match">
                                                 {t.signups.requiredRoles}
@@ -2661,203 +2735,142 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                 }
                                             />
                                         </div>
-                                    ) : null}
+                                    }
                                     {groupsOfGame.length ? (
-                                        isEdit ? (
-                                            <div className="flex flex-col gap-2">
-                                                <div className="border-border flex flex-col rounded-[10px] border">
-                                                    {groupsOfGame.map(
-                                                        (group, index) => {
-                                                            const offered =
-                                                                values.signupGroupIds.includes(
-                                                                    group.id
-                                                                )
-                                                            return (
-                                                                <div
-                                                                    key={
-                                                                        group.id
-                                                                    }
-                                                                    className={cn(
-                                                                        "flex min-h-11 items-center justify-between gap-3 px-3.5 py-1.5 text-sm",
-                                                                        index &&
-                                                                            "border-border/50 border-t"
-                                                                    )}
-                                                                >
-                                                                    <label className="flex min-w-0 items-center gap-2.5">
-                                                                        <Checkbox
-                                                                            checked={
-                                                                                offered
+                                        <div className="flex flex-col gap-2">
+                                            <div className="border-border flex flex-col rounded-[10px] border">
+                                                {groupsOfGame.map(
+                                                    (group, index) => {
+                                                        const offered =
+                                                            values.signupGroupIds.includes(
+                                                                group.id
+                                                            )
+                                                        return (
+                                                            <div
+                                                                key={group.id}
+                                                                className={cn(
+                                                                    "flex min-h-11 items-center justify-between gap-3 px-3.5 py-1.5 text-sm",
+                                                                    index &&
+                                                                        "border-border/50 border-t"
+                                                                )}
+                                                            >
+                                                                <label className="flex min-w-0 items-center gap-2.5">
+                                                                    <Checkbox
+                                                                        checked={
+                                                                            offered
+                                                                        }
+                                                                        onCheckedChange={(
+                                                                            checked
+                                                                        ) =>
+                                                                            setGroupOffered(
+                                                                                group.id,
+                                                                                checked ===
+                                                                                    true
+                                                                            )
+                                                                        }
+                                                                        aria-label={fill(
+                                                                            t
+                                                                                .signups
+                                                                                .groupOffered,
+                                                                            {
+                                                                                name: group.name,
                                                                             }
-                                                                            onCheckedChange={(
-                                                                                checked
-                                                                            ) =>
-                                                                                setGroupOffered(
-                                                                                    group.id,
-                                                                                    checked ===
-                                                                                        true
-                                                                                )
+                                                                        )}
+                                                                    />
+                                                                    <span
+                                                                        className={cn(
+                                                                            "truncate",
+                                                                            !offered &&
+                                                                                "text-muted-foreground"
+                                                                        )}
+                                                                    >
+                                                                        {
+                                                                            group.name
+                                                                        }
+                                                                    </span>
+                                                                </label>
+                                                                {offered ? (
+                                                                    <span className="flex items-center gap-1.5">
+                                                                        {limitOf(
+                                                                            group.id
+                                                                        ) ? (
+                                                                            <span
+                                                                                aria-hidden
+                                                                                className="text-muted-foreground text-[13px]"
+                                                                            >
+                                                                                max
+                                                                            </span>
+                                                                        ) : null}
+                                                                        <Input
+                                                                            type="number"
+                                                                            inputMode="numeric"
+                                                                            min={
+                                                                                1
+                                                                            }
+                                                                            max={
+                                                                                100
                                                                             }
                                                                             aria-label={fill(
                                                                                 t
                                                                                     .signups
-                                                                                    .groupOffered,
+                                                                                    .capLabel,
                                                                                 {
                                                                                     name: group.name,
                                                                                 }
                                                                             )}
-                                                                        />
-                                                                        <span
-                                                                            className={cn(
-                                                                                "truncate",
-                                                                                !offered &&
-                                                                                    "text-muted-foreground"
-                                                                            )}
-                                                                        >
-                                                                            {
-                                                                                group.name
+                                                                            placeholder={
+                                                                                t
+                                                                                    .signups
+                                                                                    .capPlaceholder
                                                                             }
-                                                                        </span>
-                                                                    </label>
-                                                                    {offered ? (
-                                                                        <span className="flex items-center gap-1.5">
-                                                                            {limitOf(
-                                                                                group.id
-                                                                            ) ? (
-                                                                                <span
-                                                                                    aria-hidden
-                                                                                    className="text-muted-foreground text-[13px]"
-                                                                                >
-                                                                                    max
-                                                                                </span>
-                                                                            ) : null}
-                                                                            <Input
-                                                                                type="number"
-                                                                                inputMode="numeric"
-                                                                                min={
-                                                                                    1
-                                                                                }
-                                                                                max={
-                                                                                    100
-                                                                                }
-                                                                                aria-label={fill(
-                                                                                    t
-                                                                                        .signups
-                                                                                        .capLabel,
-                                                                                    {
-                                                                                        name: group.name,
-                                                                                    }
-                                                                                )}
-                                                                                placeholder={
-                                                                                    t
-                                                                                        .signups
-                                                                                        .capPlaceholder
-                                                                                }
-                                                                                value={
-                                                                                    limitOf(
-                                                                                        group.id
-                                                                                    ) ??
-                                                                                    ""
-                                                                                }
-                                                                                onChange={(
+                                                                            value={
+                                                                                limitOf(
+                                                                                    group.id
+                                                                                ) ??
+                                                                                ""
+                                                                            }
+                                                                            onChange={(
+                                                                                event
+                                                                            ) =>
+                                                                                setGroupLimit(
+                                                                                    group.id,
                                                                                     event
-                                                                                ) =>
-                                                                                    setGroupLimit(
-                                                                                        group.id,
-                                                                                        event
-                                                                                            .target
-                                                                                            .value
-                                                                                    )
-                                                                                }
-                                                                                className="h-8 w-[104px] text-right text-[13px]"
-                                                                            />
-                                                                        </span>
-                                                                    ) : null}
-                                                                </div>
-                                                            )
-                                                        }
-                                                    )}
-                                                    <div className="border-border/50 flex min-h-11 items-center justify-between gap-3 border-t px-3.5 py-1.5 text-sm">
-                                                        <Label
-                                                            htmlFor="nm-general"
-                                                            className="text-sm font-normal"
-                                                        >
-                                                            {t.signups.general}
-                                                        </Label>
-                                                        <Switch
-                                                            id="nm-general"
-                                                            checked={
-                                                                values.useGeneralSignup
-                                                            }
-                                                            onCheckedChange={(
-                                                                useGeneralSignup
-                                                            ) =>
-                                                                update({
-                                                                    useGeneralSignup,
-                                                                })
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <Hint>{t.signups.capHint}</Hint>
-                                            </div>
-                                        ) : (
-                                            <div className="border-border flex flex-col rounded-[10px] border">
-                                                {offeredGroups.map(
-                                                    (group, index) => (
-                                                        <div
-                                                            key={group.id}
-                                                            className={cn(
-                                                                "flex items-center justify-between gap-3 px-3.5 py-2.5 text-sm",
-                                                                index &&
-                                                                    "border-border/50 border-t"
-                                                            )}
-                                                        >
-                                                            <span>
-                                                                {group.name}
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                {limitOf(
-                                                                    group.id
-                                                                )
-                                                                    ? fill(
-                                                                          t
-                                                                              .signups
-                                                                              .max,
-                                                                          {
-                                                                              count:
-                                                                                  limitOf(
-                                                                                      group.id
-                                                                                  ) ??
-                                                                                  0,
-                                                                          }
-                                                                      )
-                                                                    : t.signups
-                                                                          .noLimit}
-                                                            </span>
-                                                        </div>
-                                                    )
+                                                                                        .target
+                                                                                        .value
+                                                                                )
+                                                                            }
+                                                                            className="h-8 w-[104px] text-right text-[13px]"
+                                                                        />
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
+                                                        )
+                                                    }
                                                 )}
-                                                {values.useGeneralSignup ? (
-                                                    <div
-                                                        className={cn(
-                                                            "flex items-center justify-between gap-3 px-3.5 py-2.5 text-sm",
-                                                            offeredGroups.length &&
-                                                                "border-border/50 border-t"
-                                                        )}
+                                                <div className="border-border/50 flex min-h-11 items-center justify-between gap-3 border-t px-3.5 py-1.5 text-sm">
+                                                    <Label
+                                                        htmlFor="nm-general"
+                                                        className="text-sm font-normal"
                                                     >
-                                                        <span>
-                                                            {t.signups.general}
-                                                        </span>
-                                                        <span className="text-muted-foreground">
-                                                            {
-                                                                t.signups
-                                                                    .generalOn
-                                                            }
-                                                        </span>
-                                                    </div>
-                                                ) : null}
+                                                        {t.signups.general}
+                                                    </Label>
+                                                    <Switch
+                                                        id="nm-general"
+                                                        checked={
+                                                            values.useGeneralSignup
+                                                        }
+                                                        onCheckedChange={(
+                                                            useGeneralSignup
+                                                        ) =>
+                                                            update({
+                                                                useGeneralSignup,
+                                                            })
+                                                        }
+                                                    />
+                                                </div>
                                             </div>
-                                        )
+                                            <Hint>{t.signups.capHint}</Hint>
+                                        </div>
                                     ) : (
                                         <p className="text-muted-foreground text-sm">
                                             {t.signups.noGroups}
@@ -3580,6 +3593,41 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                         dictionary={dictionary}
                         copy={props.previewCopy}
                     />
+                    {step === "review" && values.tacticalPlan ? (
+                        <div className="mt-4">
+                            <TacticalPlanMap
+                                plan={values.tacticalPlan}
+                                locale={locale}
+                                timeLabel={timeLabel(values.timeOfDay)}
+                                teams={[
+                                    {
+                                        slot: "a",
+                                        name:
+                                            ownDisplay?.name ?? props.clan.name,
+                                        side: values.ownSide,
+                                    },
+                                    ...(values.opponent
+                                        ? [
+                                              {
+                                                  slot: "b" as const,
+                                                  name: values.opponent.name,
+                                                  side: values.opponentSide,
+                                              },
+                                          ]
+                                        : []),
+                                    ...(values.extraTeam
+                                        ? [
+                                              {
+                                                  slot: "c" as const,
+                                                  name: values.extraTeam.name,
+                                                  side: values.extraSide,
+                                              },
+                                          ]
+                                        : []),
+                                ]}
+                            />
+                        </div>
+                    ) : null}
                 </div>
             </div>
         </div>

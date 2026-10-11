@@ -1,3 +1,4 @@
+import { tacticalPlanValidator } from "./tacticalPlanValidator"
 import { v } from "convex/values"
 
 import { matchTeamInput } from "./teamValidators"
@@ -58,6 +59,8 @@ export const eventWriteFields = {
     serverPassword: v.optional(v.string()),
     side: v.optional(v.string()),
     map: v.optional(v.string()),
+    timeOfDay: v.optional(v.string()),
+    tacticalPlan: v.optional(v.union(tacticalPlanValidator, v.null())),
     cap: v.optional(v.string()),
     notes: v.optional(v.string()),
     registrationStart: v.optional(v.string()),

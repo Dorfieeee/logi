@@ -14,7 +14,9 @@ import {
 import { historicalConcludedEventCutoff } from "../src/application/discord-sync/relevance"
 import { matchesGameScope, withGameOverrides } from "../src/domain/games/game"
 import { isDraftEvent, withoutDrafts } from "../src/domain/events/drafts"
+import { eventDiscordDeletion } from "../src/domain/events/deletion"
 import { getGuildByDiscordId, getGuildDiscordId } from "./identity"
+import { queueEventDiscordDeletion } from "./eventDeletionQueue"
 import { applyGatewayObservation } from "./memberObservations"
 import { query, type QueryCtx } from "./_generated/server"
 import type { Doc, Id } from "./_generated/dataModel"
@@ -651,6 +653,24 @@ export const updateEventSyncState = mutation({
     handler: async (ctx, args) => {
         assertInternalSecret(args.secret)
 
+        // A Discord HTTP request can finish after a manager deleted the event.
+        // Queue its just-created resources instead of resurrecting orphan sync state.
+        if (!(await ctx.db.get(args.eventId))) {
+            const config = await ctx.db
+                .query("discordConfigs")
+                .withIndex("guildId", (q) => q.eq("guildId", args.guildId))
+                .unique()
+            await queueEventDiscordDeletion(
+                ctx,
+                String(args.eventId),
+                eventDiscordDeletion({ guildId: args.guildId }, [args], {
+                    announcementChannelId: config?.announcementsChannelId,
+                    eventInfoChannelId: config?.eventInfoChannelId,
+                })
+            )
+            return null
+        }
+
         const now = new Date().toISOString()
         const payload = {
             guildId: args.guildId,
@@ -712,6 +732,18 @@ export const updateRosterUpdateMessage = mutation({
             .query("discordEventSyncs")
             .withIndex("eventId", (q) => q.eq("eventId", args.eventId))
             .unique()
+        if (!(await ctx.db.get(args.eventId))) {
+            await queueEventDiscordDeletion(ctx, String(args.eventId), {
+                guildId: args.guildId,
+                messages: [
+                    { channelId: args.channelId, messageId: args.messageId },
+                ],
+                channelIds: [],
+                roleIds: [],
+                scheduledEventIds: [],
+            })
+            return null
+        }
         if (!existing) return null
         await ctx.db.patch(existing._id, {
             rosterUpdateChannelId: args.channelId,

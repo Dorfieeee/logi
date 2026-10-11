@@ -25,6 +25,7 @@ export function ResourceTable<T extends { id: string }>({
     searchPlaceholder,
     className,
     gameColumn,
+    clickableRows = false,
 }: {
     columns: Array<ColumnConfig<T>>
     rows: T[]
@@ -38,6 +39,7 @@ export function ResourceTable<T extends { id: string }>({
     searchPlaceholder?: string
     className?: string
     gameColumn?: { show: boolean; getGameId: (row: T) => GameId | undefined }
+    clickableRows?: boolean
 }) {
     const resolvedColumns = gameColumn?.show
         ? [
@@ -57,6 +59,7 @@ export function ResourceTable<T extends { id: string }>({
         : columns
     return (
         <ResourceTableClient
+            clickableRows={clickableRows}
             dictionary={dictionary}
             page={page}
             pageSize={pageSize}

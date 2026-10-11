@@ -14,10 +14,15 @@ import {
     getDiscordChannelNames,
     getDiscordRoleNames,
 } from "@/lib/read-models/discord-channel-names"
+import {
+    TacticalPlanMap,
+    type TacticalTeam,
+} from "@/components/app/new-match/tactical-plan"
 import { flowValuesFromEvent } from "@/components/app/new-match/flow-values"
 import { eventSeriesRole, signupCounts } from "@/domain/events/event-edit"
 import { ResyncTopicThreadButton } from "./resync-topic-thread-button"
 import { getDictionary, type Dictionary } from "@/i18n/dictionaries"
+import type { TacticalPlan } from "@/domain/events/tactical-plan"
 import { getLinkedClanTeams } from "@/lib/read-models/clan-teams"
 import { matchTeamGame } from "@/lib/teams/match-team-selection"
 import type { getServerContext } from "@/lib/server-context"
@@ -115,6 +120,20 @@ export async function EventOverview({
             series={isMatch ? (eventSeriesRole(event)?.kind ?? null) : null}
             seriesEditHref={seriesEditHref}
             canResyncTopics={canResyncTopics}
+            tacticalPlan={event.tacticalPlan}
+            tacticalTimeLabel={
+                event.timeOfDay
+                    ? ((t.match.timesOfDay as Record<string, string>)[
+                          event.timeOfDay
+                      ] ?? event.timeOfDay)
+                    : undefined
+            }
+            tacticalTeams={(event.matchTeams ?? []).map((team) => ({
+                slot: team.slot,
+                name: team.snapshot.name,
+                side: team.side,
+            }))}
+            locale={locale}
         />
     )
 }
@@ -132,6 +151,10 @@ export function EventOverviewView({
     series,
     seriesEditHref,
     canResyncTopics,
+    tacticalPlan,
+    tacticalTimeLabel,
+    tacticalTeams = [],
+    locale = "en",
 }: {
     kind: "match" | "training"
     eventId: string
@@ -144,6 +167,10 @@ export function EventOverviewView({
     series: "source" | "occurrence" | null
     seriesEditHref: string | null
     canResyncTopics: boolean
+    tacticalPlan?: TacticalPlan
+    tacticalTimeLabel?: string
+    tacticalTeams?: TacticalTeam[]
+    locale?: string
 }) {
     const t = dictionary.newMatch
     const isMatch = kind === "match"
@@ -203,6 +230,14 @@ export function EventOverviewView({
                         </li>
                     ))}
                 </ul>
+                {tacticalPlan ? (
+                    <TacticalPlanMap
+                        plan={tacticalPlan}
+                        teams={tacticalTeams}
+                        locale={locale}
+                        timeLabel={tacticalTimeLabel}
+                    />
+                ) : null}
                 {series ? (
                     <p className="bg-muted text-foreground/80 m-0 flex flex-wrap items-start gap-2.5 rounded-[10px] px-3.5 py-3 text-sm leading-5">
                         <Repeat

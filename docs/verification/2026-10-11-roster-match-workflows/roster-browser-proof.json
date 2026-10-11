@@ -1,0 +1,85 @@
+{
+  "scope": "isolated local Convex and authenticated dashboard, synthetic users only",
+  "frontend": "http://127.0.0.1:30310",
+  "startedAt": "2026-10-11T21:49:43.269Z",
+  "tests": [
+    {
+      "name": "native drag FL4 from Logistics before FL1 in Infantry",
+      "status": "passed",
+      "ms": 1503
+    },
+    {
+      "name": "live backend refresh cannot silently discard an unsaved drag",
+      "status": "passed",
+      "ms": 1235
+    },
+    {
+      "name": "native drag reserve Player 09 to a specific empty role",
+      "status": "passed",
+      "ms": 864
+    },
+    {
+      "name": "native drag reserve Player 10 to squad header chooses first free role",
+      "status": "passed",
+      "ms": 892
+    },
+    {
+      "name": "save then full reload retains FL4 and both assignments",
+      "status": "passed",
+      "ms": 3230
+    },
+    {
+      "name": "sticky reserve column stays at viewport top through real page scroll",
+      "status": "passed",
+      "ms": 678,
+      "details": {
+        "scrollBefore": 650,
+        "scrollAfter": 950,
+        "sidebarBefore": 80,
+        "sidebarAfter": 80
+      }
+    },
+    {
+      "name": "native section drag changes order and keyboard arrow restores it",
+      "status": "passed",
+      "ms": 5427
+    },
+    {
+      "name": "right click opens local squad and people editor",
+      "status": "passed",
+      "ms": 2889
+    },
+    {
+      "name": "inline plus adds squad into clicked section",
+      "status": "passed",
+      "ms": 2574
+    },
+    {
+      "name": "roster list name and row both navigate to detail",
+      "status": "passed",
+      "ms": 2808
+    },
+    {
+      "name": "390px mobile layout and keyboard assignment fallback",
+      "status": "passed",
+      "ms": 5627,
+      "details": {
+        "width": 390,
+        "selected": "FL4 · Rifleman (2)"
+      }
+    }
+  ],
+  "pageErrors": [],
+  "screenshots": [
+    "roster-desktop.png",
+    "roster-mobile.png",
+    "roster-mobile-full.png"
+  ],
+  "saveInFlightEditingBlocked": true,
+  "status": "passed",
+  "finishedAt": "2026-10-11T21:50:13.698Z",
+  "screenshotRecapture": {
+    "at": "2026-10-11T21:50:39.109Z",
+    "reason": "Fresh read after saves so screenshots show settled UI, mobile viewport plus full page"
+  }
+}

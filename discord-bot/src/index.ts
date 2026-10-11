@@ -1,5 +1,6 @@
 import { registerMembershipInvalidationEvents } from "./sync/membership-events"
 import { startManagedRoleWorker } from "./sync/managed-member-roles"
+import { startEventDeletionWorker } from "./sync/event-deletion"
 import { Worker } from "node:worker_threads"
 import { createRequire } from "node:module"
 import { Events } from "discord.js"
@@ -165,6 +166,10 @@ import { startReportRecovery } from "./player-reports"
 import { startLeagueWorker } from "./league/worker"
 import { startSeedWorker } from "./seed/worker"
 client.once(Events.ClientReady, async (readyClient) => {
+    startEventDeletionWorker(client, (guildId) => {
+        syncService.queueGuildSync(guildId)
+        syncService.triggerSoon(250)
+    })
     startReportRecovery(client)
     startApplicationWebSubmissionWorker(client)
     // Clan application windows open without a backend read (3 s rule).

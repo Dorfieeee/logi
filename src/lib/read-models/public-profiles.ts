@@ -73,6 +73,8 @@ export async function getPublicPlayerProfile(playerId: string) {
             appCacheTags.publicProfile(playerId),
             appCacheTags.player(playerId),
             appCacheTags.playerStats(playerId),
+            // Recent match labels and links change when an event is deleted.
+            appCacheTags.publicDiscovery(),
         ],
         async () =>
             (await fetchQuery(getPublicPlayerReference, {
@@ -143,6 +145,7 @@ async function readPublicPlayerMatch(playerId: string, eventId: string) {
             appCacheTags.publicProfile(playerId),
             appCacheTags.player(playerId),
             appCacheTags.playerStats(playerId),
+            appCacheTags.event(eventId),
         ],
         async () =>
             (await fetchQuery(getPublicPlayerMatchReference, {
