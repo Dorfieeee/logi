@@ -1,11 +1,28 @@
 import { makeFunctionReference } from "convex/server"
 import { fetchMutation } from "convex/nextjs"
 
+import { currentDashboardActor } from "@/lib/gateways/dashboard-actor"
 import type { MatchTeamInput } from "@/domain/teams/match-teams"
 import type { GameId } from "@/domain/games/game"
 import { getInternalAuthSecret } from "@/lib/env"
 
 const upsertEventReference = makeFunctionReference<"mutation">("events:upsert")
+const deleteEventReference = makeFunctionReference<"mutation">(
+    "eventDeletion:remove"
+)
+
+export async function deleteServerEventCommand(input: {
+    serverId: string
+    eventId: string
+}) {
+    const actor = await currentDashboardActor()
+    if (!actor) throw new Error("Forbidden.")
+    return fetchMutation(deleteEventReference, {
+        ...input,
+        actor,
+        secret: getInternalAuthSecret(),
+    })
+}
 const concludeEventReference =
     makeFunctionReference<"mutation">("events:conclude")
 const completeTrainingReference = makeFunctionReference<"mutation">(
@@ -56,6 +73,8 @@ export async function saveServerEventCommand(input: {
     serverPassword?: string
     side?: string
     map?: string
+    timeOfDay?: string
+    tacticalPlan?: import("@/domain/events/tactical-plan").TacticalPlan | null
     cap?: string
     notes?: string
     registrationStart?: string
@@ -106,6 +125,8 @@ export async function saveServerEventCommand(input: {
         serverPassword: input.serverPassword,
         side: input.side,
         map: input.map,
+        timeOfDay: input.timeOfDay,
+        tacticalPlan: input.tacticalPlan,
         cap: input.cap,
         notes: input.notes,
         registrationStart: input.registrationStart,

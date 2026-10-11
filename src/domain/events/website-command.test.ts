@@ -12,6 +12,7 @@ import {
     eligibleWebsiteEventKeys,
     websiteEventPolicyApplicationsSchema,
 } from "./website-command"
+import { emptyTacticalPlan } from "./tactical-plan"
 import assert from "node:assert/strict"
 import test from "node:test"
 
@@ -23,6 +24,33 @@ const event = {
     gameStart: "2030-01-01T18:30:00Z",
     gameEnd: "2030-01-01T20:00:00Z",
 }
+test("website event commands round-trip planned Wardogs zones and reject mismatched maps", () => {
+    const fields = {
+        ...event,
+        map: "ozeti",
+        timeOfDay: "night",
+        tacticalPlan: emptyTacticalPlan("ozeti"),
+    }
+    const command = websiteEventCommandSchema.parse({
+        operation: "create",
+        event: fields,
+    })
+    assert.deepEqual(command, { operation: "create", event: fields })
+    assert.equal(
+        websiteEventCommandSchema.safeParse({
+            operation: "create",
+            event: { ...fields, map: "bakurani" },
+        }).success,
+        false
+    )
+    assert.equal(
+        websiteEventCommandSchema.safeParse({
+            operation: "create",
+            event: { ...fields, tacticalPlan: null },
+        }).success,
+        true
+    )
+})
 test("website event commands accept native schedule fields, reject implicit admin/Discord/score fields and invalid timelines", () => {
     assert.equal(
         websiteEventCommandSchema.safeParse({ operation: "create", event })

@@ -1,3 +1,8 @@
+import {
+    eventTimeOfDaySchema,
+    tacticalPlanMatchesMap,
+    tacticalPlanSchema,
+} from "@/domain/events/tactical-plan"
 import { ATTENDANCE_REMINDER_OFFSETS } from "@/domain/events/scheduled-job-policy"
 import { MAX_SIGNUP_GROUP_LIMIT } from "@/domain/events/upsert-policy"
 import { matchTeamInputsSchema } from "@/domain/teams/match-teams"
@@ -64,6 +69,8 @@ export const eventSchema = z
         serverPassword: z.string().trim().optional(),
         side: z.string().trim().optional(),
         map: z.string().trim().optional(),
+        timeOfDay: eventTimeOfDaySchema.optional(),
+        tacticalPlan: tacticalPlanSchema.nullable().optional(),
         cap: z.string().trim().optional(),
         notes: z.string().trim().optional(),
         registrationStart: z.string().trim().optional(),
@@ -110,6 +117,19 @@ export const eventSchema = z
         squadPresetId: z.string().trim().max(64).optional(),
     })
     .superRefine((value, ctx) => {
+        if (
+            value.tacticalPlan &&
+            (value.kind !== "match" ||
+                value.gameId !== "wardogs" ||
+                !tacticalPlanMatchesMap(value.tacticalPlan, value.map))
+        ) {
+            ctx.addIssue({
+                code: "custom",
+                path: ["tacticalPlan"],
+                message:
+                    "Tactical plan must belong to the selected Wardogs map.",
+            })
+        }
         const registrationEnd = new Date(value.registrationEnd)
         const registrationStart = value.registrationStart
             ? new Date(value.registrationStart)

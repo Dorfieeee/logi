@@ -73,6 +73,10 @@ type EventRouteDeps<TEventInput extends EventBody> = {
         events(serverId: string): string
         event(eventId: string): string
         rosterImageEvent(eventId: string): string
+        roster?(rosterId: string): string
+        stratmap?(stratmapId: string): string
+        stratmaps?(serverId: string): string
+        competition?(slug: string): string
         matches(serverId: string): string
         match(eventId: string): string
         rosters(serverId: string): string
@@ -138,6 +142,68 @@ async function eventWriteDenied(
     return allowed
         ? null
         : NextResponse.json({ error: "forbidden" }, { status: 403 })
+}
+
+export function createServerEventDeleteHandler(
+    deps: Pick<
+        EventRouteDeps<EventBody>,
+        | "origin"
+        | "canAdminServer"
+        | "revalidateCacheEntries"
+        | "appCacheTags"
+        | "logRouteError"
+        | "getUserSafeErrorMessage"
+    > & {
+        deleteServerEvent: (input: EventActionParams) => Promise<{
+            eventId: string
+            discordCleanupQueued: boolean
+            rosterIds?: string[]
+            stratmapIds?: string[]
+            competitionSlugs?: string[]
+        }>
+    }
+) {
+    return async (
+        request: Request,
+        context: { params: Promise<EventActionParams> }
+    ) => {
+        const { serverId, eventId } = await context.params
+        const denied = await eventWriteDenied(deps, request, serverId)
+        if (denied) return denied
+        try {
+            const result = await deps.deleteServerEvent({ serverId, eventId })
+            const tags = deps.appCacheTags
+            deps.revalidateCacheEntries([
+                tags.serverContext(serverId),
+                tags.events(serverId),
+                tags.event(eventId),
+                tags.matches(serverId),
+                tags.match(eventId),
+                tags.rosters(serverId),
+                tags.rosterImageEvent(eventId),
+                tags.publicMatch(eventId),
+                tags.publicDiscovery(),
+                tags.stratmaps?.(serverId),
+                ...(result.rosterIds ?? []).map((id) => tags.roster?.(id)),
+                ...(result.stratmapIds ?? []).map((id) => tags.stratmap?.(id)),
+                ...(result.competitionSlugs ?? []).map((slug) =>
+                    tags.competition?.(slug)
+                ),
+            ])
+            return NextResponse.json({ success: true, ...result })
+        } catch (error) {
+            deps.logRouteError("events.delete", error)
+            return NextResponse.json(
+                {
+                    error: deps.getUserSafeErrorMessage(
+                        error,
+                        "Unable to delete the event."
+                    ),
+                },
+                { status: 400 }
+            )
+        }
+    }
 }
 function saveErrorResponse(
     deps: Pick<EventRouteDeps<EventBody>, "getUserSafeErrorMessage">,

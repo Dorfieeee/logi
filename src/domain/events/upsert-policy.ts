@@ -1,5 +1,11 @@
 import { normalizeOptionalArray } from "@/domain/shared/collections"
 
+import {
+    eventTimeOfDaySchema,
+    tacticalPlanMatchesMap,
+    tacticalPlanSchema,
+    type TacticalPlan,
+} from "./tactical-plan"
 import type {
     EventKind,
     EventLike,
@@ -33,6 +39,8 @@ export type EventUpsertInput = {
     serverPassword?: string
     side?: string
     map?: string
+    timeOfDay?: string
+    tacticalPlan?: TacticalPlan | null
     cap?: string
     notes?: string
     registrationStart?: string
@@ -143,6 +151,19 @@ function trimOptional(value: string | undefined) {
 
 export function buildEventBasePayload(input: EventUpsertInput) {
     const kind = input.kind ?? "match"
+    const tacticalPlan = input.tacticalPlan
+        ? tacticalPlanSchema.parse(input.tacticalPlan)
+        : undefined
+    if (
+        tacticalPlan &&
+        (kind !== "match" ||
+            input.gameId !== "wardogs" ||
+            !tacticalPlanMatchesMap(tacticalPlan, input.map))
+    ) {
+        throw new Error(
+            "Tactical plan must belong to the selected Wardogs map."
+        )
+    }
 
     return {
         guildId: input.guildId,
@@ -176,6 +197,16 @@ export function buildEventBasePayload(input: EventUpsertInput) {
         serverPassword: trimOptional(input.serverPassword),
         side: trimOptional(input.side),
         map: trimOptional(input.map),
+        ...(input.timeOfDay !== undefined
+            ? {
+                  timeOfDay:
+                      kind === "match"
+                          ? eventTimeOfDaySchema.parse(input.timeOfDay) ||
+                            undefined
+                          : undefined,
+              }
+            : {}),
+        ...(input.tacticalPlan !== undefined ? { tacticalPlan } : {}),
         cap: trimOptional(input.cap),
         notes: trimOptional(input.notes),
         registrationStart: trimOptional(input.registrationStart),
@@ -273,7 +304,10 @@ export function buildUpdateEventPatch(
     now: Date
 ) {
     const nowIso = now.toISOString()
-    const base = buildEventBasePayload(input)
+    const base = buildEventBasePayload({
+        ...input,
+        gameId: input.gameId ?? existing.gameId,
+    })
     // Discord message locations and recipients are creation-time choices.  The
     // bot persists message IDs per location, so changing either later could
     // update or delete a message belonging to a different event.
@@ -294,6 +328,12 @@ export function buildUpdateEventPatch(
 
     return {
         ...mutableBase,
+        // A map change cannot retain positions from a different battlefield.
+        ...(input.tacticalPlan === undefined &&
+        (input.map !== existing.map ||
+            (input.gameId !== undefined && input.gameId !== existing.gameId))
+            ? { tacticalPlan: undefined }
+            : {}),
         ...buildEventUpdateSettings(input),
         // An edit without a game selector must not move a scoped event back to HLL.
         gameId: input.gameId ?? existing.gameId,

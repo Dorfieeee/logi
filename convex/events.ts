@@ -37,6 +37,7 @@ import { fixtureScoreFromEvent } from "../src/domain/competitions/competition"
 import { assertInternalSecret, internalAuthSecret } from "./discord_shared"
 import { normalizeEventRecord } from "../src/domain/events/normalization"
 import { currentEventStatus } from "../src/domain/events/status"
+import { queueEventDiscordDeletion } from "./eventDeletionQueue"
 import type { MutationCtx, QueryCtx } from "./_generated/server"
 import { recordImportedResult } from "./eventResultStore"
 import { systemClock } from "../src/domain/shared/clock"
@@ -143,6 +144,8 @@ export const upsert = mutation({
         serverPassword: v.optional(v.string()),
         side: v.optional(v.string()),
         map: v.optional(v.string()),
+        timeOfDay: eventWriteFields.timeOfDay,
+        tacticalPlan: eventWriteFields.tacticalPlan,
         cap: v.optional(v.string()),
         notes: v.optional(v.string()),
         registrationStart: v.optional(v.string()),
@@ -529,12 +532,26 @@ export const setDiscordEventRoles = mutation({
     args: {
         secret: v.string(),
         eventId: v.id("events"),
+        guildId: v.optional(v.string()),
         attendeeRoleId: v.optional(v.string()),
         reserveRoleId: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         if (args.secret !== internalAuthSecret())
             throw new Error("Unauthorized.")
+        if (!(await ctx.db.get(args.eventId))) {
+            if (args.guildId)
+                await queueEventDiscordDeletion(ctx, String(args.eventId), {
+                    guildId: args.guildId,
+                    messages: [],
+                    channelIds: [],
+                    roleIds: [args.attendeeRoleId, args.reserveRoleId].filter(
+                        (id): id is string => Boolean(id)
+                    ),
+                    scheduledEventIds: [],
+                })
+            return
+        }
         await ctx.db.patch(args.eventId, {
             attendeeRoleId: args.attendeeRoleId,
             reserveRoleId: args.reserveRoleId,

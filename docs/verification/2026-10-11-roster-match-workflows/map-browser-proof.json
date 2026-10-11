@@ -1,0 +1,89 @@
+{
+  "checks": [
+    {
+      "name": "Wardogs map starts as TBD",
+      "pass": true
+    },
+    {
+      "name": "Actual map asset and faction bases render",
+      "pass": true
+    },
+    {
+      "name": "Exported SVG embeds map image and selected layout",
+      "pass": true
+    },
+    {
+      "name": "Draft was persisted through real HTTP",
+      "pass": true
+    },
+    {
+      "name": "Wardogs time and plan persisted",
+      "pass": true
+    },
+    {
+      "name": "Saved draft reloads the chosen map and time",
+      "pass": true
+    },
+    {
+      "name": "Saved tactical coordinates reload",
+      "pass": true
+    },
+    {
+      "name": "Clicking terrain places a zone at pointer coordinates",
+      "pass": true
+    },
+    {
+      "name": "Tactical editor has no mobile horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "HLL map starts as TBD",
+      "pass": true
+    },
+    {
+      "name": "HLL selected map can be cleared to TBD",
+      "pass": true
+    },
+    {
+      "name": "HLL TBD persists without a fabricated map",
+      "pass": true
+    },
+    {
+      "name": "HLL TBD survives reload",
+      "pass": true
+    },
+    {
+      "name": "No browser runtime errors",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "url": "http://127.0.0.1:30310/api/servers/qh7faf0f0a03k8k5qms71se76n8g37hq/event-drafts",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "eventId": "p57695s217ry94zr9f6jet43nh8g3b9g",
+        "ok": true
+      }
+    },
+    {
+      "url": "http://127.0.0.1:30310/api/servers/qh7faf0f0a03k8k5qms71se76n8g37hq/event-drafts",
+      "method": "POST",
+      "status": 200,
+      "body": {
+        "eventId": "p57dfh0csjsyj0cgwx7agct3k58g3qem",
+        "ok": true
+      }
+    }
+  ],
+  "screenshots": [
+    "wardogs-tactical-map.png",
+    "signup-roles-create.png",
+    "wardogs-tactical-map-mobile.png",
+    "hll-map-tbd.png"
+  ],
+  "draftId": "p57695s217ry94zr9f6jet43nh8g3b9g",
+  "hllDraftId": "p57dfh0csjsyj0cgwx7agct3k58g3qem"
+}

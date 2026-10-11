@@ -47,8 +47,9 @@ There is one persisted roster per event. Saving a roster reconciles it against
 the event: newly tracked attendees become reserves if they are not already in a
 squad, while tracked non-attendees go to **not attending**. People who are no
 longer tracked are removed. Existing squad placements are preserved during a
-normal roster save, but a membership or sign-up change can still refresh an
-open match roster—review it after those changes.
+normal roster save. A membership or sign-up change refreshes an open match
+roster when it has no local edits. Live updates retain an unsaved draft instead
+of discarding the manager's changes; review the saved roster after those changes.
 
 Rosters use the same game scope as their event, and a squad preset can only be
 applied when it belongs to that game. Legacy records without a game are treated
@@ -67,12 +68,43 @@ team-selection decision.
 ## The roster board
 
 The roster opens on the match page under **Roster**, and on its own roster page.
-Managers switch the board between three modes at the top: **View only**,
+Managers switch the board between three modes at the top: **Overview**,
 **Squad editor** (squads and slots) and **Roster editor** (who plays where).
 Next to them are the squad preset, **Confirm from meeting VC** with the name of
 the meeting voice channel (for example "· Sraz 1") and, in the roster editor,
 **Auto-fill**. On phones the preset, the voice-channel confirmation, auto-fill
 and deleting or unpublishing sit behind the **⋯** button next to the modes.
+
+Open a roster by clicking its name or anywhere in its table row. The name is
+also a normal link for keyboard navigation and opening another tab.
+
+Managers can work directly from **Overview**. The reserves stay in a right-hand
+column on wide screens while you scroll through the squads; on smaller screens
+they appear above the squads. Both people lists have their own scroll area.
+Drag a reserve onto a specific slot, or onto the squad header to fill its first
+empty slot. A full squad keeps its players and reports that it has no empty
+slots. The assignment button next to a reserve also lets keyboard and phone
+users choose a free squad slot.
+
+Drag a squad by its grip onto another squad to place it before that squad and
+move it into the same section. Drop onto a section header to append it to that
+section. Drag a section by its header grip to move all its squads together;
+the up/down buttons offer the same ordering without dragging. Changes remain
+local until **Save** or **Publish**. Saved order is also used by the public
+roster and Discord's roster text and image; it does not reorder the workspace's
+group catalogue.
+
+Right-click a squad, or use its **⋯** button, to edit that squad's name,
+section, colour and role slots, edit its players, add a slot, move it up/down,
+or remove it. **Finish editing** returns that card to the board's selected
+mode. The **+ Add squad** button beside each section creates a unit directly
+there. Removing a squad returns its assigned people to reserves.
+
+The existing authenticated `PATCH /api/v1/clan/rosters/{id}` supports the same
+layout and assignment changes through its complete roster payload: change
+`squads[].group`, provide the saved `squads[].order`, and update the players and
+reserve IDs together. A section takes the order of its first squad. API writes
+retain their existing clan scope, write grant and idempotency requirements.
 
 - **Unsaved changes: N** counts the edits since the last save: each changed
   slot or squad, and each player moved in or out of the reserves or the

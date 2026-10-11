@@ -6,6 +6,40 @@ import {
     websiteEventCommandSchemas,
 } from "./website-event-command-openapi"
 
+test("OpenAPI exposes the same planned map and time fields for writes and reads", () => {
+    for (const schema of [
+        websiteEventCommandSchemas.WebsiteEventCommand,
+        websiteEventCommandSchemas.WebsiteEventEditor,
+    ]) {
+        const json = JSON.stringify(schema)
+        for (const field of [
+            "timeOfDay",
+            "tacticalPlan",
+            "controlZone",
+            "hotZone",
+            "layout",
+            "radius",
+        ])
+            assert.ok(json.includes(`"${field}"`), field)
+    }
+})
+
+test("OpenAPI exposes actor-backed deletion with revision fencing and Discord cleanup", () => {
+    const schema = JSON.stringify(
+        websiteEventCommandSchemas.WebsiteEventCommand
+    )
+    assert.ok(schema.includes('"delete"'))
+    assert.ok(
+        JSON.stringify(websiteEventCommandSchemas.WebsiteEventReceipt).includes(
+            '"delete"'
+        )
+    )
+    assert.match(
+        websiteEventCommandPaths["/clan/event-commands"].post.description,
+        /Discord cleanup/
+    )
+})
+
 test("event command OpenAPI documents team selections, the refresh operation and invalid_match_teams", () => {
     const post = websiteEventCommandPaths["/clan/event-commands"].post
     assert.match(post.responses["400"].description, /invalid_match_teams/)

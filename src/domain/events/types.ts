@@ -68,6 +68,9 @@ export type AttendanceReminder = {
 }
 
 export type EventLike = {
+    map?: string
+    timeOfDay?: string
+    tacticalPlan?: import("./tactical-plan").TacticalPlan | null
     gameId?: import("@/domain/games/game").GameId
     registrationEnd: string
     registrationStart?: string

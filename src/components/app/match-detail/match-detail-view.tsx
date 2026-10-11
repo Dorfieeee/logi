@@ -151,12 +151,21 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                 // After the match the announcement is history (E2, E3).
                 discordHref={played ? undefined : model.discordHref}
                 actions={
-                    activeTab === "attendance" && played ? undefined : (
-                        <MatchDetailActions
-                            label={t.moreActions}
-                            actions={actions}
-                        />
-                    )
+                    <MatchDetailActions
+                        label={t.moreActions}
+                        actions={actions}
+                        deletion={
+                            canAdmin
+                                ? {
+                                      serverId,
+                                      eventId: event.id,
+                                      eventName: event.name,
+                                      listHref: model.listHref,
+                                      copy: t.deletion,
+                                  }
+                                : undefined
+                        }
+                    />
                 }
             />
             <div className="px-4 lg:px-6">

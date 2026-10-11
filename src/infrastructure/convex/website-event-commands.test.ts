@@ -1,3 +1,4 @@
+import { emptyTacticalPlan } from "../../domain/events/tactical-plan"
 import * as commands from "../../../convex/websiteEventCommands"
 import { testContext, invoke } from "./testing/database"
 import { test, type TestContext } from "node:test"
@@ -160,6 +161,84 @@ test("actor command creates exactly one native event, schedules it and returns t
     assert.equal(retry.data.replayed, true)
     assert.equal(f.ctx.db.tables.events.length, 1)
     assert.equal(f.ctx.db.tables.websiteEventCommandReceipts.length, 1)
+})
+
+test("actor event commands persist a Wardogs plan through editor reads and clear it explicitly", async (t) => {
+    const f = fixture(t)
+    const plan = emptyTacticalPlan("bakurani")
+    const created = await f.run({
+        command: {
+            operation: "create",
+            event: {
+                ...fields,
+                map: "bakurani",
+                timeOfDay: "night",
+                tacticalPlan: plan,
+            },
+        },
+    })
+    const editor = await invoke(commands.readEditor, f.ctx, {
+        secret,
+        keyHash: input.keyHash,
+        actorTokenHash: input.actorTokenHash,
+        gameId: "wardogs",
+        eventId: created.data.eventId,
+    })
+    assert.deepEqual(editor.data.event.tacticalPlan, plan)
+    assert.equal(editor.data.event.timeOfDay, "night")
+    const updated = await f.run({
+        idempotencyKey: "clear-plan-command-001",
+        command: {
+            operation: "update",
+            eventId: created.data.eventId,
+            expectedRevision: created.data.revision,
+            event: {
+                ...fields,
+                map: "bakurani",
+                timeOfDay: "",
+                tacticalPlan: null,
+            },
+        },
+    })
+    assert.equal(updated.data.operation, "update")
+    assert.equal(f.ctx.db.tables.events[0].tacticalPlan, undefined)
+    assert.equal(f.ctx.db.tables.events[0].timeOfDay, undefined)
+})
+
+test("actor deletion checks current role and revision, removes the native event and replays its receipt", async (t) => {
+    const f = fixture(t)
+    const created = await f.run()
+    const deleting = {
+        idempotencyKey: "delete-event-0001",
+        command: {
+            operation: "delete",
+            eventId: created.data.eventId,
+            expectedRevision: created.data.revision,
+        },
+    }
+    assert.deepEqual(
+        await f.run({
+            ...deleting,
+            command: { ...deleting.command, expectedRevision: "0" },
+        }),
+        { error: { code: "revision_conflict" } }
+    )
+    await f.ctx.db.patch("memberObservations:one", { roleIds: [] })
+    assert.deepEqual(await f.run(deleting), {
+        error: { code: "membership_denied" },
+    })
+    assert.ok(await f.ctx.db.get(created.data.eventId))
+    await f.ctx.db.patch("memberObservations:one", { roleIds: [role] })
+    const deleted = await f.run(deleting)
+    assert.equal(deleted.data.operation, "delete")
+    assert.equal(await f.ctx.db.get(created.data.eventId), null)
+    assert.equal(f.ctx.db.tables.eventScheduleJobs.length, 0)
+    assert.notEqual(deleted.data.revision, created.data.revision)
+    assert.equal((await f.run(deleting)).data.replayed, true)
+    await f.ctx.db.patch("memberObservations:one", { roleIds: [] })
+    assert.deepEqual(await f.run(deleting), {
+        error: { code: "membership_denied" },
+    })
 })
 
 test("same command key with changed body conflicts and foreign scope/actor cannot discover its receipt", async (t) => {

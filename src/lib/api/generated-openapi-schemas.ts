@@ -8,17 +8,7 @@ export const generatedOpenApiSchemas = {
                 "type": "string"
             },
             "gameId": {
-                "anyOf": [
-                    {
-                        "const": "hell_let_loose"
-                    },
-                    {
-                        "const": "hell_let_loose_vietnam"
-                    },
-                    {
-                        "const": "wardogs"
-                    }
-                ]
+                "type": "string"
             },
             "kind": {
                 "anyOf": [
@@ -215,6 +205,121 @@ export const generatedOpenApiSchemas = {
             },
             "map": {
                 "type": "string"
+            },
+            "timeOfDay": {
+                "type": "string"
+            },
+            "tacticalPlan": {
+                "type": "object",
+                "properties": {
+                    "mapId": {
+                        "anyOf": [
+                            {
+                                "const": "bakurani"
+                            },
+                            {
+                                "const": "ozeti"
+                            },
+                            {
+                                "const": "zestafona"
+                            }
+                        ]
+                    },
+                    "layout": {
+                        "type": "string"
+                    },
+                    "controlZone": {
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "x": {
+                                        "type": "number"
+                                    },
+                                    "y": {
+                                        "type": "number"
+                                    },
+                                    "radius": {
+                                        "type": "number"
+                                    }
+                                },
+                                "required": [
+                                    "x",
+                                    "y",
+                                    "radius"
+                                ]
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "hotZone": {
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "x": {
+                                        "type": "number"
+                                    },
+                                    "y": {
+                                        "type": "number"
+                                    },
+                                    "radius": {
+                                        "type": "number"
+                                    }
+                                },
+                                "required": [
+                                    "x",
+                                    "y",
+                                    "radius"
+                                ]
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "teams": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "slot": {
+                                    "anyOf": [
+                                        {
+                                            "const": "a"
+                                        },
+                                        {
+                                            "const": "b"
+                                        },
+                                        {
+                                            "const": "c"
+                                        }
+                                    ]
+                                },
+                                "x": {
+                                    "type": "number"
+                                },
+                                "y": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "slot",
+                                "x",
+                                "y"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "mapId",
+                    "layout",
+                    "controlZone",
+                    "hotZone",
+                    "teams"
+                ]
             },
             "cap": {
                 "type": "string"
@@ -635,7 +740,7 @@ export const generatedOpenApiSchemas = {
         ],
         "example": {
             "guildId": "string",
-            "gameId": "hell_let_loose",
+            "gameId": "string",
             "kind": "match",
             "isDraft": true,
             "matchType": "string",
@@ -693,6 +798,28 @@ export const generatedOpenApiSchemas = {
             "serverPassword": "string",
             "side": "string",
             "map": "string",
+            "timeOfDay": "string",
+            "tacticalPlan": {
+                "mapId": "bakurani",
+                "layout": "string",
+                "controlZone": {
+                    "x": 0,
+                    "y": 0,
+                    "radius": 0
+                },
+                "hotZone": {
+                    "x": 0,
+                    "y": 0,
+                    "radius": 0
+                },
+                "teams": [
+                    {
+                        "slot": "a",
+                        "x": 0,
+                        "y": 0
+                    }
+                ]
+            },
             "cap": "string",
             "notes": "string",
             "registrationStart": "string",
@@ -790,17 +917,7 @@ export const generatedOpenApiSchemas = {
                 "type": "string"
             },
             "gameId": {
-                "anyOf": [
-                    {
-                        "const": "hell_let_loose"
-                    },
-                    {
-                        "const": "hell_let_loose_vietnam"
-                    },
-                    {
-                        "const": "wardogs"
-                    }
-                ]
+                "type": "string"
             },
             "name": {
                 "type": "string"
@@ -846,7 +963,7 @@ export const generatedOpenApiSchemas = {
         ],
         "example": {
             "guildId": "string",
-            "gameId": "hell_let_loose",
+            "gameId": "string",
             "name": "string",
             "color": "string",
             "order": 0,
@@ -866,17 +983,7 @@ export const generatedOpenApiSchemas = {
                 "type": "string"
             },
             "gameId": {
-                "anyOf": [
-                    {
-                        "const": "hell_let_loose"
-                    },
-                    {
-                        "const": "hell_let_loose_vietnam"
-                    },
-                    {
-                        "const": "wardogs"
-                    }
-                ]
+                "type": "string"
             },
             "eventId": {
                 "type": "string",
@@ -1094,7 +1201,7 @@ export const generatedOpenApiSchemas = {
         ],
         "example": {
             "guildId": "string",
-            "gameId": "hell_let_loose",
+            "gameId": "string",
             "eventId": "string",
             "squadPresetId": "string",
             "squads": [
@@ -1172,17 +1279,7 @@ export const generatedOpenApiSchemas = {
                 "type": "string"
             },
             "gameId": {
-                "anyOf": [
-                    {
-                        "const": "hell_let_loose"
-                    },
-                    {
-                        "const": "hell_let_loose_vietnam"
-                    },
-                    {
-                        "const": "wardogs"
-                    }
-                ]
+                "type": "string"
             },
             "type": {
                 "anyOf": [
@@ -1257,7 +1354,7 @@ export const generatedOpenApiSchemas = {
         "example": {
             "userId": "string",
             "serverId": "string",
-            "gameId": "hell_let_loose",
+            "gameId": "string",
             "type": "member",
             "status": "pending",
             "membershipCategoryId": "string",
@@ -1383,17 +1480,7 @@ export const generatedOpenApiSchemas = {
                 "type": "string"
             },
             "gameId": {
-                "anyOf": [
-                    {
-                        "const": "hell_let_loose"
-                    },
-                    {
-                        "const": "hell_let_loose_vietnam"
-                    },
-                    {
-                        "const": "wardogs"
-                    }
-                ]
+                "type": "string"
             },
             "eventId": {
                 "type": "string",
@@ -1443,7 +1530,7 @@ export const generatedOpenApiSchemas = {
         ],
         "example": {
             "guildId": "string",
-            "gameId": "hell_let_loose",
+            "gameId": "string",
             "eventId": "string",
             "title": "string",
             "description": "string",
@@ -1586,17 +1673,7 @@ export const generatedOpenApiSchemas = {
                 "type": "string"
             },
             "gameId": {
-                "anyOf": [
-                    {
-                        "const": "hell_let_loose"
-                    },
-                    {
-                        "const": "hell_let_loose_vietnam"
-                    },
-                    {
-                        "const": "wardogs"
-                    }
-                ]
+                "type": "string"
             },
             "name": {
                 "type": "string"
@@ -1682,7 +1759,7 @@ export const generatedOpenApiSchemas = {
         ],
         "example": {
             "guildId": "string",
-            "gameId": "hell_let_loose",
+            "gameId": "string",
             "name": "string",
             "squads": [
                 {
@@ -1714,17 +1791,7 @@ export const generatedOpenApiSchemas = {
                 "type": "string"
             },
             "gameId": {
-                "anyOf": [
-                    {
-                        "const": "hell_let_loose"
-                    },
-                    {
-                        "const": "hell_let_loose_vietnam"
-                    },
-                    {
-                        "const": "wardogs"
-                    }
-                ]
+                "type": "string"
             },
             "eventId": {
                 "type": "string",
@@ -2280,7 +2347,7 @@ export const generatedOpenApiSchemas = {
         ],
         "example": {
             "guildId": "string",
-            "gameId": "hell_let_loose",
+            "gameId": "string",
             "eventId": "string",
             "sourceUrl": "string",
             "matchId": "string",

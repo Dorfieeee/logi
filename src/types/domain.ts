@@ -351,6 +351,8 @@ export type EventRecord = {
     serverPassword?: string
     side?: string
     map?: string
+    timeOfDay?: string
+    tacticalPlan?: import("@/domain/events/tactical-plan").TacticalPlan
     cap?: string
     notes?: string
     registrationStart?: Timestamp

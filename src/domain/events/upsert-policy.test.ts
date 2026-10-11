@@ -1,3 +1,4 @@
+import { emptyTacticalPlan } from "./tactical-plan"
 import assert from "node:assert/strict"
 import test from "node:test"
 
@@ -22,6 +23,61 @@ const input: EventUpsertInput = {
     gameEnd: "2030-01-01T20:00:00.000Z",
     pingClan: false,
 }
+
+test("Wardogs time and planning metadata validate, persist and explicitly clear", () => {
+    const plan = emptyTacticalPlan("bakurani")
+    const wd = {
+        ...input,
+        gameId: "wardogs" as const,
+        map: "bakurani",
+        timeOfDay: "night",
+        tacticalPlan: plan,
+    }
+    const saved = buildCreateEventRecord(wd, now)
+    assert.equal(saved.timeOfDay, "night")
+    assert.deepEqual(saved.tacticalPlan, plan)
+    const cleared = buildUpdateEventPatch(
+        saved,
+        { ...wd, timeOfDay: "", tacticalPlan: null },
+        now
+    )
+    assert.equal(cleared.timeOfDay, undefined)
+    assert.equal(cleared.tacticalPlan, undefined)
+    assert.equal("tacticalPlan" in cleared, true)
+    assert.throws(
+        () => buildCreateEventRecord({ ...wd, map: "ozeti" }, now),
+        /selected Wardogs map/
+    )
+    assert.throws(
+        () => buildCreateEventRecord({ ...wd, gameId: "hell_let_loose" }, now),
+        /selected Wardogs map/
+    )
+    assert.throws(() =>
+        buildCreateEventRecord({ ...wd, timeOfDay: "not-a-time" }, now)
+    )
+})
+
+test("omitting a plan preserves it only while editing the same map", () => {
+    const existing = {
+        ...input,
+        gameId: "wardogs" as const,
+        map: "bakurani",
+        tacticalPlan: emptyTacticalPlan("bakurani"),
+    }
+    const same = buildUpdateEventPatch(
+        existing,
+        { ...input, gameId: "wardogs", map: "bakurani" },
+        now
+    )
+    assert.equal("tacticalPlan" in same, false)
+    const changed = buildUpdateEventPatch(
+        existing,
+        { ...input, gameId: "wardogs", map: "ozeti" },
+        now
+    )
+    assert.equal("tacticalPlan" in changed, true)
+    assert.equal(changed.tacticalPlan, undefined)
+})
 const assignment: MatchTeamAssignment = {
     teamId: "teamDirectory:alpha",
     slot: "a",

@@ -52,6 +52,7 @@ export function ResourceTableClient({
     search,
     searchPlaceholder,
     className,
+    clickableRows = false,
 }: {
     columnTitles: string[]
     columnClassNames?: string[]
@@ -64,6 +65,7 @@ export function ResourceTableClient({
     search: string
     searchPlaceholder?: string
     className?: string
+    clickableRows?: boolean
 }) {
     const router = useRouter()
     const pathname = usePathname()
@@ -220,7 +222,47 @@ export function ResourceTableClient({
                     <TableBody>
                         {table.getRowModel().rows.length ? (
                             table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id}>
+                                <TableRow
+                                    key={row.id}
+                                    className={
+                                        clickableRows
+                                            ? "cursor-pointer"
+                                            : undefined
+                                    }
+                                    onClick={
+                                        clickableRows
+                                            ? (event) => {
+                                                  if (
+                                                      (
+                                                          event.target as HTMLElement
+                                                      ).closest(
+                                                          "a,button,input,select,textarea,[role=button]"
+                                                      )
+                                                  )
+                                                      return
+                                                  if (
+                                                      window
+                                                          .getSelection()
+                                                          ?.toString()
+                                                  )
+                                                      return
+                                                  if (
+                                                      event.ctrlKey ||
+                                                      event.metaKey
+                                                  )
+                                                      window.open(
+                                                          row.original.href,
+                                                          "_blank",
+                                                          "noopener,noreferrer"
+                                                      )
+                                                  else
+                                                      router.push(
+                                                          row.original.href
+                                                      )
+                                              }
+                                            : undefined
+                                    }
+                                >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell
                                             key={cell.id}

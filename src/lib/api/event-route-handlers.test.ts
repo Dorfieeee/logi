@@ -8,10 +8,66 @@ import {
 } from "@/lib/validation/event"
 
 import {
+    createServerEventDeleteHandler,
     createServerEventPatchHandler,
     createServerEventPostHandler,
     createServerEventsPostHandler,
 } from "./event-route-handlers"
+
+test("match deletion enforces origin and admin access before mutation and invalidates list/detail caches", async () => {
+    const { deps, calls } = createDeps()
+    const deleted: unknown[] = []
+    const handler = createServerEventDeleteHandler({
+        ...deps,
+        appCacheTags: {
+            ...deps.appCacheTags,
+            roster: (id: string) => `roster:${id}`,
+            stratmap: (id: string) => `stratmap:${id}`,
+            competition: (slug: string) => `competition:${slug}`,
+        },
+        deleteServerEvent: async (input) => {
+            deleted.push(input)
+            return {
+                eventId: input.eventId,
+                discordCleanupQueued: true,
+                rosterIds: ["roster-1"],
+                stratmapIds: ["map-1"],
+                competitionSlugs: ["league"],
+            }
+        },
+    })
+    const context = {
+        params: Promise.resolve({ serverId: "server-1", eventId: "event-1" }),
+    }
+    const request = (origin = "https://logi.test") =>
+        new Request("https://logi.test/api/servers/server-1/events/event-1", {
+            method: "DELETE",
+            headers: { origin },
+        })
+    assert.equal(
+        (await handler(request("https://attacker.test"), context)).status,
+        403
+    )
+    calls.admin = false
+    assert.equal((await handler(request(), context)).status, 403)
+    assert.equal(deleted.length, 0)
+    calls.admin = true
+    const response = await handler(request(), context)
+    assert.equal(response.status, 200)
+    assert.deepEqual(deleted, [{ serverId: "server-1", eventId: "event-1" }])
+    assert.ok(
+        calls.revalidated[0].includes(deps.appCacheTags.events("server-1"))
+    )
+    assert.ok(
+        calls.revalidated[0].includes(deps.appCacheTags.publicMatch("event-1"))
+    )
+    for (const tag of [
+        "roster:roster-1",
+        "stratmap:map-1",
+        "competition:league",
+    ])
+        assert.ok(calls.revalidated[0].includes(tag), tag)
+})
 
 /** What the handlers save: the validated body plus the route's scope. */
 type SavedEvent = EventParsedInput & { serverId: string; eventId?: string }

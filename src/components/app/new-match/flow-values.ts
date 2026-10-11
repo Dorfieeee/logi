@@ -1,15 +1,16 @@
 import {
+    getHllModeOptions,
+    getHllTimeOptions,
+    inferHllSelection,
+    inferHllBaseMapId,
+    resolveHllPresetCode,
+} from "@/lib/hll-map-presets"
+import {
     templatesFor,
     type MatchTemplate,
     type TemplateReminderStatus,
     type TemplateSignupStatus,
 } from "@/domain/events/match-templates"
-import {
-    getHllModeOptions,
-    getHllTimeOptions,
-    inferHllSelection,
-    resolveHllPresetCode,
-} from "@/lib/hll-map-presets"
 import {
     matchTeamSides,
     sortAssignments,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/timezone-datetime"
 import { ATTENDANCE_REMINDER_OFFSETS } from "@/domain/events/scheduled-job-policy"
 import { splitLocalDateTime } from "@/domain/events/new-match-flow"
+import type { TacticalPlan } from "@/domain/events/tactical-plan"
 import { matchTeamGame } from "@/lib/teams/match-team-selection"
 import type { EventRecord, Group } from "@/types/domain"
 import type { GameId } from "@/domain/games/game"
@@ -58,7 +60,10 @@ export type FlowValues = {
     extraTeam: FlowOpponent | null
     extraSide: string | null
     mapId: string
+    /** Explicit TBD also clears an imported map the local catalogue cannot identify. */
+    mapCleared?: boolean
     timeOfDay: string
+    tacticalPlan?: TacticalPlan | null
     /** Game mode of the map preset ("warfare", "offensive", ...). */
     mapMode: string
     cap: string
@@ -230,6 +235,7 @@ export function applyTemplateValues(
                   extraSide: null,
                   mapId: "",
                   timeOfDay: "",
+                  tacticalPlan: null,
                   mapMode: "",
                   cap: "",
                   activity: "",
@@ -366,8 +372,12 @@ export function flowValuesFromEvent(
               }
             : null,
         extraSide: knownSide(extra?.side, sides),
-        mapId: selection?.mapId ?? "",
-        timeOfDay: selection?.time ?? "",
+        mapId:
+            selection?.mapId ??
+            (isMatch ? inferHllBaseMapId(event.map, gameId) : null) ??
+            "",
+        timeOfDay: event.timeOfDay ?? selection?.time ?? "",
+        tacticalPlan: event.tacticalPlan ?? null,
         mapMode: selection?.mode ?? "",
         cap: isMatch ? (event.cap ?? "") : "",
         activity:
@@ -438,6 +448,7 @@ export function flowMapCode(
     >
 ) {
     if (!values.mapId) return ""
+    if (values.gameId === "wardogs") return values.mapId
     if (!values.timeOfDay) return values.mapId
     const modes = getHllModeOptions(
         values.mapId,
@@ -461,6 +472,7 @@ export function flowMapCode(
 
 /** The default time of day when a map is picked: day, else the first. */
 export function defaultTimeOfDay(mapId: string, gameId: GameId) {
+    if (gameId === "wardogs") return ""
     const options = getHllTimeOptions(mapId, gameId)
     return (
         options.find((option) => option.value === "day")?.value ??
@@ -570,6 +582,11 @@ export function flowEventPayload(values: FlowValues, context: PayloadContext) {
         server: values.server || undefined,
         serverPassword: values.serverPassword || undefined,
         side: isMatch ? (values.ownSide ?? undefined) : undefined,
+        timeOfDay: isMatch ? values.timeOfDay : "",
+        tacticalPlan:
+            isMatch && values.gameId === "wardogs"
+                ? (values.tacticalPlan ?? null)
+                : null,
         map: isMatch
             ? isActivityGame
                 ? values.activityTarget || undefined
@@ -687,7 +704,8 @@ export function flowEditPayload(
           }
     const map = !isMatch
         ? undefined
-        : changed(MAP_FIELDS, initial, values) ||
+        : values.mapCleared ||
+            changed(MAP_FIELDS, initial, values) ||
             // An offensive preset follows your side.
             (values.mapMode === "offensive" &&
                 values.ownSide !== initial.ownSide)
@@ -784,6 +802,11 @@ export function flowEditPayload(
         serverPassword: values.serverPassword || undefined,
         side: isMatch ? (values.ownSide ?? undefined) : undefined,
         map,
+        timeOfDay: isMatch ? values.timeOfDay : "",
+        tacticalPlan:
+            isMatch && values.gameId === "wardogs"
+                ? (values.tacticalPlan ?? null)
+                : null,
         cap: isMatch ? values.cap || undefined : undefined,
         topicPresetId: values.topicPresetId || undefined,
         stratmapIds: values.stratmapIds,

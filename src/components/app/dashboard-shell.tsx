@@ -73,7 +73,7 @@ export async function DashboardShell({
                         canAdmin={false}
                         isSuperadmin={isSuperadmin}
                     />
-                    <SidebarInset className="min-h-dvh overflow-x-hidden">
+                    <SidebarInset className="min-h-dvh overflow-x-clip">
                         <SiteHeader
                             locale={locale}
                             dictionary={dictionary}

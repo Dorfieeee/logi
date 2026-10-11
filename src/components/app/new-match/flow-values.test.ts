@@ -1,3 +1,4 @@
+import { emptyTacticalPlan } from "@/domain/events/tactical-plan"
 import assert from "node:assert/strict"
 import test from "node:test"
 
@@ -96,6 +97,43 @@ function match(overrides: Partial<EventRecord> = {}): EventRecord {
 }
 
 const context = { timezone: zone, name: "", ownTeamId: "teams:vlk" }
+
+test("Wardogs map, independent time, layout and team positions survive editing", () => {
+    const plan = {
+        ...emptyTacticalPlan("ozeti"),
+        layout: "Layout B",
+        controlZone: { x: 50, y: 45, radius: 10 },
+    }
+    const event = match({
+        gameId: "wardogs",
+        map: "ozeti",
+        timeOfDay: "night",
+        tacticalPlan: plan,
+    })
+    const values = flowValuesFromEvent(event, zone)
+    assert.equal(values.mapId, "ozeti")
+    assert.equal(values.timeOfDay, "night")
+    assert.deepEqual(values.tacticalPlan, plan)
+    assert.equal(flowMapCode(values), "ozeti")
+    const payload = flowEditPayload(values, values, event, context)
+    assert.equal(payload.timeOfDay, "night")
+    assert.deepEqual(payload.tacticalPlan, plan)
+    const cleared = flowEditPayload(
+        { ...values, mapId: "", timeOfDay: "", tacticalPlan: null },
+        values,
+        event,
+        context
+    )
+    assert.equal(cleared.map, undefined)
+    assert.equal(cleared.tacticalPlan, null)
+})
+
+test("base HLL map without a preset remains selectable and TBD map stays empty", () => {
+    const values = flowValuesFromEvent(match({ map: "foy" }), zone)
+    assert.equal(values.mapId, "foy")
+    assert.equal(values.timeOfDay, "")
+    assert.equal(flowMapCode({ ...values, mapId: "" }), "")
+})
 
 function edit(event: EventRecord, change: (values: FlowValues) => FlowValues) {
     const initial = flowValuesFromEvent(event, zone)
@@ -267,6 +305,11 @@ test("a legacy match without teams keeps its side and an unknown map", () => {
         mapMode: "",
     }))
     assert.equal(picked.map, "foy_warfare_night")
+    const cleared = edit(legacy, (current) => ({
+        ...current,
+        mapCleared: true,
+    }))
+    assert.equal(cleared.map, undefined)
 })
 
 test("an offensive keeps its mode and follows your side", () => {
@@ -408,4 +451,25 @@ test("an incoherent timeline is caught before saving", () => {
         scheduleIsCoherent(flowSchedule({ ...values, date: "" }, zone)),
         false
     )
+})
+
+test("creation persists the edited sign-up roles, caps and general sign-up without unrelated caps", () => {
+    const values = flowValuesFromEvent(match(), zone)
+    const payload = flowEventPayload(
+        {
+            ...values,
+            signupGroupIds: ["g-inf"],
+            signupGroupLimits: [
+                { groupId: "g-inf", max: 12 },
+                { groupId: "g-tank", max: 6 },
+            ],
+            useGeneralSignup: true,
+            requiredRoleIds: ["discord-member"],
+        },
+        { timezone: zone, name: "New match", ownTeamId: null }
+    )
+    assert.deepEqual(payload.signupGroupIds, ["g-inf"])
+    assert.deepEqual(payload.signupGroupLimits, [{ groupId: "g-inf", max: 12 }])
+    assert.equal(payload.useGeneralSignup, true)
+    assert.deepEqual(payload.requiredRoleIds, ["discord-member"])
 })

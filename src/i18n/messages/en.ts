@@ -4298,6 +4298,15 @@ export const enMessages = {
             "No events are scheduled for the selected date in this preview.",
     },
     matchDetail: {
+        deletion: {
+            action: "Delete match",
+            title: "Delete {name}?",
+            description:
+                "The match, sign-ups, roster and match result will be permanently deleted. Existing player statistics, other dates in the series, competition fixtures and strategy maps remain. The bot will remove this match's Discord messages, threads, voice channels and participant roles.",
+            cancel: "Cancel",
+            deleted: "Match deleted. Discord cleanup is queued.",
+            failed: "The match could not be deleted. Please try again.",
+        },
         backToMatches: "Matches",
         breadcrumbLabel: "Breadcrumb",
         notFoundTitle: "Match not found",
@@ -4653,10 +4662,29 @@ export const enMessages = {
         },
     },
     roster: {
+        dragSection: "Drag section",
+        dragSquad: "Drag squad",
+        moveUp: "Move up",
+        moveDown: "Move down",
+        squadFull: "This squad has no empty slots.",
+        squadActions: "Squad actions",
+        editSquad: "Edit squad and roles",
+        editPlayers: "Edit players",
+        finishEditing: "Finish editing",
+        squadName: "Squad name",
+        squadGroup: "Section",
+        squadColor: "Squad colour",
+        moveToSection: "Move to section",
+        removeSquad: "Remove squad",
+        assignReserve: "Assign to a slot",
+        chooseSlot: "Choose a squad and slot",
+        dragHelp:
+            "Drag a player onto a slot or squad. Use the assign button to choose a slot.",
+
         title: "Roster",
         listDescription:
             "Browse event rosters, check squad counts, and see which lineups are already published.",
-        modeView: "View only",
+        modeView: "Overview",
         modeLayout: "Squad editor",
         modeAssignment: "Roster editor",
         updatePublished: "Update published roster",
