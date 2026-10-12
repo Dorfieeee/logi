@@ -42,6 +42,7 @@ import { memberObservation, membershipGuild } from "./membershipAccess"
 import { isApiKeyReadAccess } from "../src/domain/api/key-access"
 import { nextRevision } from "../src/domain/integrations/change"
 import { currentEventStatus } from "../src/domain/events/status"
+import { deleteEventInTransaction } from "./eventDeletionStore"
 import { withIntegrationChanges } from "./integrationMutation"
 import { integrationRevision } from "./integrationChangeLog"
 import { resolveGameScope } from "../src/domain/games/game"
@@ -144,6 +145,12 @@ function editableFields(event: Doc<"events">): WebsiteEventFields | null {
             ? { description: event.description }
             : {}),
         ...(event.map !== undefined ? { map: event.map } : {}),
+        ...(event.timeOfDay !== undefined
+            ? { timeOfDay: event.timeOfDay }
+            : {}),
+        ...(event.tacticalPlan !== undefined
+            ? { tacticalPlan: event.tacticalPlan }
+            : {}),
         ...(event.side !== undefined ? { side: event.side } : {}),
         ...(event.registrationStart !== undefined
             ? { registrationStart: event.registrationStart }
@@ -293,6 +300,14 @@ export const execute = mutation({
                         ): Promise<
                             { eventId: string } | { error: WebsiteEventError }
                         > => {
+                            if (input.operation === "delete") {
+                                await deleteEventInTransaction(
+                                    tracked,
+                                    input.eventId as Id<"events">,
+                                    actor.guildId
+                                )
+                                return { eventId: input.eventId }
+                            }
                             if (input.operation === "refresh_match_team")
                                 return await refreshMatchTeam(
                                     tracked,
@@ -416,6 +431,14 @@ export const execute = mutation({
                         }
                     )
                     if ("error" in outcome) return outcome
+                    if (input.operation === "delete")
+                        return {
+                            eventId: outcome.eventId,
+                            revision: await integrationRevision(
+                                ctx,
+                                actor.guildId
+                            ),
+                        }
                     const saved = await ctx.db.get(
                         outcome.eventId as Id<"events">
                     )

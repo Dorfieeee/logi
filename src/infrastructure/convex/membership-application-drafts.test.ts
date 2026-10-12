@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
+import { applicationDraftFields } from "../../../convex/membershipApplicationValidators"
 import * as applications from "../../../convex/membershipApplications"
 import * as playerHistory from "../../../convex/clanPlayerHistory"
 import { invoke, testContext } from "./testing/database"
@@ -49,6 +50,37 @@ const window1 = (age: string) => ({
         "q-source": ["source-1"],
         "q-age": [age],
     },
+})
+
+test("older draft metadata remains schema-compatible and preserves progress when resumed", async () => {
+    assert.equal(
+        applicationDraftFields.completedQuestions.isOptional,
+        "optional"
+    )
+    assert.equal(applicationDraftFields.language.isOptional, "optional")
+    const ctx = fixture()
+    const saved = await invoke(
+        applications.saveApplicationWindow,
+        ctx,
+        window1("24")
+    )
+    const [draft] = ctx.db.tables.membershipApplicationFormDrafts
+    draft.completedQuestions = []
+    draft.language = "cs"
+    const state = await invoke(applications.getApplicationState, ctx, {
+        secret,
+        guildId,
+        userId,
+    })
+    assert.deepEqual(state.draft.answers.completedWindows, ["about"])
+    assert.equal(state.draft.answers.inGameName, "Hráč 17")
+    const updated = await invoke(applications.saveApplicationWindow, ctx, {
+        ...window1("25"),
+        draftId: saved.draftId,
+    })
+    assert.equal(updated.ok, true)
+    assert.deepEqual(draft.completedQuestions, [])
+    assert.equal(draft.language, "cs")
 })
 
 test("an invalid first window is saved, so 'Upravit' reopens it filled in (L6-09)", async () => {

@@ -19,10 +19,15 @@ import {
     historyResponseSchemas,
 } from "@/lib/api/game-history-openapi"
 import {
+    tacticalPlanSchema,
+    eventTimeOfDaySchema,
+} from "@/domain/events/tactical-plan"
+import {
     peopleReadPaths,
     peopleResponseSchemas,
 } from "@/lib/api/people-openapi"
 import { membershipObservationSchema } from "@/domain/membership/observation.schema"
+import { externalRegistrationPaths } from "@/lib/api/external-registration-openapi"
 import { warconEnvelopeSchema } from "@/domain/game-data/warcon-contracts"
 import { clanResultSummarySchema } from "@/domain/api/result-summaries"
 import { leagueFixtureSchema } from "@/domain/wardogs-league/fixture"
@@ -813,6 +818,21 @@ const eventMutation = {
                         gameId: gameParameter.schema,
                         kind: { type: "string", enum: ["match", "training"] },
                         name: { type: "string", minLength: 1 },
+                        map: {
+                            type: "string",
+                            description:
+                                "Map or preset code; an empty string clears a map to TBD.",
+                        },
+                        timeOfDay: {
+                            ...z.toJSONSchema(eventTimeOfDaySchema),
+                            description:
+                                "Planned map lighting. Empty clears; omission preserves the saved value on update.",
+                        },
+                        tacticalPlan: {
+                            ...z.toJSONSchema(tacticalPlanSchema.nullable()),
+                            description:
+                                "Manual Wardogs plan for the selected map. Positions and zone radius/half-width are image percentages. Null clears; omission preserves unless the map changes.",
+                        },
                         registrationStart: {
                             type: "string",
                             format: "date-time",
@@ -1191,7 +1211,44 @@ const rosterMutation = {
                     properties: {
                         eventId: { type: "string" },
                         squadPresetId: { type: "string" },
-                        squads: { type: "array" },
+                        squads: {
+                            type: "array",
+                            description:
+                                "Complete squad layout. The order field controls squad order; each section is positioned by its first squad. Changing group moves a whole squad between sections without changing its players. Reassign a player by updating players and removing that ID from reserves or their previous slot.",
+                            items: {
+                                type: "object",
+                                required: [
+                                    "name",
+                                    "group",
+                                    "order",
+                                    "color",
+                                    "players",
+                                ],
+                                properties: {
+                                    name: { type: "string" },
+                                    group: { type: "string" },
+                                    order: { type: "number" },
+                                    color: { type: "string" },
+                                    icon: { type: "string" },
+                                    players: {
+                                        type: "array",
+                                        items: {
+                                            type: "object",
+                                            required: ["ack"],
+                                            properties: {
+                                                id: { type: "string" },
+                                                customName: { type: "string" },
+                                                ack: { type: "boolean" },
+                                                confirmed: { type: "boolean" },
+                                                note: { type: "string" },
+                                                roleName: { type: "string" },
+                                                roleIcon: { type: "string" },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
                         reservePlayerIds: {
                             type: "array",
                             items: { type: "string" },
@@ -2314,7 +2371,11 @@ Article, group, calendar-item, roster, assignment, event, signup, stratmap, and 
                     },
                 },
             },
-            paths: { ...paths, ...websiteEventCommandPaths },
+            paths: {
+                ...paths,
+                ...websiteEventCommandPaths,
+                ...externalRegistrationPaths,
+            },
         },
         { headers: { "Cache-Control": "no-store" } }
     )

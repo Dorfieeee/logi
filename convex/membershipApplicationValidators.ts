@@ -86,6 +86,10 @@ export const applicationDraftFields = {
         v.object({ questionId: v.string(), values: v.array(v.string()) })
     ),
     completedWindows: v.array(v.string()),
+    // Older deployed drafts retain these fields. Current progress and copy
+    // use completedWindows and the workspace language instead.
+    completedQuestions: v.optional(v.array(v.string())),
+    language: v.optional(v.string()),
     source: v.union(v.literal("discord"), v.literal("web")),
     /**
      * A submit in progress. `claimed` holds the draft while the bot creates

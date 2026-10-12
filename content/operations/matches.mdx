@@ -109,7 +109,11 @@ Switch on **Repeat every week** for a weekly series.
 ### Sign-ups
 
 Choose which member statuses may sign up. The offered groups and their caps
-come from the template. In Discord players press **Sign up** and choose a group
+start from the template and can be changed immediately, while creating the match:
+check each group to offer it, adjust its maximum, or enable **General sign-up**.
+Optional required Discord roles restrict eligibility; they do not assign roles.
+These choices apply to this match and do not change the template or the clan's
+group catalogue. In Discord players press **Sign up** and choose a group
 in a private picker that shows each group's count; when a capped group is full,
 a player who picks it is signed up as a reserve without a group instead, the
 bot tells them so ("Tanks are full (6/6)") and the announcement names the full
@@ -146,6 +150,26 @@ of calendars, public pages, the website feed and `/api/v1`. Open a draft from
 the match list to continue where you stopped (the address keeps
 `?draftId=…`). **Publish** turns it into the match; **Delete draft** removes it
 after a confirmation. Only drafts can be deleted this way.
+
+## Delete a match (manager)
+
+Open the match's **⋯** menu and choose **Delete match**, then confirm the match
+name and consequences. This is available for upcoming and concluded matches.
+It permanently removes the match, its sign-ups, roster, reminders and event-specific
+result records. Shared strategy maps and competition fixtures remain, with the
+match association removed. Other dates already generated in a recurring series
+remain; deleting the series source stops future generation. Previously collected
+player statistics and game-server history are not rolled back.
+
+The bot receives a durable cleanup request for this match's Discord messages,
+threads, squad voice channels, scheduled event and participant roles. Shared
+announcement, roster and forum channels are kept. Cleanup runs when the bot is
+online; temporary Discord failures are retried. Deletion itself succeeds before
+Discord cleanup finishes. The dashboard checks the current manager session and
+workspace again when deleting; a read-only member cannot delete a match.
+
+Connected websites use the actor-backed `delete` operation of
+`POST /api/v1/clan/event-commands` with the current revision and idempotency key.
 
 ## Edit a match (manager)
 

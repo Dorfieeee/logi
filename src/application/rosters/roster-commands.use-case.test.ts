@@ -1,3 +1,5 @@
+import { rosterMutationSchema } from "@/domain/api/roster-mutation"
+import { moveRosterSquad } from "@/domain/rosters/layout"
 import assert from "node:assert/strict"
 import test from "node:test"
 
@@ -40,6 +42,54 @@ class InMemoryRosterCommandRepository implements RosterCommandRepository {
         this.rosters.set(rosterId, { id: rosterId, ...roster })
     }
 }
+
+test("API-equivalent roster save preserves cross-section squad moves and reserve placement", async () => {
+    const squads = [
+        {
+            name: "FL1",
+            group: "Infantry",
+            order: 0,
+            color: "#ffffff",
+            players: [{ id: "player-1", ack: true, roleName: "Leader" }],
+        },
+        {
+            name: "FL4",
+            group: "Other",
+            order: 1,
+            color: "#ffffff",
+            players: [{ id: "reserve-1", ack: false, roleName: "Medic" }],
+        },
+    ]
+    const repo = new InMemoryRosterCommandRepository(
+        new Map(),
+        {
+            guildId: "guild-1",
+            registrationEnd: "2026-10-12T10:00:00Z",
+            participants: ["player-1", "reserve-1"].map((userId) => ({
+                userId,
+                status: "attending",
+                updatedAt: "2026-10-11T10:00:00Z",
+            })),
+            updatedAt: "2026-10-11T10:00:00Z",
+            createdAt: "2026-10-11T10:00:00Z",
+        },
+        []
+    )
+    const input = rosterMutationSchema.parse({
+        eventId: "event-1",
+        squads: moveRosterSquad(squads, 1, "Infantry", 0),
+        reservePlayerIds: [],
+        notAttendingPlayerIds: [],
+        published: false,
+    })
+    const id = await new UpsertRosterUseCase(repo).execute(input)
+    const saved = repo.rosters.get(id)
+    assert.deepEqual(saved.squads, input.squads)
+    assert.equal(saved.squads[0].name, "FL4")
+    assert.equal(saved.squads[0].group, "Infantry")
+    assert.deepEqual(saved.reservePlayerIds, [])
+    assert.equal(saved.squads[0].players[0].id, "reserve-1")
+})
 
 test("UpsertRosterUseCase adds tracked attendees to reserve when creating a roster", async () => {
     const repo = new InMemoryRosterCommandRepository(

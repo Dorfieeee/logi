@@ -1,0 +1,53 @@
+{
+  "baseCommit": "91e9dfb33578999b1a228c35c58d4f4e985a65c1",
+  "command": "npm run test",
+  "environment": "same synthetic values as .github/workflows/verify.yml",
+  "base": {
+    "tests": 3311,
+    "passed": 3294,
+    "failed": 17,
+    "failures": [
+      "/close_application by a recruiter writes the membership, closes and DMs (M3-37, M3-39, M3-B07)",
+      "/notice's choices carry the match category (M3-15)",
+      "API key form starts with localized read-only access by area in cs",
+      "API key form starts with localized read-only access by area in de",
+      "API key form starts with localized read-only access by area in en",
+      "Přihlásit se opens the group picker with counts and full groups (L1-88, L1-89)",
+      "Přijmout jako žoldáka grants the clan's mercenary category, not @Člen (L6-B08)",
+      "a training's saved sign-up names the meeting and offers only Nepřijdu",
+      "between windows: step 2, the done row with Upravit, Pokračovat and the Steam link (L6-24..26)",
+      "closed sign-ups say when they closed and what to do, without a button (L1-95)",
+      "key creation rejects empty or unsupported resource/game permissions",
+      "members see who signed up by group, the reserves and who is not coming (L1-70..79)",
+      "open sign-ups show the deadline as 'přihlášky do' (L1-71)",
+      "the Czech copy is the board's (L1)",
+      "the live preview is the bot's own announcement while sign-ups are open (N1-08)",
+      "the review lists every step with Upravit and one submit (L6-38..40)",
+      "window 1: labels with descriptions, selects and the name (L6-18..23)"
+    ]
+  },
+  "changed": {
+    "tests": 3342,
+    "passed": 3325,
+    "failed": 17,
+    "failures": [
+      "/close_application by a recruiter writes the membership, closes and DMs (M3-37, M3-39, M3-B07)",
+      "/notice's choices carry the match category (M3-15)",
+      "API key form starts with localized read-only access by area in cs",
+      "API key form starts with localized read-only access by area in de",
+      "API key form starts with localized read-only access by area in en",
+      "Přihlásit se opens the group picker with counts and full groups (L1-88, L1-89)",
+      "Přijmout jako žoldáka grants the clan's mercenary category, not @Člen (L6-B08)",
+      "a training's saved sign-up names the meeting and offers only Nepřijdu",
+      "between windows: step 2, the done row with Upravit, Pokračovat and the Steam link (L6-24..26)",
+      "closed sign-ups say when they closed and what to do, without a button (L1-95)",
+      "key creation rejects empty or unsupported resource/game permissions",
+      "members see who signed up by group, the reserves and who is not coming (L1-70..79)",
+      "open sign-ups show the deadline as 'přihlášky do' (L1-71)",
+      "the Czech copy is the board's (L1)",
+      "the live preview is the bot's own announcement while sign-ups are open (N1-08)",
+      "the review lists every step with Upravit and one submit (L6-38..40)",
+      "window 1: labels with descriptions, selects and the name (L6-18..23)"
+    ]
+  }
+}

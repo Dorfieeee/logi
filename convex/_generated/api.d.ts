@@ -8,7 +8,13 @@
  * @module
  */
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 import type * as apiHousekeeping from "../apiHousekeeping.js";
+import type * as apiIdempotency from "../apiIdempotency.js";
 import type * as apiKeyAuth from "../apiKeyAuth.js";
 import type * as apiKeyValidators from "../apiKeyValidators.js";
 import type * as articles from "../articles.js";
@@ -61,6 +67,9 @@ import type * as discordSync from "../discordSync.js";
 import type * as discord_shared from "../discord_shared.js";
 import type * as eventAnnouncements from "../eventAnnouncements.js";
 import type * as eventAttendance from "../eventAttendance.js";
+import type * as eventDeletion from "../eventDeletion.js";
+import type * as eventDeletionQueue from "../eventDeletionQueue.js";
+import type * as eventDeletionStore from "../eventDeletionStore.js";
 import type * as eventDrafts from "../eventDrafts.js";
 import type * as eventRecurrence from "../eventRecurrence.js";
 import type * as eventReminders from "../eventReminders.js";
@@ -68,6 +77,7 @@ import type * as eventResultStore from "../eventResultStore.js";
 import type * as eventResults from "../eventResults.js";
 import type * as eventValidators from "../eventValidators.js";
 import type * as events from "../events.js";
+import type * as externalRegistration from "../externalRegistration.js";
 import type * as gameCatalog from "../gameCatalog.js";
 import type * as gameData from "../gameData.js";
 import type * as gameDataCatalog from "../gameDataCatalog.js";
@@ -130,6 +140,7 @@ import type * as performanceHistory from "../performanceHistory.js";
 import type * as platformAdmin from "../platformAdmin.js";
 import type * as platformIdentityLinks from "../platformIdentityLinks.js";
 import type * as platformIdentityStore from "../platformIdentityStore.js";
+import type * as platformLinkStore from "../platformLinkStore.js";
 import type * as platformSettings from "../platformSettings.js";
 import type * as playerReportAccess from "../playerReportAccess.js";
 import type * as playerReportDrafts from "../playerReportDrafts.js";
@@ -160,6 +171,7 @@ import type * as squadPresets from "../squadPresets.js";
 import type * as sso from "../sso.js";
 import type * as ssoTokenStore from "../ssoTokenStore.js";
 import type * as stratmaps from "../stratmaps.js";
+import type * as tacticalPlanValidator from "../tacticalPlanValidator.js";
 import type * as teamMigrations from "../teamMigrations.js";
 import type * as teamReads from "../teamReads.js";
 import type * as teamRequests from "../teamRequests.js";
@@ -177,14 +189,17 @@ import type * as webhookQueue from "../webhookQueue.js";
 import type * as webhooks from "../webhooks.js";
 import type * as websiteEventCommands from "../websiteEventCommands.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-
+/**
+ * A utility for referencing Convex functions in your app's API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 declare const fullApi: ApiFromModules<{
   apiHousekeeping: typeof apiHousekeeping;
+  apiIdempotency: typeof apiIdempotency;
   apiKeyAuth: typeof apiKeyAuth;
   apiKeyValidators: typeof apiKeyValidators;
   articles: typeof articles;
@@ -237,6 +252,9 @@ declare const fullApi: ApiFromModules<{
   discord_shared: typeof discord_shared;
   eventAnnouncements: typeof eventAnnouncements;
   eventAttendance: typeof eventAttendance;
+  eventDeletion: typeof eventDeletion;
+  eventDeletionQueue: typeof eventDeletionQueue;
+  eventDeletionStore: typeof eventDeletionStore;
   eventDrafts: typeof eventDrafts;
   eventRecurrence: typeof eventRecurrence;
   eventReminders: typeof eventReminders;
@@ -244,6 +262,7 @@ declare const fullApi: ApiFromModules<{
   eventResults: typeof eventResults;
   eventValidators: typeof eventValidators;
   events: typeof events;
+  externalRegistration: typeof externalRegistration;
   gameCatalog: typeof gameCatalog;
   gameData: typeof gameData;
   gameDataCatalog: typeof gameDataCatalog;
@@ -306,6 +325,7 @@ declare const fullApi: ApiFromModules<{
   platformAdmin: typeof platformAdmin;
   platformIdentityLinks: typeof platformIdentityLinks;
   platformIdentityStore: typeof platformIdentityStore;
+  platformLinkStore: typeof platformLinkStore;
   platformSettings: typeof platformSettings;
   playerReportAccess: typeof playerReportAccess;
   playerReportDrafts: typeof playerReportDrafts;
@@ -336,6 +356,7 @@ declare const fullApi: ApiFromModules<{
   sso: typeof sso;
   ssoTokenStore: typeof ssoTokenStore;
   stratmaps: typeof stratmaps;
+  tacticalPlanValidator: typeof tacticalPlanValidator;
   teamMigrations: typeof teamMigrations;
   teamReads: typeof teamReads;
   teamRequests: typeof teamRequests;
@@ -353,28 +374,10 @@ declare const fullApi: ApiFromModules<{
   webhooks: typeof webhooks;
   websiteEventCommands: typeof websiteEventCommands;
 }>;
-
-/**
- * A utility for referencing Convex functions in your app's public API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">
 >;
-
-/**
- * A utility for referencing Convex functions in your app's internal API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = internal.myModule.myFunction;
- * ```
- */
 export declare const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">

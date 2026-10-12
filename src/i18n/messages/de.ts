@@ -4416,6 +4416,15 @@ export const deMessages = {
             "Für das gewählte Datum sind in dieser Vorschau keine Events geplant.",
     },
     matchDetail: {
+        deletion: {
+            action: "Spiel löschen",
+            title: "{name} löschen?",
+            description:
+                "Spiel, Anmeldungen, Aufstellung und Spielergebnis werden dauerhaft gelöscht. Bisherige Spielerstatistiken, andere Serientermine, Wettbewerbe und Strategiekarten bleiben erhalten. Der Bot entfernt die Discord-Nachrichten, Threads, Sprachkanäle und Teilnehmerrollen dieses Spiels.",
+            cancel: "Abbrechen",
+            deleted: "Spiel gelöscht. Die Discord-Bereinigung ist vorgemerkt.",
+            failed: "Das Spiel konnte nicht gelöscht werden. Bitte erneut versuchen.",
+        },
         backToMatches: "Matches",
         breadcrumbLabel: "Brotkrumen-Navigation",
         notFoundTitle: "Match nicht gefunden",
@@ -4776,10 +4785,29 @@ export const deMessages = {
         },
     },
     roster: {
+        dragSection: "Bereich ziehen",
+        dragSquad: "Trupp ziehen",
+        moveUp: "Nach oben",
+        moveDown: "Nach unten",
+        squadFull: "Dieser Trupp hat keine freien Plätze.",
+        squadActions: "Truppaktionen",
+        editSquad: "Trupp und Rollen bearbeiten",
+        editPlayers: "Spieler bearbeiten",
+        finishEditing: "Bearbeitung beenden",
+        squadName: "Truppname",
+        squadGroup: "Bereich",
+        squadColor: "Truppfarbe",
+        moveToSection: "In Bereich verschieben",
+        removeSquad: "Trupp entfernen",
+        assignReserve: "Einem Platz zuweisen",
+        chooseSlot: "Trupp und Platz auswählen",
+        dragHelp:
+            "Spieler auf einen Platz oder Trupp ziehen. Mit der Zuweisungsschaltfläche einen Platz auswählen.",
+
         title: "Roster",
         listDescription:
             "Durchsuche Event-Roster, prüfe Squad-Stärken und sieh, welche Aufstellungen bereits veröffentlicht sind.",
-        modeView: "Nur ansehen",
+        modeView: "Übersicht",
         modeLayout: "Squad-Editor",
         modeAssignment: "Roster-Editor",
         updatePublished: "Veröffentlichtes Roster aktualisieren",

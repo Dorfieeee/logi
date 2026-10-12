@@ -38,6 +38,8 @@ function seriesInput(source: Doc<"events">) {
         serverPassword: source.serverPassword,
         side: source.side,
         map: source.map,
+        timeOfDay: source.timeOfDay,
+        tacticalPlan: source.tacticalPlan,
         cap: source.cap,
         notes: source.notes,
         registrationStart: source.registrationStart,

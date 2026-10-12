@@ -4283,6 +4283,15 @@ export const csMessages = {
             "Pro vybrané datum nejsou v této ukázce naplánovány žádné akce.",
     },
     matchDetail: {
+        deletion: {
+            action: "Smazat zápas",
+            title: "Smazat {name}?",
+            description:
+                "Zápas, přihlášky, soupiska a výsledek zápasu se trvale smažou. Dosavadní statistiky hráčů, ostatní termíny série, zápisy soutěže a stratmapy zůstanou. Bot odstraní zprávy, vlákna, hlasové kanály a účastnické role tohoto zápasu v Discordu.",
+            cancel: "Zrušit",
+            deleted: "Zápas smazán. Úklid Discordu čeká na bota.",
+            failed: "Zápas se nepodařilo smazat. Zkuste to znovu.",
+        },
         backToMatches: "Zápasy",
         breadcrumbLabel: "Drobečková navigace",
         notFoundTitle: "Zápas nenalezen",
@@ -4633,10 +4642,29 @@ export const csMessages = {
         },
     },
     roster: {
+        dragSection: "Přetáhnout sekci",
+        dragSquad: "Přetáhnout jednotku",
+        moveUp: "Posunout nahoru",
+        moveDown: "Posunout dolů",
+        squadFull: "Tato jednotka nemá volné pozice.",
+        squadActions: "Akce jednotky",
+        editSquad: "Upravit jednotku a role",
+        editPlayers: "Upravit hráče",
+        finishEditing: "Dokončit úpravy",
+        squadName: "Název jednotky",
+        squadGroup: "Sekce",
+        squadColor: "Barva jednotky",
+        moveToSection: "Přesunout do sekce",
+        removeSquad: "Odebrat jednotku",
+        assignReserve: "Přiřadit na pozici",
+        chooseSlot: "Vyberte jednotku a pozici",
+        dragHelp:
+            "Přetáhněte hráče na pozici nebo jednotku. Tlačítkem přiřazení vyberete konkrétní pozici.",
+
         title: "Soupiska",
         listDescription:
             "Procházejte soupisky akcí, kontrolujte počty jednotek a hned vidíte, které sestavy jsou publikované.",
-        modeView: "Pouze zobrazení",
+        modeView: "Přehled",
         modeLayout: "Editor jednotek",
         modeAssignment: "Editor soupisky",
         updatePublished: "Aktualizovat publikovanou soupisku",

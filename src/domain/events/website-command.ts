@@ -4,6 +4,11 @@ import {
     matchTeamSummarySchema,
     sortAssignments,
 } from "../teams/match-teams"
+import {
+    eventTimeOfDaySchema,
+    tacticalPlanMatchesMap,
+    tacticalPlanSchema,
+} from "./tactical-plan"
 import { isApiKeyReadAccess } from "../api/key-access"
 import { teamIdSchema } from "../teams/team"
 import { deriveEventStatus } from "./status"
@@ -102,6 +107,8 @@ export const websiteEventFieldsSchema = z
         matchType: z.string().trim().max(80).optional(),
         description: z.string().trim().max(2000).optional(),
         map: z.string().trim().max(200).optional(),
+        timeOfDay: eventTimeOfDaySchema.optional(),
+        tacticalPlan: tacticalPlanSchema.nullable().optional(),
         side: z.string().trim().max(200).optional(),
         registrationStart: instant.optional(),
         registrationEnd: instant,
@@ -111,6 +118,16 @@ export const websiteEventFieldsSchema = z
         /** Directory team IDs, slots and sides. Omitted preserves the saved selection; [] clears it. */
         matchTeams: matchTeamInputsSchema.optional(),
     })
+    .refine(
+        (event) =>
+            !event.tacticalPlan ||
+            (event.kind === "match" &&
+                tacticalPlanMatchesMap(event.tacticalPlan, event.map)),
+        {
+            path: ["tacticalPlan"],
+            message: "Tactical plan must belong to the selected map.",
+        }
+    )
     .refine(
         (event) =>
             (!event.registrationStart ||
@@ -138,6 +155,11 @@ export const websiteEventCommandSchema = z.discriminatedUnion("operation", [
         eventId: websiteEventIdSchema,
         expectedRevision: websiteEventRevisionSchema,
     }),
+    z.strictObject({
+        operation: z.literal("delete"),
+        eventId: websiteEventIdSchema,
+        expectedRevision: websiteEventRevisionSchema,
+    }),
     /** Explicit re-capture of one assigned team's presentation from the active directory entry. */
     z.strictObject({
         operation: z.literal("refresh_match_team"),
@@ -150,6 +172,7 @@ const websiteEventOperationSchema = z.enum([
     "create",
     "update",
     "cancel",
+    "delete",
     "refresh_match_team",
 ])
 export type WebsiteEventCommand = z.infer<typeof websiteEventCommandSchema>
@@ -341,6 +364,7 @@ export function websiteEventStateError(
             ? null
             : "invalid_state"
     if (!existing) return "invalid_state"
+    if (command.operation === "delete") return null
     if (command.operation === "refresh_match_team")
         return matchTeamsEditability({
             kind: existing.kind === "training" ? "training" : "match",

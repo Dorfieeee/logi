@@ -1,5 +1,11 @@
 # Actor-backed website event commands
 
+## Planned map metadata
+
+Create/update and editor reads accept `timeOfDay` (`day`, `morning`, `dusk`, `evening`, `night`, `rain`, `overcast`, or `""` to clear) and an optional `tacticalPlan`. The same fields are accepted by dashboard and generic `/api/v1/clan/events` writes. A plan is only valid for a Wardogs match with the matching `map`: `bakurani`, `ozeti` or `zestafona` (legacy preset codes of that base map remain valid).
+
+`tacticalPlan` contains `mapId`, a free-text `layout` of at most 120 characters, nullable `controlZone` and `hotZone` objects (`x`, `y`, `radius`), and `teams` with at most three unique slots (`a`, `b`, `c`) and `x`, `y`. Coordinates are 0–100 percent of the map image; `radius` is 1–50 percent and means square half-width for the Control Zone and circle radius for the Hot Zone. These values are manual organiser planning input, not authoritative server layout coordinates. Omitted metadata preserves an existing value on an update; `tacticalPlan: null` clears the plan, and changing the map without supplying a plan removes old positions. `timeOfDay: ""` clears the stored time. Team identity/faction continues to come from `matchTeams` and follows its existing authorization rules.
+
 The website owns presentation, publication and its local session. Logi owns the
 operational event. A website write creates or changes the same native event used
 by the Logi dashboard and Discord workflows, then the existing revision feed
@@ -72,7 +78,7 @@ The [generated OpenAPI endpoint](/api/v1/openapi.json) includes these operations
 
 | Request                                                  | Purpose                                                   |
 | -------------------------------------------------------- | --------------------------------------------------------- |
-| `POST /api/v1/clan/event-commands?game=wardogs`          | Create, update, cancel or refresh one match team snapshot |
+| `POST /api/v1/clan/event-commands?game=wardogs`          | Create, update, cancel, delete or refresh one match team snapshot |
 | `GET /api/v1/clan/event-commands/{eventId}?game=wardogs` | Read the bounded editor and current revision              |
 
 Use `Authorization: Bearer <command-service-key>` and
@@ -344,6 +350,31 @@ channel, the channel, how many people were in it and which roster players were
 found).
 
 ## Verification and limits
+
+### Match deletion (2026-10-11)
+
+`operation: "delete"` takes `eventId` and `expectedRevision` and uses the same
+current SSO actor policy and idempotency key as an update. It is available after
+the meeting and after conclusion. A stale revision or a different workspace/game
+is rejected before any change. A successful receipt remains replayable after the
+event row is deleted; replays still recheck current authorization.
+
+Deletion removes the native event and event-owned operational data, roster and
+event-specific result records. Shared stratmaps and competition fixtures are
+detached. Existing occurrences are detached from a deleted series source and
+kept. Independently collected game sessions and aggregate player statistics are
+kept. Integration notifications include `remove` for the event summaries and
+other affected projections.
+
+Discord removal is asynchronous. The transaction snapshots only event-owned
+message IDs, threads, squad voice channels, scheduled events and attendee/reserve
+roles into `eventDeletionRequests`. The bot polls every 30 seconds, takes a fenced
+five-minute lease and removes resources idempotently (404 is success). Errors
+retry with backoff up to ten attempts; exhausted requests remain `failed` for
+operator inspection, including a bounded error code. Shared Discord channels
+and unrelated roles are never deletion targets. Local tests cover tenant/session
+denial, dependent cleanup, revision/replay, lease fencing and Discord failure
+retries; provider deletion requires live bot acceptance.
 
 Automated source tests cover domain validation; strict HTTP envelopes and
 credential hashing; policy setup/CSRF; final-transaction authorization; 11

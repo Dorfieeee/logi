@@ -1,3 +1,4 @@
+import { emptyTacticalPlan } from "../../domain/events/tactical-plan"
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
@@ -229,6 +230,40 @@ test("event API rejects cross-guild references without creating an event", async
     assert.equal(result?.status, 400)
     assert.equal(db.tables.events.size, 0)
     assert.match(result?.body ?? "", /Referenced signup group was not found/)
+})
+
+test("event API stores a Wardogs plan and clears it when the map changes", async () => {
+    const db = new FakeDb()
+    const plan = emptyTacticalPlan("bakurani")
+    const first = await handler(publicApi.mutateClanEvent)(
+        { db },
+        request({
+            event: event({
+                gameId: "wardogs",
+                map: "bakurani",
+                timeOfDay: "night",
+                tacticalPlan: plan,
+            }),
+        })
+    )
+    assert.equal(first?.status, 201)
+    const saved = [...db.tables.events.values()][0]
+    assert.deepEqual(saved.tacticalPlan, plan)
+    assert.equal(saved.timeOfDay, "night")
+    const updated = await handler(publicApi.mutateClanEvent)(
+        { db },
+        request({
+            operation: "update",
+            methodPath: `PATCH /clan/events/${saved._id}`,
+            eventId: saved._id,
+            idempotencyKey: "map-change",
+            bodyHash: "map-change",
+            event: event({ gameId: "wardogs", map: "ozeti" }),
+        })
+    )
+    assert.equal(updated?.status, 200)
+    assert.equal(db.tables.events.get(saved._id)?.tacticalPlan, undefined)
+    assert.equal(db.tables.events.get(saved._id)?.timeOfDay, "night")
 })
 
 test("event API replays an idempotent create once and queues one webhook", async () => {

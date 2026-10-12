@@ -41,6 +41,37 @@ const refresh = {
 }
 const bodyHash = "f".repeat(64)
 
+test("actor-backed deletion works for concluded matches, enforces revision and replays after the row is gone", async () => {
+    const command = {
+        operation: "delete" as const,
+        eventId: stored.id,
+        expectedRevision: "7",
+    }
+    const f = fakes({ event: { ...stored, status: "concluded" } })
+    const result = await f.run(command)
+    assert.ok("data" in result)
+    assert.equal(f.applied[0]?.operation, "delete")
+    const conflict = fakes()
+    assert.deepEqual(
+        await conflict.run({ ...command, expectedRevision: "6" }),
+        { error: { code: "revision_conflict" } }
+    )
+    assert.equal(conflict.applied.length, 0)
+    if (!("data" in result)) return
+    const replay = fakes({
+        event: null,
+        prior: { bodyHash, receipt: result.data },
+    })
+    assert.deepEqual(await replay.run(command), {
+        data: { ...result.data, replayed: true },
+    })
+    assert.equal(replay.applied.length, 0)
+    assert.deepEqual(
+        await fakes({ event: { ...stored, guildId: "other" } }).run(command),
+        { error: { code: "not_found" } }
+    )
+})
+
 function fakes(
     options: {
         event?: WebsiteCommandEvent | null
