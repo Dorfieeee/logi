@@ -58,10 +58,12 @@ test("the fixture form starts from a stored fixture or a scheduled league defaul
         round: "",
         sideATeamId: "",
         sideBTeamId: "",
+        sideCTeamId: "",
         scheduledAt: "",
         status: "scheduled",
         scoreA: "",
         scoreB: "",
+        scoreC: "",
     })
     // Legacy sides must be chosen again from registered teams.
     assert.deepEqual(fixtureFormValues(stored, "d2"), {
@@ -70,10 +72,12 @@ test("the fixture form starts from a stored fixture or a scheduled league defaul
         round: "2",
         sideATeamId: "t1",
         sideBTeamId: "",
+        sideCTeamId: "",
         scheduledAt: "",
         status: "final",
         scoreA: "5",
         scoreB: "0",
+        scoreC: "",
     })
     // A new fixture starts in the phase and round being viewed.
     const fresh = fixtureFormValues(null, "d1", { phase: "playoff", round: 3 })
@@ -112,6 +116,14 @@ test("the fixture form produces a domain-valid write or nothing", () => {
     assert.equal(fixtureFormInput({ ...values, scoreB: "2.5" }), null)
     assert.equal(fixtureFormInput({ ...values, sideBTeamId: "t1" }), null)
     assert.equal(fixtureFormInput({ ...values, sideBTeamId: "" }), null)
+    assert.deepEqual(
+        fixtureFormInput({
+            ...values,
+            sideCTeamId: "t3",
+            scoreC: "1",
+        })?.participantTeamIds,
+        ["t1", "t2", "t3"]
+    )
     // Scheduled fixtures drop typed scores.
     const scheduled = fixtureFormInput({ ...values, status: "scheduled" })
     assert.equal(scheduled?.scoreA, null)

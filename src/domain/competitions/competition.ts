@@ -23,6 +23,9 @@ export const COMPETITION_DIVISION_LIMIT = 50
 export const COMPETITION_REGISTRATION_LIMIT = 500
 export const COMPETITION_FIXTURE_LIMIT = 2000
 export const FIXTURE_SCORE_MAX = 999
+/** HLL fixtures have two teams; Wardogs may schedule a three-team game. */
+export const FIXTURE_PARTICIPANT_MIN = 2
+export const FIXTURE_PARTICIPANT_MAX = 3
 /** Highest round number a fixture can carry ("1. kolo" … "99. kolo"). */
 export const FIXTURE_ROUND_MAX = 99
 
@@ -148,20 +151,44 @@ export const fixtureInputSchema = z
     .strictObject({
         divisionId: competitionRecordIdSchema,
         phase: z.enum(FIXTURE_PHASES),
+        /** Ordered participating global teams.  The first two also populate
+         * the legacy side fields while old dashboard clients are retired. */
+        participantTeamIds: z
+            .array(teamIdSchema)
+            .min(FIXTURE_PARTICIPANT_MIN)
+            .max(FIXTURE_PARTICIPANT_MAX)
+            .optional(),
         sideATeamId: teamIdSchema,
         sideBTeamId: teamIdSchema,
         scheduledAt: z.iso.datetime({ offset: true }).nullable().default(null),
         status: z.enum(FIXTURE_STATUSES),
         scoreA: scoreSchema.nullable().default(null),
         scoreB: scoreSchema.nullable().default(null),
+        /** Scores in the same order as `participantTeamIds`; required for a
+         * completed three-team fixture. */
+        participantScores: z
+            .array(scoreSchema.nullable())
+            .min(FIXTURE_PARTICIPANT_MIN)
+            .max(FIXTURE_PARTICIPANT_MAX)
+            .optional(),
         round: fixtureRoundSchema.nullable().optional(),
     })
     .superRefine((value, ctx) => {
-        if (value.sideATeamId === value.sideBTeamId)
+        const teams = value.participantTeamIds ?? [
+            value.sideATeamId,
+            value.sideBTeamId,
+        ]
+        if (new Set(teams).size !== teams.length)
             ctx.addIssue({
                 code: "custom",
-                path: ["sideBTeamId"],
-                message: "A team cannot play itself.",
+                path: ["participantTeamIds"],
+                message: "A fixture may not contain the same team twice.",
+            })
+        if (teams[0] !== value.sideATeamId || teams[1] !== value.sideBTeamId)
+            ctx.addIssue({
+                code: "custom",
+                path: ["participantTeamIds"],
+                message: "The first two participants must match sides A and B.",
             })
         if (
             value.status !== "scheduled" &&
@@ -175,7 +202,11 @@ export const fixtureInputSchema = z
     })
     .transform((value) =>
         value.status === "scheduled"
-            ? { ...value, scoreA: null, scoreB: null }
+            ? (() => {
+                  const { participantScores: _participantScores, ...rest } =
+                      value
+                  return { ...rest, scoreA: null, scoreB: null }
+              })()
             : value
     )
 export type FixtureInput = z.output<typeof fixtureInputSchema>
@@ -330,9 +361,13 @@ export function checkFixture(input: {
 }): CompetitionCommandError | null {
     if (!input.divisionIds.has(input.fixture.divisionId))
         return "division_not_found"
-    const sides = [input.fixture.sideATeamId, input.fixture.sideBTeamId].map(
-        (teamId) => input.registrations.get(teamId)
-    )
+    const teams = input.fixture.participantTeamIds ?? [
+        input.fixture.sideATeamId,
+        input.fixture.sideBTeamId,
+    ]
+    if (input.gameId !== "wardogs" && teams.length !== 2)
+        return "invalid_competition"
+    const sides = teams.map((teamId) => input.registrations.get(teamId))
     if (sides.some((side) => !side)) return "team_not_registered"
     if (sides.some((side) => side!.gameId !== input.gameId))
         return "team_game_mismatch"
@@ -354,13 +389,14 @@ export type LinkableEvent = {
 
 /**
  * A fixture links to one non-training match event of the same game that no
- * other fixture uses. When the event has assigned match teams, both fixture
- * teams must be among them, so a linked result belongs to these two teams.
+ * other fixture uses. A participating clan may keep a local event containing
+ * only its own team, so assigned event teams must be a non-empty subset of
+ * the fixture participants rather than a copy of the whole fixture.
  */
 export function checkEventLink(input: {
     gameId: string
     fixtureId: string
-    fixtureTeamIds: readonly [string, string]
+    fixtureTeamIds: readonly string[]
     event: LinkableEvent | null
     /** Another fixture already pointing at this event, if any. */
     otherFixtureId: string | null
@@ -376,9 +412,12 @@ export function checkEventLink(input: {
         return "event_already_linked"
     if (
         input.event.teamIds.length > 0 &&
-        !input.fixtureTeamIds.every((teamId) =>
-            input.event!.teamIds.includes(teamId)
-        )
+        (!input.event.teamIds.some((teamId) =>
+            input.fixtureTeamIds.includes(teamId)
+        ) ||
+            input.event.teamIds.some(
+                (teamId) => !input.fixtureTeamIds.includes(teamId)
+            ))
     )
         return "event_team_mismatch"
     return null
@@ -423,8 +462,12 @@ export type PublicCompetitionFixture = {
     phase: FixturePhase
     teamAId: string
     teamBId: string
+    /** All fixture teams in score/placement order.  Missing on old rows means
+     * the two legacy side IDs. */
+    participantTeamIds?: string[]
     scoreA?: number
     scoreB?: number
+    participantScores?: Array<number | null>
     status: FixtureStatus
     scheduledAt?: string
     /** Round number within the phase; missing on fixtures saved before rounds. */

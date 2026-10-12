@@ -18,11 +18,9 @@ import {
     publicPlatformLink,
 } from "./platformIdentityStore"
 import { canAdminServerContext } from "../src/infrastructure/convex/server-read-model"
+import { rankSourceCandidates } from "../src/domain/match-results/source-candidates"
 import type { ResultRevision } from "../src/domain/match-results/result-revision"
 import { confirmResult } from "../src/application/match-results/confirm-result"
-import { newestEndedSessionFirst } from "../src/domain/game-data/history-rules"
-import { fixtureScoreFromEvent } from "../src/domain/competitions/competition"
-import { axisAlliesScore } from "../src/domain/match-results/result-sides"
 import { providerSessionSchema } from "../src/domain/game-data/contracts"
 import { resolveGameScope, isGameId } from "../src/domain/games/game"
 import { assertMembershipSecret } from "./membershipAccess"
@@ -174,20 +172,74 @@ async function applyReviewedResultToFixture(
 ) {
     if (revision.status === "provisional" || !event.competitionFixtureId) return
     const fixture = await ctx.db.get(event.competitionFixtureId)
-    const score = axisAlliesScore(revision.participants)
-    if (!fixture?.sideATeamId || !fixture.sideBTeamId || !score) return
-    const fixtureScore = fixtureScoreFromEvent({
-        fixture: {
-            sideATeamId: String(fixture.sideATeamId),
-            sideBTeamId: String(fixture.sideBTeamId),
-        },
-        eventTeams: await eventTeamSides(ctx, event),
-        score,
+    if (!fixture) return
+    const participantIds =
+        fixture.participantTeamIds?.map(String) ??
+        [
+            fixture.sideATeamId ? String(fixture.sideATeamId) : null,
+            fixture.sideBTeamId ? String(fixture.sideBTeamId) : null,
+        ].filter((id): id is string => Boolean(id))
+    const sides = await eventTeamSides(ctx, event)
+    const values = new Map(
+        revision.participants
+            .filter((participant) => participant.score !== null)
+            .map((participant) => [participant.id, participant.score] as const)
+    )
+    const scores = participantIds.map((teamId) => {
+        const side = sides.find((entry) => entry.teamIds.includes(teamId))?.side
+        return side ? values.get(side) : undefined
     })
-    if (!fixtureScore) return
+    if (
+        participantIds.length < 2 ||
+        scores.length !== participantIds.length ||
+        scores.some((score): score is undefined => score === undefined)
+    )
+        return
+    const completeScores = scores as number[]
+    const submissions = fixture.fixtureResultSubmissions ?? []
+    const existing = submissions.find((item) => item.eventId === event._id)
+    const nextSubmissions = existing
+        ? submissions.map((item) =>
+              item.eventId === event._id
+                  ? {
+                        ...item,
+                        scores: completeScores,
+                        submittedAt: revision.createdAt,
+                    }
+                  : item
+          )
+        : [
+              ...submissions,
+              {
+                  eventId: event._id,
+                  scores: completeScores,
+                  submittedAt: revision.createdAt,
+              },
+          ]
+    const official =
+        fixture.participantScores ??
+        (fixture.scoreA !== undefined && fixture.scoreB !== undefined
+            ? [fixture.scoreA, fixture.scoreB]
+            : null)
+    const conflict = Boolean(
+        official &&
+        (official.length !== completeScores.length ||
+            official.some((score, index) => score !== completeScores[index]))
+    )
+    // First confirmed linked result supplies the provisional league score.
+    // Later independent clan submissions never overwrite it; disagreements
+    // remain visible for the superadmin to resolve.
     await ctx.db.patch(fixture._id, {
-        ...fixtureScore,
-        status: "final",
+        fixtureResultSubmissions: nextSubmissions,
+        ...(fixture.status === "scheduled"
+            ? {
+                  scoreA: completeScores[0],
+                  scoreB: completeScores[1],
+                  participantScores: completeScores,
+                  status: "final" as const,
+              }
+            : {}),
+        ...(conflict ? { resultConflict: true } : {}),
         updatedAt: revision.createdAt,
     })
 }
@@ -276,26 +328,22 @@ export const get = query({
             .order("desc")
             .take(20)
         // Both HLL and Wardogs collections can back a reviewed result. The
-        // index is only a bounded scan; session end time is authoritative for
-        // what managers see. This avoids an old match re-fetched today hiding
-        // the games that actually ended most recently.
-        const sessions = sessionGameId
-            ? (
-                  await ctx.db
-                      .query("gameSessions")
-                      .withIndex("guildId_gameId_fetchedAt", (q) =>
-                          q
-                              .eq("guildId", args.guildId)
-                              .eq("gameId", sessionGameId)
-                      )
-                      .order("desc")
-                      .take(SESSION_PICKER_SCAN_LIMIT)
-              )
-                  .sort((left, right) =>
-                      newestEndedSessionFirst(left.session, right.session)
+        // picker suggests the ten games closest to this match's planned
+        // start/end window; it never attaches one automatically.
+        const candidateRows = sessionGameId
+            ? await ctx.db
+                  .query("gameSessions")
+                  .withIndex("guildId_gameId_fetchedAt", (q) =>
+                      q.eq("guildId", args.guildId).eq("gameId", sessionGameId)
                   )
-                  .slice(0, SESSION_PICKER_LIMIT)
+                  .order("desc")
+                  .take(SESSION_PICKER_SCAN_LIMIT)
             : []
+        const sessions = rankSourceCandidates(
+            candidateRows,
+            event,
+            SESSION_PICKER_LIMIT
+        )
         return {
             current,
             history: history.map((row) =>

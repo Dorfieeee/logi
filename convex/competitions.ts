@@ -24,7 +24,6 @@ import {
     type FixtureInput,
     type PublicCompetition,
     type RegisteredTeam,
-    fixtureScoreFromEvent,
     type EventTeamSide,
 } from "../src/domain/competitions/competition"
 import type {
@@ -172,6 +171,20 @@ function fixtureSides(row: Doc<"competitionFixtures">): [string, string] {
         side(row.sideBTeamId, row.teamBId),
     ]
 }
+/** Global teams in their fixture/result order, with legacy rows projected as
+ * their two historical sides. */
+function fixtureParticipants(row: Doc<"competitionFixtures">): string[] {
+    if (row.participantTeamIds?.length)
+        return row.participantTeamIds.map(String)
+    return fixtureSides(row)
+}
+function fixtureEventIds(row: Doc<"competitionFixtures">): Id<"events">[] {
+    return row.eventIds?.length
+        ? row.eventIds
+        : row.eventId
+          ? [row.eventId]
+          : []
+}
 function involves(
     fixture: Doc<"competitionFixtures">,
     registration: Doc<"competitionTeams">
@@ -264,8 +277,10 @@ export const getPublic = query({
                                 phase: row.phase,
                                 teamAId,
                                 teamBId,
+                                participantTeamIds: fixtureParticipants(row),
                                 scoreA: row.scoreA,
                                 scoreB: row.scoreB,
+                                participantScores: row.participantScores,
                                 status: row.status,
                                 scheduledAt: row.scheduledAt,
                                 // Optional: fixtures saved before rounds have none.
@@ -324,7 +339,8 @@ export const listClanFixtureLabels = query({
                 )
                     return null
                 const fixture = await ctx.db.get(event.competitionFixtureId)
-                if (!fixture || fixture.eventId !== event._id) return null
+                if (!fixture || !fixtureEventIds(fixture).includes(event._id))
+                    return null
                 const key = String(fixture.competitionId)
                 if (!competitions.has(key))
                     competitions.set(key, ctx.db.get(fixture.competitionId))
@@ -419,9 +435,12 @@ export const adminGet = query({
                     )
                     .map(async (row) => {
                         const [sideA, sideB] = fixtureSides(row)
-                        const event = row.eventId
-                            ? await ctx.db.get(row.eventId)
-                            : null
+                        const events = await Promise.all(
+                            fixtureEventIds(row).map((eventId) =>
+                                ctx.db.get(eventId)
+                            )
+                        )
+                        const event = events.find(Boolean) ?? null
                         const workspace = event
                             ? await getGuildByDiscordId(ctx, event.guildId)
                             : null
@@ -434,9 +453,14 @@ export const adminGet = query({
                             round: row.round ?? null,
                             sideA: await view(sideA),
                             sideB: await view(sideB),
+                            participants: await Promise.all(
+                                fixtureParticipants(row).map(view)
+                            ),
                             scheduledAt: row.scheduledAt ?? null,
                             scoreA: row.scoreA ?? null,
                             scoreB: row.scoreB ?? null,
+                            participantScores: row.participantScores ?? null,
+                            resultConflict: row.resultConflict === true,
                             status: row.status,
                             event: event
                                 ? {
@@ -448,6 +472,23 @@ export const adminGet = query({
                                       reviewed: Boolean(event.reviewedResult),
                                   }
                                 : null,
+                            events: await Promise.all(
+                                events.filter(Boolean).map(async (item) => {
+                                    const event = item!
+                                    const guild = await getGuildByDiscordId(
+                                        ctx,
+                                        event.guildId
+                                    )
+                                    return {
+                                        id: String(event._id),
+                                        name: event.name,
+                                        gameStart: event.gameStart,
+                                        workspace: guild?.name ?? null,
+                                        hasResult: Boolean(event.eventResult),
+                                        reviewed: Boolean(event.reviewedResult),
+                                    }
+                                })
+                            ),
                         }
                     })
             ),
@@ -550,9 +591,13 @@ export const linkCandidates = query({
                 }
             }
         }
-        return [...candidates.values()]
-            .sort((a, b) => b.gameStart.localeCompare(a.gameStart))
-            .slice(0, 25)
+        return (
+            [...candidates.values()]
+                .sort((a, b) => b.gameStart.localeCompare(a.gameStart))
+                // Managers explicitly choose a source/link; a short ranked list
+                // is useful while preventing an accidental broad event browser.
+                .slice(0, 10)
+        )
     },
 })
 
@@ -896,6 +941,7 @@ async function fixtureWrite(
               divisionId: Id<"competitionDivisions">
               sideATeamId: Id<"teamDirectory">
               sideBTeamId: Id<"teamDirectory">
+              participantTeamIds: Id<"teamDirectory">[]
           }
       }
     | Failure
@@ -908,7 +954,11 @@ async function fixtureWrite(
         competition._id
     )
     const registered = new Map<string, RegisteredTeam>()
-    for (const teamId of [fixture.sideATeamId, fixture.sideBTeamId]) {
+    for (const teamId of fixture.participantTeamIds ?? [
+        fixture.sideATeamId,
+        fixture.sideBTeamId,
+    ]) {
+        if (!teamId) return fail("invalid_competition")
         const row = registrations.find(
             (entry) => String(entry.teamId) === teamId
         )
@@ -934,7 +984,20 @@ async function fixtureWrite(
     const sideBTeamId = ctx.db.normalizeId("teamDirectory", fixture.sideBTeamId)
     if (!divisionId || !sideATeamId || !sideBTeamId)
         return fail("invalid_competition")
-    return { fixture, fields: { divisionId, sideATeamId, sideBTeamId } }
+    return {
+        fixture,
+        fields: {
+            divisionId,
+            sideATeamId,
+            sideBTeamId,
+            participantTeamIds: (
+                fixture.participantTeamIds ?? [
+                    fixture.sideATeamId,
+                    fixture.sideBTeamId,
+                ]
+            ).map((id) => ctx.db.normalizeId("teamDirectory", id)!),
+        },
+    }
 }
 
 export const createFixture = mutation({
@@ -960,6 +1023,10 @@ export const createFixture = mutation({
             scheduledAt: write.fixture.scheduledAt ?? undefined,
             scoreA: write.fixture.scoreA ?? undefined,
             scoreB: write.fixture.scoreB ?? undefined,
+            participantScores:
+                ("participantScores" in write.fixture
+                    ? write.fixture.participantScores
+                    : undefined) ?? undefined,
             status: write.fixture.status,
             createdAt: now,
             updatedAt: now,
@@ -983,12 +1050,19 @@ export const updateFixture = mutation({
         // teams release it so later imports cannot score the wrong pairing.
         const teamsChanged =
             write.fields.sideATeamId !== row.sideATeamId ||
-            write.fields.sideBTeamId !== row.sideBTeamId
-        if (teamsChanged && row.eventId)
-            await releaseEvent(ctx, row.eventId, row._id)
+            write.fields.sideBTeamId !== row.sideBTeamId ||
+            JSON.stringify(write.fields.participantTeamIds) !==
+                JSON.stringify(
+                    row.participantTeamIds ?? [row.sideATeamId, row.sideBTeamId]
+                )
+        if (teamsChanged)
+            for (const eventId of fixtureEventIds(row))
+                await releaseEvent(ctx, eventId, row._id)
         await ctx.db.patch(row._id, {
             ...write.fields,
-            ...(teamsChanged ? { eventId: undefined } : {}),
+            ...(teamsChanged
+                ? { eventId: undefined, eventIds: undefined }
+                : {}),
             teamAId: undefined,
             teamBId: undefined,
             phase: write.fixture.phase,
@@ -999,6 +1073,10 @@ export const updateFixture = mutation({
             scheduledAt: write.fixture.scheduledAt ?? undefined,
             scoreA: write.fixture.scoreA ?? undefined,
             scoreB: write.fixture.scoreB ?? undefined,
+            participantScores:
+                ("participantScores" in write.fixture
+                    ? write.fixture.participantScores
+                    : undefined) ?? undefined,
             status: write.fixture.status,
             updatedAt: NOW(),
         })
@@ -1026,7 +1104,8 @@ export const deleteFixture = mutation({
         const row = await rowById(ctx, "competitionFixtures", args.fixtureId)
         const competition = row ? await ctx.db.get(row.competitionId) : null
         if (!row || !competition) return fail("not_found")
-        await releaseEvent(ctx, row.eventId, row._id)
+        for (const eventId of fixtureEventIds(row))
+            await releaseEvent(ctx, eventId, row._id)
         await ctx.db.delete(row._id)
         await touch(ctx, competition)
         return ok(competition, {})
@@ -1055,10 +1134,12 @@ export const linkEvent = mutation({
             : null
         if (!fixture || !competition) return fail("not_found")
         if (parsed.data.eventId === null) {
-            await releaseEvent(ctx, fixture.eventId, fixture._id)
-            if (fixture.eventId)
+            for (const eventId of fixtureEventIds(fixture))
+                await releaseEvent(ctx, eventId, fixture._id)
+            if (fixtureEventIds(fixture).length)
                 await ctx.db.patch(fixture._id, {
                     eventId: undefined,
+                    eventIds: undefined,
                     updatedAt: NOW(),
                 })
             await touch(ctx, competition)
@@ -1077,10 +1158,7 @@ export const linkEvent = mutation({
         const blocked = checkEventLink({
             gameId: resolveGameScope(competition.gameId),
             fixtureId: String(fixture._id),
-            fixtureTeamIds: [
-                String(fixture.sideATeamId),
-                String(fixture.sideBTeamId),
-            ],
+            fixtureTeamIds: fixtureParticipants(fixture),
             event: event
                 ? {
                       kind: event.kind ?? "match",
@@ -1094,22 +1172,12 @@ export const linkEvent = mutation({
             otherFixtureId: other ? String(other._id) : null,
         })
         if (blocked || !event) return fail(blocked ?? "event_not_found")
-        if (fixture.eventId && fixture.eventId !== event._id)
-            await releaseEvent(ctx, fixture.eventId, fixture._id)
-        const score =
-            event.eventResult?.score && fixture.status === "scheduled"
-                ? fixtureScoreFromEvent({
-                      fixture: {
-                          sideATeamId: String(fixture.sideATeamId),
-                          sideBTeamId: String(fixture.sideBTeamId),
-                      },
-                      eventTeams: await eventTeamSides(ctx, event),
-                      score: event.eventResult.score,
-                  })
-                : null
+        // A fixture deliberately permits one independent local event per
+        // participating workspace/team. Do not evict existing links.
         await ctx.db.patch(fixture._id, {
-            eventId: event._id,
-            ...(score ? { ...score, status: "final" as const } : {}),
+            // Retain the first link in `eventId` for legacy callers.
+            eventId: fixture.eventId ?? event._id,
+            eventIds: [...new Set([...fixtureEventIds(fixture), event._id])],
             updatedAt: NOW(),
         })
         await ctx.db.patch(event._id, { competitionFixtureId: fixture._id })

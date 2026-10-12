@@ -44,10 +44,12 @@ export type FixtureFormValues = {
     round: string
     sideATeamId: string
     sideBTeamId: string
+    sideCTeamId?: string
     scheduledAt: string
     status: FixtureStatus
     scoreA: string
     scoreB: string
+    scoreC?: string
 }
 
 export function fixtureFormValues(
@@ -62,10 +64,12 @@ export function fixtureFormValues(
             round: defaults.round ? String(defaults.round) : "",
             sideATeamId: "",
             sideBTeamId: "",
+            sideCTeamId: "",
             scheduledAt: "",
             status: "scheduled",
             scoreA: "",
             scoreB: "",
+            scoreC: "",
         }
     return {
         divisionId: fixture.divisionId ?? divisionId,
@@ -73,10 +77,18 @@ export function fixtureFormValues(
         round: fixture.round ? String(fixture.round) : "",
         sideATeamId: fixture.sideA.legacy ? "" : fixture.sideA.id,
         sideBTeamId: fixture.sideB.legacy ? "" : fixture.sideB.id,
+        sideCTeamId: fixture.participants?.[2]?.legacy
+            ? ""
+            : (fixture.participants?.[2]?.id ?? ""),
         scheduledAt: toLocalDateTimeInput(fixture.scheduledAt),
         status: fixture.status,
         scoreA: fixture.scoreA === null ? "" : String(fixture.scoreA),
         scoreB: fixture.scoreB === null ? "" : String(fixture.scoreB),
+        scoreC:
+            fixture.participantScores?.[2] === null ||
+            fixture.participantScores?.[2] === undefined
+                ? ""
+                : String(fixture.participantScores[2]),
     }
 }
 
@@ -89,15 +101,27 @@ function score(value: string): number | null {
 export function fixtureFormInput(
     values: FixtureFormValues
 ): FixtureInput | null {
+    const participantTeamIds = values.sideCTeamId
+        ? [values.sideATeamId, values.sideBTeamId, values.sideCTeamId]
+        : undefined
+    const participantScores = values.sideCTeamId
+        ? [
+              score(values.scoreA),
+              score(values.scoreB),
+              score(values.scoreC ?? ""),
+          ]
+        : undefined
     const parsed = fixtureInputSchema.safeParse({
         divisionId: values.divisionId,
         phase: values.phase,
         sideATeamId: values.sideATeamId,
         sideBTeamId: values.sideBTeamId,
+        ...(participantTeamIds ? { participantTeamIds } : {}),
         scheduledAt: fromLocalDateTimeInput(values.scheduledAt),
         status: values.status,
         scoreA: values.status === "scheduled" ? null : score(values.scoreA),
         scoreB: values.status === "scheduled" ? null : score(values.scoreB),
+        ...(participantScores ? { participantScores } : {}),
         round: score(values.round),
     })
     return parsed.success ? parsed.data : null

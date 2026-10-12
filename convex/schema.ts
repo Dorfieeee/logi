@@ -1095,6 +1095,10 @@ export default defineSchema({
         // competitionMigrations:adoptGlobalTeams.
         sideATeamId: v.optional(v.id("teamDirectory")),
         sideBTeamId: v.optional(v.id("teamDirectory")),
+        // Additive ordered participant list. Legacy two-team rows continue to
+        // read through sideATeamId/sideBTeamId until migrated on their next
+        // fixture edit.
+        participantTeamIds: v.optional(v.array(v.id("teamDirectory"))),
         // Legacy Logi workspace references kept so existing rows stay valid.
         teamAId: v.optional(v.id("guilds")),
         teamBId: v.optional(v.id("guilds")),
@@ -1103,12 +1107,30 @@ export default defineSchema({
         round: v.optional(v.number()),
         scoreA: v.optional(v.number()),
         scoreB: v.optional(v.number()),
+        participantScores: v.optional(v.array(v.union(v.number(), v.null()))),
+        // Independent clan submissions are retained for a fixture audit. The
+        // first confirmed submission remains the provisional standings result;
+        // a later mismatch sets resultConflict instead of silently replacing it.
+        fixtureResultSubmissions: v.optional(
+            v.array(
+                v.object({
+                    eventId: v.id("events"),
+                    scores: v.array(v.number()),
+                    submittedAt: v.string(),
+                })
+            )
+        ),
+        resultConflict: v.optional(v.boolean()),
         status: v.union(
             v.literal("scheduled"),
             v.literal("final"),
             v.literal("forfeit")
         ),
         eventId: v.optional(v.id("events")),
+        // Several clans may run their own event for one fixture. eventId stays
+        // as the legacy/primary link for old readers; this list is authoritative
+        // for new fixture-aware workflows.
+        eventIds: v.optional(v.array(v.id("events"))),
         createdAt: v.string(),
         updatedAt: v.string(),
     })

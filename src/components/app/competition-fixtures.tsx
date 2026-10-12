@@ -343,6 +343,10 @@ function FixtureRow({
                 <span className={cn(PILL, adminTone.warning)}>
                     {t.legacyBadge}
                 </span>
+            ) : fixture.resultConflict ? (
+                <span className={cn(PILL, adminTone.warning)}>
+                    {t.resultConflict}
+                </span>
             ) : state === "unlinked" ? (
                 <button
                     type="button"
@@ -458,7 +462,10 @@ function FixtureForm({
         if (result.ok) onDone()
     }
 
-    const teamSelect = (key: "sideATeamId" | "sideBTeamId", label: string) => (
+    const teamSelect = (
+        key: "sideATeamId" | "sideBTeamId" | "sideCTeamId",
+        label: string
+    ) => (
         <div className="space-y-2">
             <Label htmlFor={`${id}-${key}`}>{label}</Label>
             <Select
@@ -534,6 +541,9 @@ function FixtureForm({
                 </div>
                 {teamSelect("sideATeamId", t.teamA)}
                 {teamSelect("sideBTeamId", t.teamB)}
+                {view.competition.gameId === "wardogs"
+                    ? teamSelect("sideCTeamId", t.teamC)
+                    : null}
                 <div className="space-y-2">
                     <Label htmlFor={`${id}-round`}>{t.round}</Label>
                     <Input
@@ -589,7 +599,10 @@ function FixtureForm({
                     </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4 sm:col-span-2">
-                    {(["scoreA", "scoreB"] as const).map((key) => (
+                    {(values.sideCTeamId
+                        ? (["scoreA", "scoreB", "scoreC"] as const)
+                        : (["scoreA", "scoreB"] as const)
+                    ).map((key) => (
                         <div key={key} className="space-y-2">
                             <Label htmlFor={`${id}-${key}`}>{t[key]}</Label>
                             <Input

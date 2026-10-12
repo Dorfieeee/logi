@@ -55,9 +55,14 @@ export type CompetitionFixtureView = {
     round: number | null
     sideA: CompetitionTeamView
     sideB: CompetitionTeamView
+    /** Two HLL teams or two/three Wardogs teams in fixture result order. */
+    participants?: CompetitionTeamView[]
     scheduledAt: string | null
     scoreA: number | null
     scoreB: number | null
+    participantScores?: Array<number | null> | null
+    /** Independent clan submissions disagree with the current fixture score. */
+    resultConflict?: boolean
     status: FixtureStatus
     event: {
         id: string
@@ -69,6 +74,15 @@ export type CompetitionFixtureView = {
         /** The clan confirmed (reviewed) that result. */
         reviewed: boolean
     } | null
+    /** All linked local clan events. `event` remains the legacy primary link. */
+    events?: Array<{
+        id: string
+        name: string
+        gameStart: string
+        workspace: string | null
+        hasResult: boolean
+        reviewed: boolean
+    }>
 }
 
 export type CompetitionAdminView = {

@@ -340,6 +340,45 @@ test("a scheduled fixture clears its scores", () => {
     )
 })
 
+test("Wardogs fixtures may carry three ordered teams and scores, while HLL remains two-team", () => {
+    const wardogs = fixtureInputSchema.parse({
+        ...fixture,
+        participantTeamIds: ["t1", "t2", "t3"],
+        status: "final",
+        scoreA: 3,
+        scoreB: 2,
+        participantScores: [3, 2, 1],
+    })
+    assert.deepEqual(wardogs.participantTeamIds, ["t1", "t2", "t3"])
+    assert.deepEqual(
+        "participantScores" in wardogs ? wardogs.participantScores : undefined,
+        [3, 2, 1]
+    )
+    const registrations = new Map<string, RegisteredTeam>([
+        ["t1", { divisionId: "d1", gameId: "wardogs" }],
+        ["t2", { divisionId: "d1", gameId: "wardogs" }],
+        ["t3", { divisionId: "d1", gameId: "wardogs" }],
+    ])
+    assert.equal(
+        checkFixture({
+            gameId: "wardogs",
+            fixture: wardogs,
+            divisionIds: new Set(["d1"]),
+            registrations,
+        }),
+        null
+    )
+    assert.equal(
+        checkFixture({
+            gameId: "hell_let_loose",
+            fixture: wardogs,
+            divisionIds: new Set(["d1"]),
+            registrations,
+        }),
+        "invalid_competition"
+    )
+})
+
 test("fixture teams must be registered in the competition's game; league fixtures stay in one division", () => {
     const registrations = new Map<string, RegisteredTeam>([
         ["t1", { divisionId: "d1", gameId: "hell_let_loose" }],
@@ -410,6 +449,12 @@ test("event links need a free match of the same game with the fixture's teams", 
     assert.equal(
         checkEventLink({ ...base, event: { ...event, teamIds: ["t1", "t3"] } }),
         "event_team_mismatch"
+    )
+    // A clan's local event may name just its own team; its logistics remain
+    // local while the fixture is the shared league anchor.
+    assert.equal(
+        checkEventLink({ ...base, event: { ...event, teamIds: ["t1"] } }),
+        null
     )
     // A legacy match without assigned teams can still be linked.
     assert.equal(
