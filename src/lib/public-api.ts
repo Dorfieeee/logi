@@ -466,10 +466,11 @@ export async function mutateClanApiAssignment(input: {
     paused?: boolean
     pausedNote?: string
 }) {
+    const { key, ...args } = input
     return (await fetchMutation(mutateAssignmentReference, {
         secret: getInternalAuthSecret(),
-        ...input,
-        keyHash: hashApiKey(input.key),
+        ...args,
+        keyHash: hashApiKey(key),
         ...(input.assignmentId
             ? { assignmentId: input.assignmentId as never }
             : {}),

@@ -7,6 +7,46 @@ import { Callout, Steps } from "nextra/components"
 
 # Clan applications
 
+## Applications handled by an external Discord bot
+
+An external bot can run its own application form, thread and moderator decisions
+and use `POST /api/v1/clan/users/register` only to create or update the applicant's
+Logi account. This endpoint does **not** create a native Logi application, grant
+Discord roles, or create or update membership by default (`createMembership=false`).
+Existing HLL/Wardogs assignments and statuses remain unchanged.
+
+The integration authenticates the applicant's Discord identity and sends its
+clan's `guildId`, the applicant's `discordId` and `name`, and, when needed, a
+Steam ID64. Existing accounts are reused; an unclaimed Steam ID is appended
+without replacing other linked accounts, the Discord identity, name or avatar.
+An existing user can omit `steamId` if Logi already has a linked Steam ID.
+New users and users without Steam details must provide one. This is self-declared
+account metadata; Steam OpenID verification remains a separate user action.
+
+If another user already has the Steam ID, registration returns HTTP 409 and
+changes nothing. It checks numeric IDs, `steam:` IDs, profile URLs and active
+verified Steam links. It never transfers a Steam account between users. The
+applicant should correct their Steam ID or ask an administrator to resolve the
+existing link; automatic unlinking through a clan key is deliberately excluded.
+
+The API requires a full-access clan key and `Idempotency-Key`; `guildId` must
+match that key. Retry with the identical body and key after a timeout. For a
+different, corrected request use a new key once rejection is confirmed.
+
+Integrations that also want a Logi membership can explicitly send
+`createMembership=true`, `gameId`, `type` and `status` (default `pending`).
+Only a missing assignment for that game is created; existing memberships are
+preserved. Pending applications can coexist with other memberships. Promotion
+is not part of account registration or an implicit result of submitting a form.
+For native Logi application decisions, use Logi's own workflow described below.
+
+The existing `GET /api/v1/clan/users/{discordId}` remains limited to users already
+assigned to the key's clan. A 404 does not prove that a global Logi account is
+absent: the registration endpoint resolves that itself. No global user-directory
+lookup is exposed through a clan API key.
+
+## Native Logi applications
+
 A clan application is one form in several Discord windows. The player fills
 the windows one after another and sends the application only at the end, after
 a review. Only then does the bot create a private application thread with the

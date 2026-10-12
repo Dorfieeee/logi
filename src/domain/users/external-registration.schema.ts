@@ -12,8 +12,9 @@ export const externalRegistrationSchema = z
             .refine(
                 (value) => parseSteamId(value) !== null,
                 "Invalid SteamID64"
-            ),
-        steamName: z.string().trim().min(1).max(100),
+            )
+            .optional(),
+        steamName: z.string().trim().min(1).max(100).optional(),
         avatar: z
             .union([
                 z.literal(""),
@@ -37,7 +38,8 @@ export const externalRegistrationSchema = z
         type: z
             .enum(["member", "reserve_member", "mercenary"])
             .default("member"),
-        status: z.enum(["pending", "recruit", "active"]).default("active"),
+        status: z.enum(["pending", "recruit", "active"]).default("pending"),
+        createMembership: z.boolean().default(false),
     })
     .strict()
 
