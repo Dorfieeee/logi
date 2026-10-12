@@ -1,6 +1,7 @@
 import { getDefaultWorkspaceCandidatesFromMemberships } from "../src/domain/workspaces/default-workspace"
 import { canOpenWorkspace } from "../src/domain/workspaces/workspace-access"
 import { parseSteamId } from "../src/domain/player-stats/player-stats"
+import { linkDiscordPlatformInTransaction } from "./platformLinkStore"
 import { revokePlatformIdentity } from "./platformIdentityStore"
 import { invalidateUserSessions } from "./dashboardSessionStore"
 import type { MutationCtx, QueryCtx } from "./_generated/server"
@@ -1123,112 +1124,7 @@ export const linkDiscordPlatformId = mutation({
     handler: async (ctx, args) => {
         assertInternalSecret(args.secret)
 
-        const now = new Date().toISOString()
-        const normalizedPlatformIds = normalizePlatformIds([args.platformId])
-        if (!normalizedPlatformIds.length) {
-            throw new Error("Platform ID is required.")
-        }
-
-        const existing = await platformLinkSubject(ctx, args.userId)
-        if (
-            !existing &&
-            (await ctx.db
-                .query("users")
-                .withIndex("id", (q) => q.eq("id", args.userId))
-                .unique())
-        ) {
-            throw new Error("Identity conflict. Contact an administrator.")
-        }
-        for (const value of normalizedPlatformIds) {
-            const steamId = parseSteamId(value)
-            if (!steamId) continue
-            const verified = await ctx.db
-                .query("platformIdentityLinks")
-                .withIndex("platform_platformId_active", (q) =>
-                    q
-                        .eq("platform", "steam")
-                        .eq("platformId", steamId)
-                        .eq("active", true)
-                )
-                .unique()
-            if (verified && verified.discordUserId !== args.userId)
-                throw new Error(
-                    "This platform ID is already linked to another player."
-                )
-        }
-        const allUsers = await ctx.db.query("users").take(5001)
-        if (allUsers.length > 5000)
-            throw new Error("Platform link requires administrator review.")
-        for (const candidate of allUsers) {
-            if (candidate._id === existing?._id) {
-                continue
-            }
-
-            const legacyCandidate = candidate as typeof candidate & {
-                steamId?: string
-                platformId?: string
-            }
-            const candidatePlatformIds = normalizePlatformIds(
-                candidate.platformIds ??
-                    legacyCandidate.platformId ??
-                    legacyCandidate.steamId
-            )
-
-            if (
-                normalizedPlatformIds.some((platformId) =>
-                    candidatePlatformIds.some(
-                        (candidateId) =>
-                            platformComparisonKey(candidateId) ===
-                            platformComparisonKey(platformId)
-                    )
-                )
-            ) {
-                throw new Error(
-                    "This platform ID is already linked to another player."
-                )
-            }
-        }
-
-        if (existing) {
-            await ctx.db.patch(existing._id, {
-                name: args.userName.trim() || existing.name,
-                avatar: args.userAvatar || existing.avatar,
-                platformIds: [
-                    ...new Set([
-                        ...normalizePlatformIds(existing.platformIds),
-                        ...normalizedPlatformIds,
-                    ]),
-                ],
-                updatedAt: now,
-            })
-            return {
-                action: "updated" as const,
-                platformId: normalizedPlatformIds[0],
-            }
-        }
-
-        await ctx.db.insert("users", {
-            id: args.userId,
-            discordId: args.userId,
-            name: args.userName.trim(),
-            nicknames: {},
-            avatar: args.userAvatar,
-            platformIds: normalizedPlatformIds,
-            managedGuildIds: [],
-            guildId: undefined,
-            mercenaryGuildIds: [],
-            isStreamer: false,
-            score: 0,
-            scores: {},
-            performance: undefined,
-            createdAt: now,
-            updatedAt: now,
-        })
-
-        return {
-            action: "created" as const,
-            platformId: normalizedPlatformIds[0],
-        }
+        return await linkDiscordPlatformInTransaction(ctx, args)
     },
 })
 

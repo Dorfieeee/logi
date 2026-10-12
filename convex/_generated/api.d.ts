@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as apiHousekeeping from "../apiHousekeeping.js";
+import type * as apiIdempotency from "../apiIdempotency.js";
 import type * as apiKeyAuth from "../apiKeyAuth.js";
 import type * as apiKeyValidators from "../apiKeyValidators.js";
 import type * as articles from "../articles.js";
@@ -76,6 +77,7 @@ import type * as eventResultStore from "../eventResultStore.js";
 import type * as eventResults from "../eventResults.js";
 import type * as eventValidators from "../eventValidators.js";
 import type * as events from "../events.js";
+import type * as externalRegistration from "../externalRegistration.js";
 import type * as gameCatalog from "../gameCatalog.js";
 import type * as gameData from "../gameData.js";
 import type * as gameDataCatalog from "../gameDataCatalog.js";
@@ -138,6 +140,7 @@ import type * as performanceHistory from "../performanceHistory.js";
 import type * as platformAdmin from "../platformAdmin.js";
 import type * as platformIdentityLinks from "../platformIdentityLinks.js";
 import type * as platformIdentityStore from "../platformIdentityStore.js";
+import type * as platformLinkStore from "../platformLinkStore.js";
 import type * as platformSettings from "../platformSettings.js";
 import type * as playerReportAccess from "../playerReportAccess.js";
 import type * as playerReportDrafts from "../playerReportDrafts.js";
@@ -196,6 +199,7 @@ import type * as websiteEventCommands from "../websiteEventCommands.js";
  */
 declare const fullApi: ApiFromModules<{
   apiHousekeeping: typeof apiHousekeeping;
+  apiIdempotency: typeof apiIdempotency;
   apiKeyAuth: typeof apiKeyAuth;
   apiKeyValidators: typeof apiKeyValidators;
   articles: typeof articles;
@@ -258,6 +262,7 @@ declare const fullApi: ApiFromModules<{
   eventResults: typeof eventResults;
   eventValidators: typeof eventValidators;
   events: typeof events;
+  externalRegistration: typeof externalRegistration;
   gameCatalog: typeof gameCatalog;
   gameData: typeof gameData;
   gameDataCatalog: typeof gameDataCatalog;
@@ -320,6 +325,7 @@ declare const fullApi: ApiFromModules<{
   platformAdmin: typeof platformAdmin;
   platformIdentityLinks: typeof platformIdentityLinks;
   platformIdentityStore: typeof platformIdentityStore;
+  platformLinkStore: typeof platformLinkStore;
   platformSettings: typeof platformSettings;
   playerReportAccess: typeof playerReportAccess;
   playerReportDrafts: typeof playerReportDrafts;

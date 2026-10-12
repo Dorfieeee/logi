@@ -27,6 +27,7 @@ import {
     peopleResponseSchemas,
 } from "@/lib/api/people-openapi"
 import { membershipObservationSchema } from "@/domain/membership/observation.schema"
+import { externalRegistrationPaths } from "@/lib/api/external-registration-openapi"
 import { warconEnvelopeSchema } from "@/domain/game-data/warcon-contracts"
 import { clanResultSummarySchema } from "@/domain/api/result-summaries"
 import { leagueFixtureSchema } from "@/domain/wardogs-league/fixture"
@@ -2370,7 +2371,11 @@ Article, group, calendar-item, roster, assignment, event, signup, stratmap, and 
                     },
                 },
             },
-            paths: { ...paths, ...websiteEventCommandPaths },
+            paths: {
+                ...paths,
+                ...websiteEventCommandPaths,
+                ...externalRegistrationPaths,
+            },
         },
         { headers: { "Cache-Control": "no-store" } }
     )
