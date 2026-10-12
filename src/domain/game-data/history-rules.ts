@@ -140,6 +140,24 @@ export function newestSessionFirst(
     return a === b ? 0 : a > b ? -1 : 1
 }
 
+/**
+ * Orders result-picker sessions by when they ended. A game that began long
+ * ago but finished later belongs ahead of an older completed game; missing or
+ * invalid end times intentionally fall to the end.
+ */
+export function newestEndedSessionFirst(
+    left: { endedAt: string | null },
+    right: { endedAt: string | null }
+): number {
+    const ended = (session: { endedAt: string | null }) => {
+        const value = Date.parse(session.endedAt ?? "")
+        return Number.isNaN(value) ? Number.NEGATIVE_INFINITY : value
+    }
+    const a = ended(left),
+        b = ended(right)
+    return a === b ? 0 : a > b ? -1 : 1
+}
+
 /** Whether a stored session row differs from a freshly collected one in what the row serves. */
 export function sessionRecordChanged(
     stored: {

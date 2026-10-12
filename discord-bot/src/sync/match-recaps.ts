@@ -77,6 +77,11 @@ export function recapStatsUrl(
     return `${env.appSiteUrl}/${resolveClanLanguage(language)}/players/${encodeURIComponent(userId)}/matches/${encodeURIComponent(eventId)}`
 }
 
+/** The rendered, Discord-safe performance card that accompanies a recap DM. */
+export function recapPerformanceImageUrl(userId: string, eventId: string) {
+    return `${env.appSiteUrl}/api/og/player-match/${encodeURIComponent(userId)}/${encodeURIComponent(eventId)}`
+}
+
 /** The recap card for one player, turned on or off. */
 export function buildMatchRecapView(input: {
     inputs: RecapInputs
@@ -138,6 +143,10 @@ export function buildMatchRecapView(input: {
         source: provider
             ? { server: event.server?.trim() || undefined, provider }
             : undefined,
+        performanceImage: recapPerformanceImageUrl(
+            input.recap.userId,
+            event.id
+        ),
         statsUrl: recapStatsUrl(language, input.recap.userId, event.id),
         settingsUrl: dmSettingsUrl(language),
         enabled: input.enabled,

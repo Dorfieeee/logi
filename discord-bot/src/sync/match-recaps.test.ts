@@ -122,6 +122,10 @@ test("the recap card shows the game, result, numbers with a decimal comma and th
         /Data ze serveru Vlci #1 \(CRCON\), jen tento zápas\./
     )
     assert.match(content, /match-recap:unsubscribe:events:one/)
+    assert.match(
+        content,
+        /\/api\/og\/player-match\/imported%2Fplayer\/events%3Aone/
+    )
 })
 
 test("actual recap runner uses Discord subject, rechecks eligibility and keeps the data ID in links", async (t) => {

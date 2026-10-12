@@ -397,14 +397,17 @@ clan's side.
 
 ## The match in Discord
 
-The match keeps one announcement card in the announcement channel from the
-announcement to the result; the bot edits it at every change, and the
+The match keeps one announcement card in the announcement channel while it is
+being organised; the bot edits it at every change, and the
 [events guide](/wiki/operations/events#what-the-discord-messages-show) lists
 each state with its buttons. In short: **Sign-ups open**, then **Sign-ups
 closed** while command builds the roster, **Roster published**, **Starting**
 from the meeting with the confirmation counts, **In progress** from the start,
-and finally **Played** with the confirmed result and **Show match**. A match
-ended before its meeting shows **Cancelled** and cancels its Discord event.
+and finally **Played** when it is concluded. When a match is concluded, Logi
+removes the registration/event-information cards instead of posting a duplicate
+result there; the configured **Results** panel is the only Discord result
+publication. A match ended before its meeting shows
+**Cancelled** and cancels its Discord event.
 
 The card itself shows every offered group, its sign-up count and alphabetically
 ordered signed-up names, followed by the people who declined. Use
@@ -451,6 +454,11 @@ failure between sending and recording success can cause a duplicate.
 Open the match's **Result** tab. The score board puts your clan's side first
 (found from the side the match was played on and the teams picked for it), with
 the team names and logos, the two scores and **Win**, **Loss** or **Draw**.
+Before a source is selected it starts from the match's saved team slots instead
+of generic participants. A Wardogs match uses all three saved slots; source
+factions are matched to their saved team first, then their slot order is used
+as a fallback. Team names and logos are immutable snapshots from the catalogue,
+so a linked clan's team keeps the information captured for this match.
 **Where the result comes from** names the
 collected HLL server game the scores came from. Before anything is saved, Logi
 suggests the game that started closest to the match start (within three hours)
@@ -462,8 +470,12 @@ score is unknown; zero is a known score. The **History** column lists each
 saved version with its time and who saved or reviewed it.
 
 The form supports two to sixteen participants, including manual Wardogs factions.
-Current Wardogs collection supplies server status, not match history. HLL source
-candidates are the fifty most recently collected sessions, newest game first. A changed or incomplete
+The HLL and Wardogs collectors both supply result-source candidates. The picker
+shows the ten games that ended most recently, rather than the most recently
+fetched records. For an HLL game played on another team's server, use **Submit
+match results** below the result review and paste its public
+`https://event.valkyriahll.app/games/[id]` link; Logi imports its public
+scoreboard and player statistics. A changed or incomplete
 source cannot be confirmed; refresh, select the current source and review again.
 
 After confirmation, enter a reason and use **Save correction**. The previous
@@ -481,9 +493,9 @@ membership, attendance or game ownership.
 - the result appears in the channel of the workspace's Discord results panel,
   when one is set up for the game (otherwise the page says it stays in Logi and
   the clan API);
-- the match announcement in Discord shows it ("**Win 4 : 1** · confirmed by
-  Kowalski"), with **Show match** when a public match page exists and the
-  results channel in its footer;
+- the configured Discord results panel publishes it; once the match is
+  concluded, its registration and event-information cards are removed so the
+  result is not duplicated there;
 - players get their personal summary by DM, which today is already sent when
   the statistics are imported;
 - for a match linked to a competition fixture, a confirmed or corrected HLL

@@ -39,6 +39,8 @@ export const forumContext = query({
                 ? {
                       outcome: event.eventResult.outcome,
                       score: event.eventResult.score,
+                      sideA: event.eventResult.sideA,
+                      sideB: event.eventResult.sideB,
                   }
                 : null,
         })

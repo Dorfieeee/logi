@@ -20,9 +20,9 @@ import {
 import { canAdminServerContext } from "../src/infrastructure/convex/server-read-model"
 import type { ResultRevision } from "../src/domain/match-results/result-revision"
 import { confirmResult } from "../src/application/match-results/confirm-result"
+import { newestEndedSessionFirst } from "../src/domain/game-data/history-rules"
 import { fixtureScoreFromEvent } from "../src/domain/competitions/competition"
 import { axisAlliesScore } from "../src/domain/match-results/result-sides"
-import { newestSessionFirst } from "../src/domain/game-data/history-rules"
 import { providerSessionSchema } from "../src/domain/game-data/contracts"
 import { resolveGameScope, isGameId } from "../src/domain/games/game"
 import { assertMembershipSecret } from "./membershipAccess"
@@ -246,39 +246,56 @@ export const review = mutation({
         return revision
     },
 })
-/** How many collected sessions the result picker offers. */
-const SESSION_PICKER_LIMIT = 50
+/**
+ * How many collected sessions the result picker offers.  The UI is a short
+ * recent-game choice, not a history browser.
+ */
+const SESSION_PICKER_LIMIT = 10
+/**
+ * Collection/fetch order is not the game order: a corrected old game can be
+ * fetched today. Read a bounded recent collection window before ordering it
+ * by the provider's end time.
+ */
+const SESSION_PICKER_SCAN_LIMIT = 400
 export const get = query({
     args: scope,
     handler: async (ctx, args) => {
         assertMembershipSecret(args.secret)
         const event = await authorize(ctx, args)
+        // `authorize` has already established that the request game matches
+        // this event's resolved game scope. Game-session history currently
+        // exists only for these two collector games.
+        const sessionGameId =
+            args.gameId === "hell_let_loose" || args.gameId === "wardogs"
+                ? args.gameId
+                : null
         const current = await currentEventResult(ctx, event)
         const history = await ctx.db
             .query("eventResultRevisions")
             .withIndex("eventId_version", (q) => q.eq("eventId", event._id))
             .order("desc")
             .take(20)
-        // The picker offers the clan's most recently collected sessions,
-        // newest game first. Candidates come in collection order (creation
-        // time, which no later rewrite moves); `fetchedAt` changes whenever
-        // a session is recollected, e.g. after a source change.
-        const sessions =
-            args.gameId === "hell_let_loose"
-                ? (
-                      await ctx.db
-                          .query("gameSessions")
-                          .withIndex("guildId_gameId", (q) =>
-                              q
-                                  .eq("guildId", args.guildId)
-                                  .eq("gameId", "hell_let_loose")
-                          )
-                          .order("desc")
-                          .take(SESSION_PICKER_LIMIT)
-                  ).sort((left, right) =>
-                      newestSessionFirst(left.session, right.session)
+        // Both HLL and Wardogs collections can back a reviewed result. The
+        // index is only a bounded scan; session end time is authoritative for
+        // what managers see. This avoids an old match re-fetched today hiding
+        // the games that actually ended most recently.
+        const sessions = sessionGameId
+            ? (
+                  await ctx.db
+                      .query("gameSessions")
+                      .withIndex("guildId_gameId_fetchedAt", (q) =>
+                          q
+                              .eq("guildId", args.guildId)
+                              .eq("gameId", sessionGameId)
+                      )
+                      .order("desc")
+                      .take(SESSION_PICKER_SCAN_LIMIT)
+              )
+                  .sort((left, right) =>
+                      newestEndedSessionFirst(left.session, right.session)
                   )
-                : []
+                  .slice(0, SESSION_PICKER_LIMIT)
+            : []
         return {
             current,
             history: history.map((row) =>

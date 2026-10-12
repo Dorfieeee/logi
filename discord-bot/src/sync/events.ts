@@ -393,7 +393,11 @@ async function syncEvent(
         },
     })
 
-    const registrationAnnouncementDue = isRegistrationAnnouncementDue(event)
+    // A concluded match's result belongs exclusively to the configured
+    // results panel. Do not leave a second result card in registration or
+    // event-info channels; retire the ordinary event cards at conclusion.
+    const registrationAnnouncementDue =
+        isRegistrationAnnouncementDue(event) && event.status !== "concluded"
 
     if (
         registrationAnnouncementDue &&

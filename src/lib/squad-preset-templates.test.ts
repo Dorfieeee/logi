@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
+import { GAME_IDS } from "@/domain/games/game"
+
 import {
     getRoleIconOptions,
     getSquadIconOptions,
@@ -30,4 +32,19 @@ test("squad preset icon options are scoped to their game", () => {
         )
     )
     assert.deepEqual(wardogsIcons, wardogsSquadIcons)
+})
+
+test("role and squad selectors share a tactical-marker catalog for every game", () => {
+    for (const gameId of [...GAME_IDS, "custom-game"]) {
+        assert.deepEqual(
+            getRoleIconOptions(gameId),
+            getSquadIconOptions(gameId),
+            gameId
+        )
+    }
+    assert.ok(
+        getRoleIconOptions("custom-game").includes(
+            "/stratmap/icons/wardogs/artillery.webp"
+        )
+    )
 })

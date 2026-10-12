@@ -625,6 +625,8 @@ export function matchRecapView(input: {
     } | null
     stats: RecapStats
     source?: { server?: string; provider: string }
+    /** Generated player-performance card for this match. */
+    performanceImage?: string
     statsUrl: string
     settingsUrl?: string
     enabled: boolean
@@ -765,6 +767,19 @@ export function matchRecapView(input: {
                 : []),
             ...(sourceLine
                 ? [{ kind: "text" as const, markdown: `-# ${sourceLine}` }]
+                : []),
+            ...(input.enabled && input.performanceImage
+                ? [
+                      {
+                          kind: "gallery" as const,
+                          items: [
+                              {
+                                  url: input.performanceImage,
+                                  description: event.title,
+                              },
+                          ],
+                      },
+                  ]
                 : []),
             ...(input.enabled
                 ? []

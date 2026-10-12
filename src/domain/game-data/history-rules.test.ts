@@ -4,6 +4,7 @@ import {
     historyFullWalkDue,
     historyTouchDue,
     newestSessionFirst,
+    newestEndedSessionFirst,
 } from "./history-rules"
 import assert from "node:assert/strict"
 import test from "node:test"
@@ -20,6 +21,18 @@ test("a full history walk is due without one, then a day after the last", () => 
     assert.equal(
         historyFullWalkDue(now - HISTORY_FULL_WALK_INTERVAL_MS, now),
         true
+    )
+})
+
+test("orders result candidates by their end time, not collection time", () => {
+    const sessions = [
+        { id: "unknown", endedAt: null },
+        { id: "older", endedAt: "2026-10-01T19:00:00Z" },
+        { id: "newest", endedAt: "2026-10-02T18:00:00Z" },
+    ]
+    assert.deepEqual(
+        sessions.sort(newestEndedSessionFirst).map((session) => session.id),
+        ["newest", "older", "unknown"]
     )
 })
 
