@@ -6,6 +6,7 @@ import {
     getGuildByDiscordId,
     getUserByIdentifier,
     getUserDiscordId,
+    getUserStableId,
 } from "./identity"
 import { rebuildMembershipState } from "../src/application/assignments/rebuild-membership"
 import { readMembershipAssignment } from "./membershipSubject"
@@ -28,6 +29,93 @@ const removeWardogsAssignmentsBatchReference =
     makeFunctionReference<"mutation">(
         "migrations:removeWardogsAssignmentsWithoutHllMembershipBatch"
     )
+const listRecentHllAssignmentIdsReference = makeFunctionReference<"query">(
+    "migrations:listRecentHllAssignmentIds"
+)
+const removeRecentHllAssignmentsBatchReference =
+    makeFunctionReference<"mutation">(
+        "migrations:removeRecentHllAssignmentsBatch"
+    )
+const listUngroupedHllAssignmentIdsReference = makeFunctionReference<"query">(
+    "migrations:listUngroupedHllAssignmentIds"
+)
+const removeUngroupedHllAssignmentsBatchReference =
+    makeFunctionReference<"mutation">(
+        "migrations:removeUngroupedHllAssignmentsBatch"
+    )
+const findWardogsRosterPeopleReference = makeFunctionReference<"query">(
+    "migrations:findWardogsRosterPeople"
+)
+const addWardogsRosterAssignmentsBatchReference =
+    makeFunctionReference<"mutation">(
+        "migrations:addWardogsRosterAssignmentsBatch"
+    )
+
+const WARDOGS_ROSTER_NAMES = [
+    "maar\u007aik",
+    "artix",
+    "blackhole",
+    "Bratr",
+    "Creedex666",
+    "Dexter.",
+    "dutoswartz",
+    "Frenkyツ",
+    "Gymli",
+    "Ka$heK 🏄",
+    "konop",
+    "Krtková",
+    "L4ngy_",
+    "Leny",
+    "Lofka",
+    "LucanTG_CZ",
+    "Martin",
+    "Moyx",
+    "mtyys",
+    "PemiK",
+    "Peterkys",
+    "Phoenix",
+    "PrinceAnabol",
+    "Sandiary",
+    "Vocas",
+    "YerryCZ",
+    "Zergy",
+    "BandaSKa666",
+    "Def4ult",
+    "JBMichal",
+    "Doomino789",
+    "Galdan",
+    "Minec",
+    "Vintag",
+    "TommikS",
+] as const
+
+function normalizedDiscordName(value: string) {
+    return value
+        .normalize("NFC")
+        .replace(/^\[[^\]]+\]\s*/, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLocaleLowerCase()
+}
+
+async function hasValidHllPrimaryGroup(
+    ctx: {
+        db: {
+            get: (
+                id: never
+            ) => Promise<{ guildId: string; gameId?: string } | null>
+        }
+    },
+    assignment: { serverId: string; primaryGroupId?: unknown }
+) {
+    if (!assignment.primaryGroupId) return false
+    const group = await ctx.db.get(assignment.primaryGroupId as never)
+    return (
+        group !== null &&
+        group.guildId === assignment.serverId &&
+        resolveGameScope(group.gameId) === "hell_let_loose"
+    )
+}
 
 function assertInternalSecret(secret: string) {
     if (secret !== internalAuthSecret()) {
@@ -142,7 +230,7 @@ export const removeWardogsAssignmentsWithoutHllMembershipBatch = mutation({
             await Promise.all(args.assignmentIds.map((id) => ctx.db.get(id)))
         ).filter(
             (assignment): assignment is NonNullable<typeof assignment> =>
-                Boolean(assignment) &&
+                assignment !== null &&
                 assignment.serverId === WARDOGS_CLAN_DISCORD_ID &&
                 resolveGameScope(assignment.gameId) === "wardogs"
         )
@@ -321,6 +409,430 @@ export const removeWardogsAssignmentsWithoutHllMembership = action({
                 discordId,
                 name,
             })),
+        }
+    },
+})
+
+/** Lists new member/reserve-member HLL assignments without including other games. */
+export const listRecentHllAssignmentIds = query({
+    args: { secret: v.string(), hllClanDiscordId: v.string() },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+        const cutoff =
+            systemClock.now().getTime() - HLL_MEMBERSHIP_GRACE_PERIOD_MS
+        return (
+            await ctx.db
+                .query("userAssignments")
+                .withIndex("serverId", (q) =>
+                    q.eq("serverId", args.hllClanDiscordId)
+                )
+                .collect()
+        )
+            .filter(
+                (assignment) =>
+                    resolveGameScope(assignment.gameId) === "hell_let_loose" &&
+                    (assignment.type === "member" ||
+                        assignment.type === "reserve_member") &&
+                    new Date(assignment.createdAt).getTime() > cutoff
+            )
+            .map((assignment) => assignment._id)
+    },
+})
+
+/** Deletes one bounded batch of recently-created HLL memberships. */
+export const removeRecentHllAssignmentsBatch = mutation({
+    args: {
+        secret: v.string(),
+        hllClanDiscordId: v.string(),
+        apply: v.boolean(),
+        assignmentIds: v.array(v.id("userAssignments")),
+    },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+        const cutoff =
+            systemClock.now().getTime() - HLL_MEMBERSHIP_GRACE_PERIOD_MS
+        const assignments = (
+            await Promise.all(args.assignmentIds.map((id) => ctx.db.get(id)))
+        ).filter(
+            (assignment): assignment is NonNullable<typeof assignment> =>
+                assignment !== null &&
+                assignment.serverId === args.hllClanDiscordId &&
+                resolveGameScope(assignment.gameId) === "hell_let_loose" &&
+                (assignment.type === "member" ||
+                    assignment.type === "reserve_member") &&
+                new Date(assignment.createdAt).getTime() > cutoff
+        )
+        const affectedUserIds = [
+            ...new Set(assignments.map((assignment) => assignment.userId)),
+        ]
+        const affectedUsers = await Promise.all(
+            affectedUserIds.map(async (userId) => {
+                const user = await getUserByIdentifier(ctx, userId)
+                return {
+                    discordId: user ? getUserDiscordId(user) : userId,
+                    name: user?.name ?? "Unknown user",
+                }
+            })
+        )
+        if (!args.apply)
+            return { assignmentsToRemove: assignments.length, affectedUsers }
+
+        const repository = new ConvexAssignmentCommandRepository(ctx)
+        for (const assignment of assignments) {
+            await repository.remove(String(assignment._id))
+        }
+        if (affectedUserIds.length > 0) {
+            const now = systemClock.now()
+            await rebuildMembershipState(
+                repository,
+                args.hllClanDiscordId,
+                affectedUserIds,
+                now
+            )
+            const rosterSync = new ConvexAssignmentRosterSyncPort(ctx)
+            for (const eventId of await repository.listOpenMatchEventIds(
+                args.hllClanDiscordId,
+                now,
+                "hell_let_loose"
+            )) {
+                await rosterSync.syncEvent(eventId)
+            }
+        }
+        return { assignmentsRemoved: assignments.length, affectedUsers }
+    },
+})
+
+/** Removes only HLL memberships younger than 14 days in bounded mutation batches. */
+export const removeRecentHllMemberships = action({
+    args: {
+        secret: v.string(),
+        hllClanDiscordId: v.string(),
+        apply: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        const assignmentIds = (await ctx.runQuery(
+            listRecentHllAssignmentIdsReference,
+            { secret: args.secret, hllClanDiscordId: args.hllClanDiscordId }
+        )) as string[]
+        let changed = 0
+        const affectedUsers = new Map<string, string>()
+        for (
+            let start = 0;
+            start < assignmentIds.length;
+            start += CLEANUP_BATCH_SIZE
+        ) {
+            const result = (await ctx.runMutation(
+                removeRecentHllAssignmentsBatchReference,
+                {
+                    ...args,
+                    assignmentIds: assignmentIds.slice(
+                        start,
+                        start + CLEANUP_BATCH_SIZE
+                    ) as never,
+                }
+            )) as {
+                assignmentsToRemove?: number
+                assignmentsRemoved?: number
+                affectedUsers: Array<{ discordId: string; name: string }>
+            }
+            changed +=
+                result.assignmentsToRemove ?? result.assignmentsRemoved ?? 0
+            for (const user of result.affectedUsers) {
+                affectedUsers.set(user.discordId, user.name)
+            }
+        }
+        return {
+            apply: args.apply,
+            hllAssignmentsScanned: assignmentIds.length,
+            ...(args.apply
+                ? { assignmentsRemoved: changed }
+                : { assignmentsToRemove: changed }),
+            affectedUserIds: [...affectedUsers.keys()],
+            affectedUsers: [...affectedUsers].map(([discordId, name]) => ({
+                discordId,
+                name,
+            })),
+        }
+    },
+})
+
+/** Lists HLL assignments without a primary group. */
+export const listUngroupedHllAssignmentIds = query({
+    args: { secret: v.string(), hllClanDiscordId: v.string() },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+        const hllMembers = (
+            await ctx.db
+                .query("userAssignments")
+                .withIndex("serverId", (q) =>
+                    q.eq("serverId", args.hllClanDiscordId)
+                )
+                .collect()
+        ).filter(
+            (assignment) =>
+                resolveGameScope(assignment.gameId) === "hell_let_loose" &&
+                assignment.type === "member" &&
+                assignment.status === "active"
+        )
+        const ungrouped = []
+        for (const assignment of hllMembers) {
+            if (!(await hasValidHllPrimaryGroup(ctx, assignment)))
+                ungrouped.push(assignment._id)
+        }
+        return ungrouped
+    },
+})
+
+/** Deletes one bounded batch of ungrouped HLL assignments. */
+export const removeUngroupedHllAssignmentsBatch = mutation({
+    args: {
+        secret: v.string(),
+        hllClanDiscordId: v.string(),
+        apply: v.boolean(),
+        assignmentIds: v.array(v.id("userAssignments")),
+    },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+        const hllMembers = (
+            await Promise.all(args.assignmentIds.map((id) => ctx.db.get(id)))
+        ).filter(
+            (assignment): assignment is NonNullable<typeof assignment> =>
+                assignment !== null &&
+                assignment.serverId === args.hllClanDiscordId &&
+                resolveGameScope(assignment.gameId) === "hell_let_loose" &&
+                assignment.type === "member" &&
+                assignment.status === "active"
+        )
+        const assignments = [] as typeof hllMembers
+        for (const assignment of hllMembers) {
+            if (!(await hasValidHllPrimaryGroup(ctx, assignment)))
+                assignments.push(assignment)
+        }
+        const affectedUserIds = [
+            ...new Set(assignments.map((assignment) => assignment.userId)),
+        ]
+        const affectedUsers = await Promise.all(
+            affectedUserIds.map(async (userId) => {
+                const user = await getUserByIdentifier(ctx, userId)
+                return {
+                    discordId: user ? getUserDiscordId(user) : userId,
+                    name: user?.name ?? "Unknown user",
+                }
+            })
+        )
+        if (!args.apply)
+            return { assignmentsToRemove: assignments.length, affectedUsers }
+
+        const repository = new ConvexAssignmentCommandRepository(ctx)
+        for (const assignment of assignments) {
+            await repository.remove(String(assignment._id))
+        }
+        if (affectedUserIds.length > 0) {
+            const now = systemClock.now()
+            await rebuildMembershipState(
+                repository,
+                args.hllClanDiscordId,
+                affectedUserIds,
+                now
+            )
+            const rosterSync = new ConvexAssignmentRosterSyncPort(ctx)
+            for (const eventId of await repository.listOpenMatchEventIds(
+                args.hllClanDiscordId,
+                now,
+                "hell_let_loose"
+            )) {
+                await rosterSync.syncEvent(eventId)
+            }
+        }
+        return { assignmentsRemoved: assignments.length, affectedUsers }
+    },
+})
+
+/** Removes only HLL assignments that do not have a primary group. */
+export const removeUngroupedHllAssignments = action({
+    args: {
+        secret: v.string(),
+        hllClanDiscordId: v.string(),
+        apply: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        const assignmentIds = (await ctx.runQuery(
+            listUngroupedHllAssignmentIdsReference,
+            { secret: args.secret, hllClanDiscordId: args.hllClanDiscordId }
+        )) as string[]
+        let changed = 0
+        const affectedUsers = new Map<string, string>()
+        for (
+            let start = 0;
+            start < assignmentIds.length;
+            start += CLEANUP_BATCH_SIZE
+        ) {
+            const result = (await ctx.runMutation(
+                removeUngroupedHllAssignmentsBatchReference,
+                {
+                    ...args,
+                    assignmentIds: assignmentIds.slice(
+                        start,
+                        start + CLEANUP_BATCH_SIZE
+                    ) as never,
+                }
+            )) as {
+                assignmentsToRemove?: number
+                assignmentsRemoved?: number
+                affectedUsers: Array<{ discordId: string; name: string }>
+            }
+            changed +=
+                result.assignmentsToRemove ?? result.assignmentsRemoved ?? 0
+            for (const user of result.affectedUsers) {
+                affectedUsers.set(user.discordId, user.name)
+            }
+        }
+        return {
+            apply: args.apply,
+            hllAssignmentsScanned: assignmentIds.length,
+            ...(args.apply
+                ? { assignmentsRemoved: changed }
+                : { assignmentsToRemove: changed }),
+            affectedUserIds: [...affectedUsers.keys()],
+            affectedUsers: [...affectedUsers].map(([discordId, name]) => ({
+                discordId,
+                name,
+            })),
+        }
+    },
+})
+
+/** Finds exact roster names in either a Discord display name or this clan's nickname. */
+export const findWardogsRosterPeople = query({
+    args: { secret: v.string() },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+        const targets = new Set(WARDOGS_ROSTER_NAMES.map(normalizedDiscordName))
+        const matches = new Map<
+            string,
+            Array<{ userId: string; discordId: string; name: string }>
+        >()
+        for (const user of await ctx.db.query("users").collect()) {
+            const aliases = [
+                user.name,
+                user.nicknames?.[WARDOGS_CLAN_DISCORD_ID],
+            ]
+                .filter((value): value is string => Boolean(value))
+                .map(normalizedDiscordName)
+            for (const alias of new Set(aliases)) {
+                if (!targets.has(alias)) continue
+                const rows = matches.get(alias) ?? []
+                rows.push({
+                    userId: getUserStableId(user),
+                    discordId: getUserDiscordId(user),
+                    name: user.name,
+                })
+                matches.set(alias, rows)
+            }
+        }
+        const matched = [] as Array<{
+            userId: string
+            discordId: string
+            name: string
+        }>
+        const ambiguous = [] as string[]
+        const unmatched = [] as string[]
+        for (const target of WARDOGS_ROSTER_NAMES) {
+            const rows = matches.get(normalizedDiscordName(target)) ?? []
+            if (rows.length === 1) matched.push(rows[0]!)
+            else if (rows.length === 0) unmatched.push(target)
+            else ambiguous.push(target)
+        }
+        return { matched, ambiguous, unmatched }
+    },
+})
+
+/** Adds one bounded set of active Wardogs member assignments without a primary group. */
+export const addWardogsRosterAssignmentsBatch = mutation({
+    args: {
+        secret: v.string(),
+        apply: v.boolean(),
+        userIds: v.array(v.string()),
+    },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+        const repository = new ConvexAssignmentCommandRepository(ctx)
+        const created = [] as string[]
+        for (const userId of args.userIds) {
+            if (
+                await repository.getByServerUser(
+                    WARDOGS_CLAN_DISCORD_ID,
+                    userId,
+                    "wardogs"
+                )
+            )
+                continue
+            created.push(userId)
+            if (!args.apply) continue
+            const nowIso = systemClock.now().toISOString()
+            await repository.save({
+                userId,
+                serverId: WARDOGS_CLAN_DISCORD_ID,
+                gameId: "wardogs",
+                type: "member",
+                status: "active",
+                membershipCategoryId: undefined,
+                primaryGroupId: undefined,
+                secondaryGroupIds: [],
+                paused: false,
+                pausedNote: undefined,
+                nowIso,
+            })
+        }
+        if (args.apply && created.length > 0) {
+            const now = systemClock.now()
+            await rebuildMembershipState(
+                repository,
+                WARDOGS_CLAN_DISCORD_ID,
+                created,
+                now
+            )
+        }
+        return { created }
+    },
+})
+
+/** Adds missing Wardogs member assignments for the supplied fixed roster. */
+export const addWardogsRosterAssignments = action({
+    args: { secret: v.string(), apply: v.boolean() },
+    handler: async (ctx, args) => {
+        const found = (await ctx.runQuery(findWardogsRosterPeopleReference, {
+            secret: args.secret,
+        })) as {
+            matched: Array<{ userId: string; discordId: string; name: string }>
+            ambiguous: string[]
+            unmatched: string[]
+        }
+        const addedUserIds = new Set<string>()
+        for (
+            let start = 0;
+            start < found.matched.length;
+            start += CLEANUP_BATCH_SIZE
+        ) {
+            const result = (await ctx.runMutation(
+                addWardogsRosterAssignmentsBatchReference,
+                {
+                    ...args,
+                    userIds: found.matched
+                        .slice(start, start + CLEANUP_BATCH_SIZE)
+                        .map((user) => user.userId),
+                }
+            )) as { created: string[] }
+            for (const userId of result.created) addedUserIds.add(userId)
+        }
+        return {
+            apply: args.apply,
+            assignmentsToAdd: addedUserIds.size,
+            affectedUsers: found.matched.filter((user) =>
+                addedUserIds.has(user.userId)
+            ),
+            unmatched: found.unmatched,
+            ambiguous: found.ambiguous,
         }
     },
 })

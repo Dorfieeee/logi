@@ -108,8 +108,17 @@ export async function deleteEventInTransaction(
     ])
     for (const map of maps)
         await ctx.db.patch(map._id, { eventId: undefined, updatedAt: now })
-    for (const fixture of fixtures)
-        await ctx.db.patch(fixture._id, { eventId: undefined, updatedAt: now })
+    for (const fixture of fixtures) {
+        const linked = fixture.eventIds?.filter((id) => id !== eventId) ?? []
+        await ctx.db.patch(fixture._id, {
+            eventId:
+                fixture.eventId === eventId
+                    ? (linked[0] ?? undefined)
+                    : fixture.eventId,
+            eventIds: linked.length ? linked : undefined,
+            updatedAt: now,
+        })
+    }
     const competitionSlugs: string[] = []
     for (const fixture of fixtures) {
         const competition = await ctx.db.get(fixture.competitionId)
