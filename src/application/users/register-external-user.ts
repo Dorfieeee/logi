@@ -1,15 +1,20 @@
 import type { ExternalRegistration } from "../../domain/users/external-registration.schema"
 
 export class RegistrationConflict extends Error {}
+export class RegistrationValidationError extends Error {}
 
 export interface ExternalRegistrationPort {
     inspect(input: ExternalRegistration): Promise<{
         userId: string | null
-        steamMatches: boolean
+        steamId: string | null
         primaryGuildId?: string
         assignmentId: string | null
     }>
     createUser(input: ExternalRegistration): Promise<string>
+    linkSteam(
+        input: ExternalRegistration & { steamId: string },
+        userId: string
+    ): Promise<void>
     createMembership(
         input: ExternalRegistration,
         userId: string
@@ -22,12 +27,15 @@ export async function registerExternalUser(
     port: ExternalRegistrationPort
 ) {
     const existing = await port.inspect(input)
-    if (existing.userId && !existing.steamMatches)
-        throw new RegistrationConflict(
-            "The existing Discord profile has different platform details. Link the Steam ID in Logi first."
+    const steamId = input.steamId ?? existing.steamId
+    if (!steamId)
+        throw new RegistrationValidationError(
+            "Steam ID is required for a new user or an existing user without Steam details."
         )
     if (
+        input.createMembership &&
         !existing.assignmentId &&
+        input.status !== "pending" &&
         input.type !== "mercenary" &&
         existing.primaryGuildId &&
         existing.primaryGuildId !== input.guildId
@@ -35,9 +43,13 @@ export async function registerExternalUser(
         throw new RegistrationConflict(
             "This user already has a primary clan membership elsewhere."
         )
-    const userId = existing.userId ?? (await port.createUser(input))
-    const assignmentId =
-        existing.assignmentId ?? (await port.createMembership(input, userId))
+    const resolved = { ...input, steamId }
+    const userId = existing.userId ?? (await port.createUser(resolved))
+    if (existing.userId) await port.linkSteam(resolved, userId)
+    const assignmentId = input.createMembership
+        ? (existing.assignmentId ??
+          (await port.createMembership(input, userId)))
+        : null
     return {
         userId,
         discordId: input.discordId,
@@ -45,6 +57,6 @@ export async function registerExternalUser(
         gameId: input.gameId,
         assignmentId,
         userCreated: !existing.userId,
-        membershipCreated: !existing.assignmentId,
+        membershipCreated: input.createMembership && !existing.assignmentId,
     }
 }

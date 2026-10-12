@@ -75,11 +75,11 @@ export async function linkDiscordPlatformInTransaction(
             steamId?: string
             platformId?: string
         }
-        const candidatePlatformIds = normalizePlatformIds(
-            candidate.platformIds ??
-                legacyCandidate.platformId ??
-                legacyCandidate.steamId
-        )
+        const candidatePlatformIds = normalizePlatformIds([
+            ...(candidate.platformIds ?? []),
+            legacyCandidate.platformId ?? "",
+            legacyCandidate.steamId ?? "",
+        ])
 
         if (
             normalizedPlatformIds.some((platformId) =>
@@ -97,15 +97,35 @@ export async function linkDiscordPlatformInTransaction(
     }
 
     if (existing) {
+        const currentIds = normalizePlatformIds([
+            ...(existing.platformIds ?? []),
+            (existing as typeof existing & { platformId?: string })
+                .platformId ?? "",
+            (existing as typeof existing & { steamId?: string }).steamId ?? "",
+        ])
+        const ids = [...currentIds]
+        for (const value of normalizedPlatformIds)
+            if (
+                !ids.some(
+                    (current) =>
+                        platformComparisonKey(current) ===
+                        platformComparisonKey(value)
+                )
+            )
+                ids.push(value)
+        if (
+            JSON.stringify(ids) === JSON.stringify(existing.platformIds) &&
+            (args.userName.trim() || existing.name) === existing.name &&
+            (args.userAvatar || existing.avatar) === existing.avatar
+        )
+            return {
+                action: "updated" as const,
+                platformId: normalizedPlatformIds[0],
+            }
         await ctx.db.patch(existing._id, {
             name: args.userName.trim() || existing.name,
             avatar: args.userAvatar || existing.avatar,
-            platformIds: [
-                ...new Set([
-                    ...normalizePlatformIds(existing.platformIds),
-                    ...normalizedPlatformIds,
-                ]),
-            ],
+            platformIds: ids,
             updatedAt: now,
         })
         return {

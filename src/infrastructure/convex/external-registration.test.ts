@@ -16,6 +16,7 @@ const input = {
     gameId: "hell_let_loose",
     type: "member",
     status: "active",
+    createMembership: true,
 }
 const args = {
     secret: "dev-internal-auth-secret",
@@ -113,13 +114,7 @@ test("registration rejects cross-clan, read-only, revoked, missing and invalid c
     assert.equal(ctx.db.tables.users?.length ?? 0, 0)
 })
 
-for (const source of [
-    "legacy",
-    "platform",
-    "verified",
-    "existing-mismatch",
-    "primary-clan",
-]) {
+for (const source of ["legacy", "platform", "verified", "primary-clan"]) {
     test(`registration rejects ${source} conflict without partial writes`, async () => {
         const ctx = fixture()
         if (source === "verified")
@@ -148,6 +143,20 @@ for (const source of [
                         : undefined,
             })
         const before = structuredClone(ctx.db.tables)
+        if (source === "primary-clan") {
+            ctx.db.seed("userAssignments", {
+                _id: "userAssignments:other",
+                userId: discordId,
+                serverId: "333333333333333333",
+                gameId: input.gameId,
+                type: "member",
+                status: "active",
+                createdAt: "2026-01-01T00:00:00Z",
+            })
+            before.userAssignments = structuredClone(
+                ctx.db.tables.userAssignments
+            )
+        }
         await assert.rejects(
             invoke(register, ctx, args),
             /conflict|already|different|primary/i
@@ -172,6 +181,141 @@ test("membership failure rolls back the newly created user and idempotency recei
     assert.deepEqual(ctx.db.tables, before)
 })
 
+test("existing Discord user links unclaimed Steam and applies without replacing its identity", async () => {
+    const ctx = fixture()
+    ctx.db.seed("users", {
+        _id: "users:existing",
+        id: "legacy-stable-id",
+        discordId,
+        name: "Original name",
+        avatar: "https://original.test/avatar.png",
+        platformIds: [],
+        nicknames: { [guildId]: "Original nickname" },
+        guildId: "333333333333333333",
+    })
+    ctx.db.seed("userAssignments", {
+        _id: "userAssignments:hll",
+        userId: "legacy-stable-id",
+        serverId: "333333333333333333",
+        gameId: "hell_let_loose",
+        type: "member",
+        status: "active",
+        createdAt: "2026-01-01T00:00:00Z",
+    })
+    const oldMembership = structuredClone(ctx.db.tables.userAssignments[0])
+    const result = await invoke(register, ctx, {
+        ...args,
+        input: { ...input, gameId: "wardogs", status: "pending" },
+    })
+    const data = JSON.parse(result.body).data
+    assert.equal(result.status, 201)
+    assert.equal(data.userCreated, false)
+    assert.equal(data.userId, "legacy-stable-id")
+    assert.equal(ctx.db.tables.users.length, 1)
+    assert.equal(ctx.db.tables.users[0].name, "Original name")
+    assert.equal(
+        ctx.db.tables.users[0].avatar,
+        "https://original.test/avatar.png"
+    )
+    assert.equal(ctx.db.tables.users[0].guildId, "333333333333333333")
+    assert.deepEqual(ctx.db.tables.users[0].platformIds, [steamId])
+    assert.deepEqual(ctx.db.tables.userAssignments[0], oldMembership)
+    assert.equal(ctx.db.tables.userAssignments[1].gameId, "wardogs")
+    assert.equal(ctx.db.tables.userAssignments[1].status, "pending")
+})
+
+test("existing linked Steam can be omitted, and existing game membership is preserved", async () => {
+    const ctx = fixture()
+    await invoke(register, ctx, args)
+    const { steamId: _steam, steamName: _name, ...withoutSteam } = input
+    const result = await invoke(register, ctx, {
+        ...args,
+        idempotencyKey: "without-steam",
+        input: { ...withoutSteam, gameId: "wardogs", status: "pending" },
+    })
+    assert.equal(result.status, 201)
+    assert.equal(JSON.parse(result.body).data.userCreated, false)
+    assert.deepEqual(ctx.db.tables.users[0].platformIds, [steamId])
+    assert.equal(ctx.db.tables.userAssignments[0].status, "active")
+    const again = await invoke(register, ctx, {
+        ...args,
+        idempotencyKey: "repeat",
+        input: { ...withoutSteam, status: "pending" },
+    })
+    assert.equal(again.status, 200)
+    assert.equal(ctx.db.tables.userAssignments[0].status, "active")
+})
+
+test("missing Steam without an existing linked ID rejects the whole transaction", async () => {
+    for (const existing of [false, true]) {
+        const ctx = fixture()
+        if (existing)
+            ctx.db.seed("users", {
+                _id: "users:empty",
+                id: discordId,
+                discordId,
+                name: "Existing",
+                avatar: "",
+                platformIds: [],
+            })
+        const before = structuredClone(ctx.db.tables)
+        const { steamId: _steam, steamName: _name, ...withoutSteam } = input
+        await assert.rejects(
+            invoke(register, ctx, { ...args, input: withoutSteam }),
+            /Steam ID is required/
+        )
+        assert.deepEqual(ctx.db.tables, before)
+    }
+})
+
+test("an existing user's attempted Steam collision does not change either profile or membership", async () => {
+    for (const value of [
+        steamId,
+        `steam:${steamId}`,
+        `https://steamcommunity.com/profiles/${steamId}/`,
+    ]) {
+        const ctx = fixture()
+        ctx.db.seed("users", {
+            _id: "users:applicant",
+            id: discordId,
+            discordId,
+            name: "Applicant",
+            avatar: "",
+            platformIds: ["76561198000000001"],
+        })
+        ctx.db.seed("users", {
+            _id: "users:owner",
+            id: "other",
+            discordId: "333333333333333333",
+            name: "Owner",
+            avatar: "",
+            platformIds: [value],
+        })
+        const before = structuredClone(ctx.db.tables)
+        await assert.rejects(invoke(register, ctx, args), /already linked/)
+        assert.deepEqual(ctx.db.tables, before)
+    }
+})
+
+test("adding Steam appends, repeated linking is canonical and never creates verified ownership", async () => {
+    const ctx = fixture()
+    ctx.db.seed("users", {
+        _id: "users:existing",
+        id: discordId,
+        discordId,
+        name: "Original",
+        avatar: "",
+        platformIds: ["steam:76561198000000001"],
+    })
+    await invoke(register, ctx, args)
+    await invoke(register, ctx, { ...args, idempotencyKey: "repeat" })
+    assert.deepEqual(ctx.db.tables.users[0].platformIds, [
+        "steam:76561198000000001",
+        steamId,
+    ])
+    assert.equal(ctx.db.tables.platformIdentityLinks?.length ?? 0, 0)
+})
+
 test("disabled game and invalid details do not create a user", async () => {
     for (const patch of [
         { gameId: "disabled" },
@@ -190,5 +334,87 @@ test("disabled game and invalid details do not create a user", async () => {
             400
         )
         assert.equal(ctx.db.tables.users?.length ?? 0, 0)
+    }
+})
+
+test("default registration upserts only the account and never reads or changes memberships", async () => {
+    const ctx = fixture()
+    const { createMembership: _membership, ...accountOnly } = input
+    const first = await invoke(register, ctx, { ...args, input: accountOnly })
+    assert.equal(first.status, 201)
+    const data = JSON.parse(first.body).data
+    assert.equal(data.assignmentId, null)
+    assert.equal(data.membershipCreated, false)
+    assert.equal(ctx.db.tables.userAssignments?.length ?? 0, 0)
+    assert.deepEqual(ctx.db.tables.guilds[0].memberIds, [])
+    ctx.db.seed("userAssignments", {
+        _id: "userAssignments:hll",
+        userId: discordId,
+        serverId: "333333333333333333",
+        gameId: "hell_let_loose",
+        type: "member",
+        status: "active",
+        createdAt: "2026-01-01T00:00:00Z",
+    })
+    ctx.db.tables.users[0].guildId = "333333333333333333"
+    const memberships = structuredClone(ctx.db.tables.userAssignments)
+    const {
+        steamId: _steam,
+        steamName: _steamName,
+        ...withoutSteam
+    } = accountOnly
+    const again = await invoke(register, ctx, {
+        ...args,
+        idempotencyKey: "account-only-again",
+        input: { ...withoutSteam, gameId: "wardogs" },
+    })
+    assert.equal(again.status, 200)
+    assert.equal(JSON.parse(again.body).data.assignmentId, null)
+    assert.deepEqual(ctx.db.tables.userAssignments, memberships)
+    assert.equal(ctx.db.tables.users[0].guildId, "333333333333333333")
+})
+
+test("legacy Steam fields are reused and cannot be claimed even beside an empty modern array", async () => {
+    for (const field of ["steamId", "platformId"]) {
+        const ctx = fixture()
+        ctx.db.seed("users", {
+            _id: "users:legacy",
+            id: discordId,
+            discordId,
+            name: "Original",
+            avatar: "",
+            platformIds: [],
+            [field]: steamId,
+        })
+        const {
+            steamId: _steam,
+            createMembership: _membership,
+            ...accountOnly
+        } = input
+        const result = await invoke(register, ctx, {
+            ...args,
+            input: accountOnly,
+        })
+        assert.equal(result.status, 200)
+        assert.deepEqual(ctx.db.tables.users[0].platformIds, [steamId])
+        const other = fixture()
+        other.db.seed("users", {
+            _id: "users:owner",
+            id: "333333333333333333",
+            discordId: "333333333333333333",
+            name: "Owner",
+            avatar: "",
+            platformIds: [],
+            [field]: steamId,
+        })
+        const before = structuredClone(other.db.tables)
+        await assert.rejects(
+            invoke(register, other, {
+                ...args,
+                input: { ...input, createMembership: false },
+            }),
+            /already linked/
+        )
+        assert.deepEqual(other.db.tables, before)
     }
 })

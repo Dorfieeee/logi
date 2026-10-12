@@ -5,10 +5,11 @@ import {
 import {
     registerExternalUser,
     RegistrationConflict,
+    RegistrationValidationError,
 } from "../src/application/users/register-external-user"
 import { UpsertAssignmentUseCase } from "../src/application/assignments/upsert-assignment.use-case"
 import { externalRegistrationSchema } from "../src/domain/users/external-registration.schema"
-import { parseSteamId } from "../src/domain/player-stats/player-stats"
+import { linkedSteamIds } from "../src/domain/player-stats/player-stats"
 import { linkDiscordPlatformInTransaction } from "./platformLinkStore"
 import { getGuildByDiscordId, getUserStableId } from "./identity"
 import { startIdempotentMutation } from "./apiIdempotency"
@@ -27,9 +28,10 @@ export const register = mutation({
             discordId: v.string(),
             guildId: v.string(),
             name: v.string(),
-            steamId: v.string(),
-            steamName: v.string(),
+            steamId: v.optional(v.string()),
+            steamName: v.optional(v.string()),
             avatar: v.string(),
+            createMembership: v.optional(v.boolean()),
             gameId: v.string(),
             type: v.union(
                 v.literal("member"),
@@ -80,7 +82,10 @@ export const register = mutation({
             return finish(404, {
                 error: { code: "not_found", message: "Clan not found." },
             })
-        if (!(guild.enabledGames ?? ["hell_let_loose"]).includes(input.gameId))
+        if (
+            input.createMembership &&
+            !(guild.enabledGames ?? ["hell_let_loose"]).includes(input.gameId)
+        )
             return finish(400, {
                 error: {
                     code: "validation_error",
@@ -108,24 +113,55 @@ export const register = mutation({
                             "Identity conflict. Contact an administrator."
                         )
                     const userId = user ? getUserStableId(user) : null
-                    const assignment = userId
-                        ? await repository.getByServerUser(
-                              input.guildId,
-                              userId,
-                              input.gameId
-                          )
-                        : null
+                    const assignment =
+                        userId && input.createMembership
+                            ? await repository.getByServerUser(
+                                  input.guildId,
+                                  userId,
+                                  input.gameId
+                              )
+                            : null
+                    const assignments =
+                        userId && input.createMembership
+                            ? await repository.listByUser(userId)
+                            : []
+                    const otherPrimary = assignments.find(
+                        (item) =>
+                            item.gameId === input.gameId &&
+                            item.serverId !== input.guildId &&
+                            item.type !== "mercenary" &&
+                            item.status !== "pending"
+                    )
                     return {
                         userId,
-                        steamMatches:
-                            user?.platformIds?.some(
-                                (value) => parseSteamId(value) === input.steamId
-                            ) ?? false,
-                        primaryGuildId: user?.guildId,
+                        steamId: user
+                            ? (linkedSteamIds(
+                                  [
+                                      ...(user.platformIds ?? []),
+                                      (
+                                          user as typeof user & {
+                                              platformId?: string
+                                          }
+                                      ).platformId,
+                                      (
+                                          user as typeof user & {
+                                              steamId?: string
+                                          }
+                                      ).steamId,
+                                  ].filter((value): value is string =>
+                                      Boolean(value)
+                                  )
+                              )[0] ?? null)
+                            : null,
+                        primaryGuildId: otherPrimary?.serverId,
                         assignmentId: assignment?.id ?? null,
                     }
                 },
                 createUser: async () => {
+                    if (!input.steamId)
+                        throw new RegistrationValidationError(
+                            "Steam ID is required for a new user."
+                        )
                     await linkDiscordPlatformInTransaction(ctx, {
                         userId: input.discordId,
                         userName: input.name,
@@ -140,8 +176,35 @@ export const register = mutation({
                         .unique()
                     if (!user)
                         throw new Error("Registration user was not created.")
-                    await ctx.db.patch(user._id, { steamName: input.steamName })
+                    if (input.steamName)
+                        await ctx.db.patch(user._id, {
+                            steamName: input.steamName,
+                        })
                     return getUserStableId(user)
+                },
+                linkSteam: async (resolved) => {
+                    const user = await ctx.db
+                        .query("users")
+                        .withIndex("discordId", (q) =>
+                            q.eq("discordId", input.discordId)
+                        )
+                        .unique()
+                    if (!user)
+                        throw new RegistrationConflict(
+                            "Identity conflict. Contact an administrator."
+                        )
+                    // Keep the existing identity and presentation. The shared linker
+                    // rejects collisions and appends IDs; it never claims another user.
+                    await linkDiscordPlatformInTransaction(ctx, {
+                        userId: input.discordId,
+                        userName: user.name,
+                        userAvatar: user.avatar,
+                        platformId: resolved.steamId,
+                    })
+                    if (!user.steamName && resolved.steamName)
+                        await ctx.db.patch(user._id, {
+                            steamName: resolved.steamName,
+                        })
                 },
                 createMembership: async (_input, userId) =>
                     new UpsertAssignmentUseCase(
@@ -164,6 +227,11 @@ export const register = mutation({
             )
         } catch (error) {
             // Throw after any workflow failure: Convex rolls back the user, membership and receipt together.
+            if (error instanceof RegistrationValidationError)
+                throw new ConvexError({
+                    code: "validation_error",
+                    message: error.message,
+                })
             if (
                 error instanceof RegistrationConflict ||
                 (error instanceof Error &&

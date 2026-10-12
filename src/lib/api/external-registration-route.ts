@@ -79,11 +79,12 @@ export async function handleExternalRegistration(
             typeof cause.data === "object" &&
             cause.data !== null &&
             "code" in cause.data &&
-            cause.data.code === "registration_conflict"
+            (cause.data.code === "registration_conflict" ||
+                cause.data.code === "validation_error")
         )
             return error(
-                409,
-                "registration_conflict",
+                cause.data.code === "validation_error" ? 400 : 409,
+                String(cause.data.code),
                 String(cause.data.message)
             )
         return error(
