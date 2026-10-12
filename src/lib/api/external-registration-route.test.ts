@@ -32,7 +32,8 @@ test("HTTP registration validates before writing and forwards defaults and a bod
             calls++
             assert.equal(args.input.gameId, "hell_let_loose")
             assert.equal(args.input.avatar, "")
-            assert.equal(args.input.status, "active")
+            assert.equal(args.input.status, "pending")
+            assert.equal(args.input.createMembership, false)
             assert.equal(args.bodyHash.length, 64)
             return { status: 201, body: '{"data":{}}' }
         },
@@ -80,6 +81,13 @@ test("HTTP registration preserves auth denial and returns conflict or sanitized 
             }),
             409,
         ],
+        [
+            new ConvexError({
+                code: "validation_error",
+                message: "Steam ID required",
+            }),
+            400,
+        ],
         [new Error("private diagnostic"), 500],
     ] as const) {
         const response = await handleExternalRegistration(request(), {
@@ -100,7 +108,8 @@ test("OpenAPI documents the registration request, authorization and creation res
     const operation = externalRegistrationPaths["/clan/users/register"].post
     assert.deepEqual(operation.security, [{ clanApiKey: [] }])
     const schema = operation.requestBody.content["application/json"].schema
-    assert.ok(schema.required?.includes("steamName"))
+    assert.equal(schema.required?.includes("steamName"), false)
+    assert.equal(schema.required?.includes("steamId"), false)
     assert.ok(operation.responses["201"])
     assert.ok(operation.responses["409"])
 })

@@ -5,9 +5,10 @@ export const externalRegistrationPaths = {
     "/clan/users/register": {
         post: {
             tags: ["Clan API — Assignments"],
-            summary: "Register a Discord user and clan membership atomically",
+            summary:
+                "Create or update a Discord user's Steam account, optionally adding game membership",
             description:
-                "Requires a full-access clan API key; read-only keys are denied. guildId must match the key. The external service must authenticate the submitted Discord identity. Steam metadata is self-declared, never verified identity. Existing profiles must already contain the submitted Steam ID and are preserved; existing game assignments are preserved. No Discord roles are granted. Defaults: HLL, active member, empty avatar. A primary member of another clan cannot gain a new primary membership here. Identical retries replay the original response for 24 hours; changing the body with the same key returns 409.",
+                "Requires a full-access clan API key; read-only keys are denied. guildId must match the key. The external service must authenticate the submitted Discord identity. By default creates or reuses only a user account and safely appends a self-declared Steam ID; no memberships or native Logi applications are created or changed. steamId is required for a new user or a user without Steam details; otherwise it can be omitted to reuse a linked ID. A supplied unclaimed Steam ID is appended without replacing existing IDs, identity, name or avatar. IDs recorded by another user, including legacy and verified links, return 409 and roll back the entire request; this endpoint never transfers Steam accounts or grants verified identity. Set createMembership=true explicitly to add a missing assignment for the requested game, preserving all existing assignments. Only that opt-in checks enabled games and primary membership conflicts within the requested game; pending applications may coexist with other memberships. assignmentId is null and membershipCreated=false in account-only mode. No Discord roles or application threads are created. Defaults: createMembership=false, HLL, pending member, empty avatar. Identical retries replay the original response for 24 hours; changing the body with the same key returns 409.",
             security: [{ clanApiKey: [] }],
             parameters: [
                 {
@@ -29,7 +30,8 @@ export const externalRegistrationPaths = {
             },
             responses: {
                 "200": {
-                    description: "Profile and membership already exist",
+                    description:
+                        "Existing account reused or updated; optional membership already exists",
                     content: {
                         "application/json": {
                             schema: registrationResponseSchema(),
@@ -46,7 +48,7 @@ export const externalRegistrationPaths = {
                 },
                 "400": {
                     description:
-                        "Invalid details, disabled game or missing Idempotency-Key",
+                        "Invalid details, Steam ID absent on both request and user, disabled game or missing Idempotency-Key",
                 },
                 "401": { description: "Missing, invalid or revoked API key" },
                 "403": { description: "Read-only key or guild scope mismatch" },
@@ -86,7 +88,7 @@ function registrationResponseSchema() {
                     discordId: { type: "string" },
                     guildId: { type: "string" },
                     gameId: { type: "string" },
-                    assignmentId: { type: "string" },
+                    assignmentId: { type: ["string", "null"] },
                     userCreated: { type: "boolean" },
                     membershipCreated: { type: "boolean" },
                 },

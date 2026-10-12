@@ -2594,6 +2594,9 @@ export const generatedOpenApiSchemas = {
                     "type": "string"
                 }
             },
+            "steamName": {
+                "type": "string"
+            },
             "avatar": {
                 "type": "string"
             },
@@ -2719,6 +2722,7 @@ export const generatedOpenApiSchemas = {
             "platformIds": [
                 "string"
             ],
+            "steamName": "string",
             "avatar": "string",
             "managedGuildIds": [
                 "string"
