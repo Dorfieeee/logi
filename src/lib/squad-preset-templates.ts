@@ -118,25 +118,33 @@ const wardogsSquadIconOptions = [
 ] as const
 
 /**
- * Wardogs uses its full tactical marker catalog for both squads and roles.
- * Keeping these selectors in sync lets a role use every icon available to a
- * squad block.
+ * The icon picker is a tactical-marker picker, not a separate squad/role
+ * picker. Built-in games retain their native artwork; a custom game falls
+ * back to the complete Wardogs tactical-marker catalog, which is the only
+ * general-purpose marker catalog currently bundled with Logi.
  */
-export const roleIconOptionsByGame: Record<GameId, readonly string[]> = {
+export const tacticalMarkerIconOptionsByGame: Record<
+    string,
+    readonly string[]
+> = {
     hell_let_loose: hllRoleIconOptions,
     hell_let_loose_vietnam: hllVietnamRoleIconOptions,
     wardogs: wardogsSquadIconOptions,
     world_of_warcraft_forever: wowForeverRoleIconOptions,
 }
 
-export function getRoleIconOptions(gameId: GameId) {
-    return roleIconOptionsByGame[gameId]
+export function getTacticalMarkerIconOptions(gameId: GameId) {
+    return tacticalMarkerIconOptionsByGame[gameId] ?? wardogsSquadIconOptions
 }
 
+/** Both preset controls use the same tactical-marker catalog. */
+export function getRoleIconOptions(gameId: GameId) {
+    return getTacticalMarkerIconOptions(gameId)
+}
+
+/** Both preset controls use the same tactical-marker catalog. */
 export function getSquadIconOptions(gameId: GameId): readonly string[] {
-    return gameId === "wardogs"
-        ? getRoleIconOptions(gameId)
-        : roleIconOptionsByGame[gameId]
+    return getTacticalMarkerIconOptions(gameId)
 }
 
 // Retained for roster layout editing until that editor receives a game context.

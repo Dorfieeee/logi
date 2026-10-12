@@ -367,7 +367,7 @@ test("clan review list skips drafts, trainings and heads of another game scope",
     assert.deepEqual(await list(), [])
 })
 
-test("session picker lists collected sessions newest game first, whatever was recollected last", async () => {
+test("session picker lists the latest ended games, whatever was recollected last", async () => {
     const ctx = fixture()
     const reads = spyReads(ctx)
     // Collection order and `fetchedAt` disagree with the games' own times:
@@ -401,17 +401,17 @@ test("session picker lists collected sessions newest game first, whatever was re
     assert.deepEqual(
         read.sessions.map((session: { id: string }) => session.id),
         [
-            "gameSessions:c",
             "gameSessions:d",
             "gameSessions:e",
             "gameSessions:b",
+            "gameSessions:c",
             "gameSessions:a",
         ],
-        "by start time, else end time; sessions without a time last"
+        "by end time; sessions without an end time last"
     )
     assert.deepEqual(
         reads.find((call) => call.table === "gameSessions"),
-        { table: "gameSessions", index: "guildId_gameId" },
-        "bounded through the clan's collection order, not fetchedAt"
+        { table: "gameSessions", index: "guildId_gameId_fetchedAt" },
+        "bounded by fetch time before the provider end-time sort"
     )
 })

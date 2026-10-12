@@ -133,7 +133,7 @@ export const resultReviewSchema = z
                     })
                     .strict()
             )
-            .max(50),
+            .max(10),
         hasLegacyImport: z.boolean(),
     })
     .strict()

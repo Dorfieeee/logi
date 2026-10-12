@@ -90,7 +90,8 @@ function toInputs(
 function editorState(
     data: ReviewData,
     matchStart: string | undefined,
-    participantLabel: string
+    participantLabel: string,
+    matchTeams: MatchTeamAssignment[] | undefined
 ) {
     const suggestion =
         !data.current && matchStart
@@ -101,11 +102,21 @@ function editorState(
             ? toInputs(data.current.participants)
             : suggestion?.participants.length
               ? toInputs(suggestion.participants)
-              : [1, 2].map((n) => ({
-                    id: `participant-${n}`,
-                    label: `${participantLabel} ${n}`,
-                    score: "",
-                })),
+              : matchTeams?.length
+                ? [...matchTeams]
+                      .sort((left, right) =>
+                          left.slot.localeCompare(right.slot)
+                      )
+                      .map((team, index) => ({
+                          id: team.side?.trim() || `participant-${index + 1}`,
+                          label: team.snapshot.name,
+                          score: "",
+                      }))
+                : [1, 2].map((n) => ({
+                      id: `participant-${n}`,
+                      label: `${participantLabel} ${n}`,
+                      score: "",
+                  })),
         source: data.current?.sessionLinks.length
             ? "keep"
             : (suggestion?.id ?? ""),
@@ -150,7 +161,9 @@ function Review({
     const m = dictionary.matchDetail.result
     const heading = useId()
     const [initial] = useState(() =>
-        initialData ? editorState(initialData, matchStart, t.participant) : null
+        initialData
+            ? editorState(initialData, matchStart, t.participant, matchTeams)
+            : null
     )
     const [data, setData] = useState<ReviewData | null>(initialData ?? null)
     const [scores, setScores] = useState<ScoreInput[]>(initial?.scores ?? [])
@@ -171,7 +184,12 @@ function Review({
                 if (!response.ok) throw new Error()
                 const result = resultReviewSchema.parse(await response.json())
                 if (controller.signal.aborted) return
-                const next = editorState(result, matchStart, t.participant)
+                const next = editorState(
+                    result,
+                    matchStart,
+                    t.participant,
+                    matchTeams
+                )
                 setData(result)
                 setScores(next.scores)
                 setSource(next.source)
@@ -191,7 +209,7 @@ function Review({
                 if (!controller.signal.aborted) setLoading(false)
             })
         return () => controller.abort()
-    }, [endpoint, refresh, t.participant, matchStart])
+    }, [endpoint, refresh, t.participant, matchStart, matchTeams])
 
     const reload = () => {
         setLoading(true)
@@ -377,13 +395,26 @@ function Review({
     )
     const factionLabels: Record<ResultFaction, string> =
         dictionary.publicPanelAppearance.factions
-    function teamFor(id: string, label: string, ours: boolean) {
+    const orderedTeams = useMemo(
+        () =>
+            [...(matchTeams ?? [])].sort((left, right) =>
+                left.slot.localeCompare(right.slot)
+            ),
+        [matchTeams]
+    )
+    function teamFor(id: string, label: string, index: number, ours: boolean) {
         const faction = resultFaction(id) ?? resultFaction(label)
         const team =
             (faction &&
-                matchTeams?.find(
+                orderedTeams.find(
                     (assignment) => resultFaction(assignment.side) === faction
                 )) ||
+            orderedTeams.find(
+                (assignment) =>
+                    assignment.snapshot.name.trim().toLowerCase() ===
+                    label.trim().toLowerCase()
+            ) ||
+            orderedTeams[index] ||
             undefined
         const name =
             team?.snapshot.name ??
@@ -424,6 +455,7 @@ function Review({
         const team = teamFor(
             side.id,
             side.label,
+            side.index,
             side.index === left?.index && sides.oursIndex === 0
         )
         return (
@@ -451,7 +483,7 @@ function Review({
         align: "left" | "right"
     ) {
         const ours = sides.oursIndex === 0 && side.index === left?.index
-        const team = teamFor(side.id, side.label, ours)
+        const team = teamFor(side.id, side.label, side.index, ours)
         const logo = (
             <Avatar aria-hidden="true" className="size-11 rounded-xl">
                 {team.logoUrl ? (
@@ -605,67 +637,90 @@ function Review({
                                 </div>
                             ) : (
                                 <div className="bg-muted/50 flex flex-wrap items-end gap-3 rounded-2xl p-4">
-                                    {scores.map((row, index) => (
-                                        <div
-                                            key={row.id}
-                                            className="flex items-end gap-1"
-                                        >
-                                            <label className="flex flex-col gap-1">
-                                                <Input
-                                                    aria-label={m.nameLabel.replace(
-                                                        "{index}",
-                                                        String(index + 1)
-                                                    )}
-                                                    value={row.label}
-                                                    disabled={!editable}
-                                                    className="h-7 w-28 text-xs"
-                                                    onChange={(e) =>
-                                                        updateLabel(
-                                                            index,
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                />
-                                                <Input
-                                                    aria-label={m.scoreLabel.replace(
-                                                        "{name}",
-                                                        row.label
-                                                    )}
-                                                    type="number"
-                                                    step="any"
-                                                    value={row.score}
-                                                    disabled={!editable}
-                                                    placeholder="—"
-                                                    className="bg-background h-12 w-28 text-center text-2xl font-semibold tabular-nums"
-                                                    onChange={(e) =>
-                                                        updateScore(
-                                                            index,
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                />
-                                            </label>
-                                            {scores.length > 2 ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    aria-label={`${t.remove} ${index + 1}`}
-                                                    disabled={!editable}
-                                                    onClick={() => {
-                                                        setScores(
-                                                            scores.filter(
-                                                                (_, i) =>
-                                                                    i !== index
-                                                            )
-                                                        )
-                                                        setDirty(true)
-                                                    }}
+                                    {scores.map((row, index) => {
+                                        const team = teamFor(
+                                            row.id,
+                                            row.label,
+                                            index,
+                                            sides.oursIndex === index
+                                        )
+                                        return (
+                                            <div
+                                                key={row.id}
+                                                className="flex min-w-36 items-end gap-1"
+                                            >
+                                                <Avatar
+                                                    aria-hidden="true"
+                                                    className="mb-0.5 size-8 shrink-0 rounded-lg"
                                                 >
-                                                    −
-                                                </Button>
-                                            ) : null}
-                                        </div>
-                                    ))}
+                                                    {team.logoUrl ? (
+                                                        <AvatarImage
+                                                            src={team.logoUrl}
+                                                            alt=""
+                                                        />
+                                                    ) : null}
+                                                    <AvatarFallback className="rounded-lg text-[10px] font-bold">
+                                                        {team.short}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <label className="flex flex-col gap-1">
+                                                    <Input
+                                                        aria-label={m.nameLabel.replace(
+                                                            "{index}",
+                                                            String(index + 1)
+                                                        )}
+                                                        value={row.label}
+                                                        disabled={!editable}
+                                                        className="h-7 w-28 text-xs"
+                                                        onChange={(e) =>
+                                                            updateLabel(
+                                                                index,
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                    />
+                                                    <Input
+                                                        aria-label={m.scoreLabel.replace(
+                                                            "{name}",
+                                                            row.label
+                                                        )}
+                                                        type="number"
+                                                        step="any"
+                                                        value={row.score}
+                                                        disabled={!editable}
+                                                        placeholder="—"
+                                                        className="bg-background h-12 w-28 text-center text-2xl font-semibold tabular-nums"
+                                                        onChange={(e) =>
+                                                            updateScore(
+                                                                index,
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                    />
+                                                </label>
+                                                {scores.length > 2 ? (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        aria-label={`${t.remove} ${index + 1}`}
+                                                        disabled={!editable}
+                                                        onClick={() => {
+                                                            setScores(
+                                                                scores.filter(
+                                                                    (_, i) =>
+                                                                        i !==
+                                                                        index
+                                                                )
+                                                            )
+                                                            setDirty(true)
+                                                        }}
+                                                    >
+                                                        −
+                                                    </Button>
+                                                ) : null}
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                             )}
 

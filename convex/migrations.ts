@@ -1,6 +1,22 @@
+import {
+    ConvexAssignmentCommandRepository,
+    ConvexAssignmentRosterSyncPort,
+} from "../src/infrastructure/convex/assignment-command-repositories"
+import {
+    getGuildByDiscordId,
+    getUserByIdentifier,
+    getUserDiscordId,
+} from "./identity"
+import { rebuildMembershipState } from "../src/application/assignments/rebuild-membership"
+import { readMembershipAssignment } from "./membershipSubject"
+import { resolveGameScope } from "../src/domain/games/game"
+import { systemClock } from "../src/domain/shared/clock"
 import { internalAuthSecret } from "./discord_shared"
 import { mutation } from "./integrationMutation"
 import { v } from "convex/values"
+
+/** The Wardogs Discord clan whose stale assignments this one-off removes. */
+export const WARDOGS_CLAN_DISCORD_ID = "963323629242826762"
 
 function assertInternalSecret(secret: string) {
     if (secret !== internalAuthSecret()) {
@@ -64,6 +80,102 @@ export const migratePlatformIds = mutation({
         return {
             scanned: users.length,
             updated,
+        }
+    },
+})
+
+/**
+ * Removes every Wardogs-clan assignment for people who do not also have a
+ * Hell Let Loose assignment in the supplied HLL clan. This is deliberately a
+ * one-off internal migration: callers must explicitly supply the HLL clan ID
+ * and opt in to writes with `apply: true`.
+ */
+export const removeWardogsAssignmentsWithoutHllMembership = mutation({
+    args: {
+        secret: v.string(),
+        hllClanDiscordId: v.string(),
+        apply: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+
+        if (!(await getGuildByDiscordId(ctx, args.hllClanDiscordId))) {
+            throw new Error("The HLL clan was not found.")
+        }
+
+        const wardogsAssignments = await ctx.db
+            .query("userAssignments")
+            .withIndex("serverId", (q) =>
+                q.eq("serverId", WARDOGS_CLAN_DISCORD_ID)
+            )
+            .collect()
+        const wardogsGameAssignments = wardogsAssignments.filter(
+            (assignment) => resolveGameScope(assignment.gameId) === "wardogs"
+        )
+        const assignmentsToRemove = []
+
+        for (const assignment of wardogsGameAssignments) {
+            const user = await getUserByIdentifier(ctx, assignment.userId)
+            const discordUserId = user ? getUserDiscordId(user) : ""
+            const hllAssignment = discordUserId
+                ? await readMembershipAssignment(ctx, {
+                      guildId: args.hllClanDiscordId,
+                      gameId: "hell_let_loose",
+                      discordUserId,
+                  })
+                : null
+            const isHllClanMember =
+                hllAssignment?.type === "member" ||
+                hllAssignment?.type === "reserve_member"
+
+            // Only a member/reserve-member HLL assignment in the selected clan
+            // preserves the Wardogs assignment. Missing, mercenary, or other
+            // non-member HLL records leave it eligible for deletion.
+            if (!isHllClanMember) assignmentsToRemove.push(assignment)
+        }
+
+        const affectedUserIds = [
+            ...new Set(
+                assignmentsToRemove.map((assignment) => assignment.userId)
+            ),
+        ]
+        if (!args.apply) {
+            return {
+                apply: false,
+                wardogsAssignmentsScanned: wardogsGameAssignments.length,
+                assignmentsToRemove: assignmentsToRemove.length,
+                affectedUserIds,
+            }
+        }
+
+        const repository = new ConvexAssignmentCommandRepository(ctx)
+        for (const assignment of assignmentsToRemove) {
+            await repository.remove(String(assignment._id))
+        }
+
+        if (affectedUserIds.length > 0) {
+            const now = systemClock.now()
+            await rebuildMembershipState(
+                repository,
+                WARDOGS_CLAN_DISCORD_ID,
+                affectedUserIds,
+                now
+            )
+            const rosterSync = new ConvexAssignmentRosterSyncPort(ctx)
+            const eventIds = await repository.listOpenMatchEventIds(
+                WARDOGS_CLAN_DISCORD_ID,
+                now
+            )
+            for (const eventId of eventIds) {
+                await rosterSync.syncEvent(eventId)
+            }
+        }
+
+        return {
+            apply: true,
+            wardogsAssignmentsScanned: wardogsGameAssignments.length,
+            assignmentsRemoved: assignmentsToRemove.length,
+            affectedUserIds,
         }
     },
 })

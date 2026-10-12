@@ -7,10 +7,16 @@
 
 import { resolveClanOutcome, type ClanOutcome } from "./match-result"
 
+const normalizeSide = (value: string | null | undefined) =>
+    value?.trim().toLowerCase() ?? ""
+
 export type ReviewedResultHead = {
     status: "provisional" | "confirmed" | "corrected"
     participants: ReadonlyArray<{ label: string; score: number | null }>
-    provenance?: { sources?: ReadonlyArray<{ provider: string }> }
+    provenance?: {
+        origin?: "collected" | "manual" | "legacy_import"
+        sources?: ReadonlyArray<{ provider: string }>
+    }
 }
 
 export type ClanResultSummary = { outcome: ClanOutcome; score: string }
@@ -22,10 +28,47 @@ export function clanResultSummary(input: {
     imported?: {
         outcome: "victory" | "defeat" | "draw"
         score: { sideA: number; sideB: number }
+        sideA?: string
+        sideB?: string
     } | null
 }): ClanResultSummary | null {
     const result = input.result
     if (!result || result.status === "provisional") return null
+    // The public HLL link importer already derives this event's result from
+    // the event side. Its legacy review snapshot can preserve provider order
+    // differently, so use that imported, clan-scoped truth until a manager
+    // replaces it with a normal reviewed result. This keeps DMs, dashboard
+    // and result panels from disagreeing about a loss as a win.
+    if (result.provenance?.origin === "legacy_import" && input.imported) {
+        const side = normalizeSide(input.clanSide)
+        const aIsClan =
+            side && normalizeSide(input.imported.sideA) === side
+                ? true
+                : side && normalizeSide(input.imported.sideB) === side
+                  ? false
+                  : null
+        const clanScore =
+            aIsClan === true
+                ? input.imported.score.sideA
+                : aIsClan === false
+                  ? input.imported.score.sideB
+                  : input.imported.score.sideA
+        const opponentScore =
+            aIsClan === true
+                ? input.imported.score.sideB
+                : aIsClan === false
+                  ? input.imported.score.sideA
+                  : input.imported.score.sideB
+        return {
+            outcome:
+                input.imported.outcome === "victory"
+                    ? "win"
+                    : input.imported.outcome === "defeat"
+                      ? "loss"
+                      : "draw",
+            score: `${clanScore} : ${opponentScore}`,
+        }
+    }
     const resolved = resolveClanOutcome({
         participants: result.participants,
         clanSide: input.clanSide,

@@ -285,6 +285,30 @@ test("a confirmed result reads with the clan's score first; provisional ones are
     assert.equal(resultProviderName(result), "CRCON")
 })
 
+test("a legacy public-link import keeps its stored clan outcome and side order", () => {
+    const result = {
+        status: "confirmed" as const,
+        participants: [
+            { label: "Axis", score: 2 },
+            { label: "Allies", score: 3 },
+        ],
+        provenance: { origin: "legacy_import" as const, sources: [] },
+    }
+    assert.deepEqual(
+        clanResultSummary({
+            result,
+            clanSide: "Allies",
+            imported: {
+                outcome: "defeat",
+                score: { sideA: 3, sideB: 2 },
+                sideA: "Axis",
+                sideB: "Allies",
+            },
+        }),
+        { outcome: "loss", score: "2 : 3" }
+    )
+})
+
 test("the forum post draws the announcement's sides row and category chip (L1-130)", () => {
     const announcementCopy = getAnnouncementMessages("cs")
     const card = {
