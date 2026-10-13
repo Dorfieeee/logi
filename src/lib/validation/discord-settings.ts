@@ -195,6 +195,8 @@ const membershipCategorySchema = ticketCategorySchema.extend({
                 .regex(/^\d+$/, "Role IDs must contain only digits.")
         )
         .max(25),
+    includeClanRoleForRecruit: z.boolean().optional(),
+    includeClanRoleForFinal: z.boolean().optional(),
     assignmentType: z.enum(["member", "reserve_member", "mercenary"]),
     autoAssignRecruitOnApply: z.boolean().optional(),
     askSpecialization: z.boolean().optional(),

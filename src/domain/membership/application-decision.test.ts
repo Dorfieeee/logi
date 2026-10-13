@@ -9,6 +9,7 @@ import {
     decisionTable,
     isApplicationOutcome,
     mercenaryCategoryFor,
+    rolesAfterDecision,
 } from "./application-decision"
 
 const policy = {
@@ -38,6 +39,26 @@ test("outcomes follow the /close_application choice order (M3-38)", () => {
     ])
     assert.equal(isApplicationOutcome("member"), true)
     assert.equal(isApplicationOutcome("reserve_member"), false)
+})
+
+test("application outcomes honor a category's clan-role switches", () => {
+    const withoutClanRole = {
+        ...policy,
+        category: {
+            ...policy.category,
+            includeClanRoleForRecruit: false,
+            includeClanRoleForFinal: false,
+        },
+        mercenaryCategory: {
+            ...policy.mercenaryCategory,
+            includeClanRoleForFinal: false,
+        },
+    }
+    assert.deepEqual(rolesAfterDecision(withoutClanRole, "recruit"), [
+        "recruit",
+    ])
+    assert.deepEqual(rolesAfterDecision(withoutClanRole, "member"), ["member"])
+    assert.deepEqual(rolesAfterDecision(withoutClanRole, "mercenary"), ["merc"])
 })
 
 test("each outcome writes the membership (L6-B08, M3-B07)", () => {

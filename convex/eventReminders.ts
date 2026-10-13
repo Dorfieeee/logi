@@ -11,9 +11,48 @@ import {
     mergeAutomaticReminderRun,
     newestReminderOutcome,
 } from "../src/domain/events/reminder-delivery"
+import {
+    getSignupReminderDueAt,
+    resolveSignupReminderStatuses,
+} from "../src/domain/events/scheduled-job-policy"
+import { lastSignupReminderAt } from "../src/infrastructure/convex/signup-reminder-state"
 import { mutation, query, type MutationCtx } from "./_generated/server"
 import { assertInternalSecret } from "./discord_shared"
 import type { Doc, Id } from "./_generated/dataModel"
+
+/** Reserve a scheduled run atomically before Discord sends, across bot processes. */
+export const claimSignupRun = mutation({
+    args: { secret: v.string(), guildId: v.string(), eventId: v.string() },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+        const id = ctx.db.normalizeId("events", args.eventId)
+        const event = id ? await ctx.db.get(id) : null
+        if (
+            !event ||
+            event.guildId !== args.guildId ||
+            event.isDraft ||
+            event.kind !== "match" ||
+            event.status !== "registration" ||
+            !resolveSignupReminderStatuses(event.signupReminderStatuses).length
+        )
+            return false
+        const now = new Date()
+        const lastAt = await lastSignupReminderAt(ctx, event, now.getTime())
+        const dueAt = getSignupReminderDueAt(
+            event.createdAt,
+            event.registrationEnd,
+            now,
+            true,
+            event.registrationStart,
+            lastAt
+        )
+        if (!dueAt || Date.parse(dueAt) > now.getTime()) return false
+        await ctx.db.patch(event._id, {
+            signupReminderClaimedAt: now.toISOString(),
+        })
+        return true
+    },
+})
 
 const audience = v.union(v.literal("unanswered"), v.literal("unconfirmed"))
 /** A claim the bot never finished may be taken again after this time. */

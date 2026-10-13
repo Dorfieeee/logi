@@ -2922,10 +2922,15 @@ export const enMessages = {
         statusPending: "Waiting for a decision",
         statusRecruit: "Recruit",
         noRoles: "no roles",
+        includeClanRoleTitle: "Give the clan role",
+        includeClanRoleRecruitHelp:
+            "Grant the clan role while this category is a recruit.",
+        includeClanRoleFinalHelp:
+            "Grant the clan role when this category is approved, including mercenaries.",
         handledBy: "Who handles requests",
         handledByAdmins: "and Logi administrators",
         clanRoleNote:
-            "{role} is the clan role from Roles and access. It applies to every category.",
+            "{role} is the clan role from Roles and access. Configure it separately for each category and status below.",
         clanRoleMissingNote:
             "The clan role is not set yet. Choose it in Roles and access; it applies to every category.",
         clanRoleLink: "Open Roles and access",

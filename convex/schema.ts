@@ -241,6 +241,8 @@ const membershipCategory = v.object({
     supportRoleIds: v.array(v.string()),
     recruitRoleIds: v.array(v.string()),
     finalRoleIds: v.array(v.string()),
+    includeClanRoleForRecruit: v.optional(v.boolean()),
+    includeClanRoleForFinal: v.optional(v.boolean()),
     modalQuestions: v.array(ticketModalQuestion),
     assignmentType: v.union(
         v.literal("member"),
@@ -1009,6 +1011,8 @@ export default defineSchema({
         matchStatsId: v.optional(v.id("matchStats")),
         competitionFixtureId: v.optional(v.id("competitionFixtures")),
         attendanceReminderLog: v.optional(v.array(attendanceReminder)),
+        // Reserved before scheduled signup DMs, so a restart cannot repeat a run.
+        signupReminderClaimedAt: v.optional(v.string()),
         participants: v.optional(v.array(eventParticipant)),
         signUps: v.optional(v.array(signUp)),
         scoreAppliedAt: v.optional(v.string()),

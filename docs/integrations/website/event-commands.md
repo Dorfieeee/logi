@@ -23,6 +23,13 @@ outside this command contract.
 
 ## Enable access explicitly
 
+Dashboard, generic `/api/v1/clan/events` writes and actor-backed event commands
+share the signup reminder schedule. Event updates preserve the stored 24-hour
+cooldown; edits and bot startup never restart a completed daily reminder.
+The delivery reservation (`signupReminderClaimedAt`) is internal bot bookkeeping,
+not an API-writable field: clients cannot clear it or force automatic DMs.
+Manual leadership reminders retain their separate one-hour cooldown.
+
 Every command and editor read requires all of the following:
 
 - An active **restricted** API key for the same Discord guild. Its optional

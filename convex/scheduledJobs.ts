@@ -6,6 +6,7 @@ import {
     resolveSignupReminderStatuses,
     shouldDiscardScheduledJob,
 } from "../src/domain/events/scheduled-job-policy"
+import { lastSignupReminderAt } from "../src/infrastructure/convex/signup-reminder-state"
 import { announcementRefreshTimes } from "../src/domain/events/announcement-state"
 import { internalAuthSecret } from "./discord_shared"
 import { mutation } from "./_generated/server"
@@ -57,6 +58,34 @@ export const claimDue = mutation({
             ) {
                 await ctx.db.delete(job._id)
                 continue
+            }
+            if (job.kind === "signup-reminder") {
+                const lastAt = await lastSignupReminderAt(
+                    ctx,
+                    event,
+                    now.getTime()
+                )
+                if (lastAt) {
+                    const dueAt = getSignupReminderDueAt(
+                        event.createdAt,
+                        event.registrationEnd,
+                        now,
+                        true,
+                        event.registrationStart,
+                        lastAt
+                    )
+                    if (!dueAt) {
+                        await ctx.db.delete(job._id)
+                        continue
+                    }
+                    if (dueAt > nowIso) {
+                        await ctx.db.patch(job._id, {
+                            dueAt,
+                            updatedAt: nowIso,
+                        })
+                        continue
+                    }
+                }
             }
             if (claimed.length >= limit) continue
             await ctx.db.patch(job._id, {
@@ -192,6 +221,11 @@ export const backfillMissing = mutation({
                 new Date(event.registrationEnd).getTime(),
                 new Date(event.meetingStart).getTime() - 24 * 60 * 60 * 1000
             )
+            const lastReminderAt = await lastSignupReminderAt(
+                ctx,
+                event,
+                nowDate.getTime()
+            )
             const deadlines = [
                 ...(event.registrationStart
                     ? [["registration-start", event.registrationStart] as const]
@@ -234,7 +268,8 @@ export const backfillMissing = mutation({
                         event.registrationEnd,
                         nowDate,
                         true,
-                        event.registrationStart
+                        event.registrationStart,
+                        lastReminderAt
                     )
                     return event.kind === "match" &&
                         resolveSignupReminderStatuses(

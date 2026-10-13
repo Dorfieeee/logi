@@ -13,11 +13,27 @@ import { dmFrame, eventCategory, eventMapLabel } from "../events/match-context"
 import { matchTitle } from "../../../src/domain/discord-messages/match-text"
 import { getRosterMessages } from "../../../src/lib/clan-language/rosters"
 import { matchesGameScope } from "../../../src/domain/games/game"
+import { makeFunctionReference } from "convex/server"
 import { SIGNUP_NOT_ATTENDING } from "../constants"
 import { messagePayload } from "../ui/message-kit"
 import { buildDiscordMessageLink } from "../utils"
 import type { SyncPayload } from "../types"
+import { env } from "../environment"
+import { convex } from "../convex"
 import { logInfo } from "../log"
+
+export type ClaimSignupReminderRun = (input: {
+    guildId: string
+    eventId: string
+}) => Promise<boolean>
+const claimSignupReminderRun: ClaimSignupReminderRun = async (input) =>
+    await convex.mutation(
+        makeFunctionReference<"mutation">("eventReminders:claimSignupRun"),
+        {
+            secret: env.internalSecret,
+            ...input,
+        }
+    )
 
 function getRecipientStatus(input: {
     type: "member" | "reserve_member" | "mercenary"
@@ -116,6 +132,7 @@ export async function processSignupReminders(
     ports: {
         record?: RecordAutomaticReminderOutcome
         now?: () => number
+        claim?: ClaimSignupReminderRun
     } = {}
 ) {
     const record = ports.record ?? recordAutomaticReminderOutcome
@@ -149,10 +166,19 @@ export async function processSignupReminders(
         )
         const sentUserIds: string[] = []
         const failedUserIds: string[] = []
-        for (const recipient of recipients) {
-            const user = await client.users
-                .fetch(recipient.userId)
-                .catch(() => null)
+        const recipientIds = [
+            ...new Set(recipients.map((recipient) => recipient.userId)),
+        ]
+        if (
+            !recipientIds.length ||
+            !(await (ports.claim ?? claimSignupReminderRun)({
+                guildId: payload.config.guildId,
+                eventId: event.id,
+            }))
+        )
+            continue
+        for (const userId of recipientIds) {
+            const user = await client.users.fetch(userId).catch(() => null)
             const sent = user
                 ? await user
                       .send(message)
@@ -160,14 +186,14 @@ export async function processSignupReminders(
                       .catch(() => false)
                 : false
             if (!sent) {
-                failedUserIds.push(recipient.userId)
+                failedUserIds.push(userId)
                 continue
             }
-            sentUserIds.push(recipient.userId)
+            sentUserIds.push(userId)
             logInfo("signup-reminders", "Sent signup reminder", {
                 eventId: event.id,
                 guildId: payload.config.guildId,
-                userId: recipient.userId,
+                userId,
             })
         }
         await record({

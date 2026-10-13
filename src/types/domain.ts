@@ -166,6 +166,8 @@ export type MembershipCategory = {
     supportRoleIds: string[]
     recruitRoleIds: string[]
     finalRoleIds: string[]
+    includeClanRoleForRecruit?: boolean
+    includeClanRoleForFinal?: boolean
     modalQuestions: TicketModalQuestion[]
     assignmentType: "member" | "reserve_member" | "mercenary"
     /** Skip "pending" for main members of this category; falls back to the clan-wide switch. */
