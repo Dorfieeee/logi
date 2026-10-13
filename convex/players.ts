@@ -1,11 +1,12 @@
 import { getDefaultWorkspaceCandidatesFromMemberships } from "../src/domain/workspaces/default-workspace"
+import { gameScoreKey, getGameScore } from "../src/domain/players/game-score"
+import { matchesGameScope, resolveGameScope } from "../src/domain/games/game"
 import { canOpenWorkspace } from "../src/domain/workspaces/workspace-access"
 import { parseSteamId } from "../src/domain/player-stats/player-stats"
 import { linkDiscordPlatformInTransaction } from "./platformLinkStore"
 import { revokePlatformIdentity } from "./platformIdentityStore"
 import { invalidateUserSessions } from "./dashboardSessionStore"
 import type { MutationCtx, QueryCtx } from "./_generated/server"
-import { matchesGameScope } from "../src/domain/games/game"
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation } from "./integrationMutation"
 import { query } from "./_generated/server"
@@ -427,6 +428,7 @@ export const searchClanPlayers = query({
         guildId: v.string(),
         query: v.string(),
         limit: v.optional(v.number()),
+        gameId: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         assertInternalSecret(args.secret)
@@ -446,7 +448,9 @@ export const searchClanPlayers = query({
             }
         > = []
 
+        const gameId = resolveGameScope(args.gameId)
         for (const assignment of assignments) {
+            if (!matchesGameScope(assignment.gameId, gameId)) continue
             if (seenUserIds.has(assignment.userId)) {
                 continue
             }
@@ -501,7 +505,9 @@ export const searchClanPlayers = query({
             matchesPlayed: player.performance?.matchesPlayed ?? 0,
             averageKills: player.performance?.averages.kills ?? 0,
             averageKd: player.performance?.averages.killDeathRatio ?? 0,
-            score: player.scores[args.guildId] ?? player.score ?? 0,
+            score:
+                getGameScore(player.scores, args.guildId, gameId) ??
+                (gameId === "hell_let_loose" ? (player.score ?? 0) : 0),
         }))
     },
 })
@@ -527,8 +533,9 @@ export const getClanPlayerProfile = query({
                 q.eq("serverId", args.guildId).eq("userId", args.userId)
             )
             .collect()
+        const gameId = resolveGameScope(args.gameId)
         const assignment = assignments.find((candidate) =>
-            matchesGameScope(candidate.gameId, args.gameId)
+            matchesGameScope(candidate.gameId, gameId)
         )
         if (!assignment) {
             return null
@@ -544,17 +551,31 @@ export const getClanPlayerProfile = query({
             .query("playerStats")
             .withIndex("userId", (q) => q.eq("userId", player.id))
             .collect()
-        const allMatches = statsDocs.flatMap((doc) =>
-            Object.values(doc.matches)
+        const events = await ctx.db
+            .query("events")
+            .withIndex("guildId", (q) => q.eq("guildId", args.guildId))
+            .collect()
+        const eventById = new Map(
+            events
+                .filter((event) => matchesGameScope(event.gameId, gameId))
+                .map((event) => [String(event._id), event])
         )
-        const sortedMatches = allMatches.sort(
-            (left, right) =>
-                new Date(right.endedAt ?? right.importedAt).getTime() -
-                new Date(left.endedAt ?? left.importedAt).getTime()
-        )
+        const sortedMatches = statsDocs
+            .flatMap((doc) =>
+                Object.entries(doc.matches).flatMap(([eventId, match]) =>
+                    eventById.has(eventId) ? [match] : []
+                )
+            )
+            .sort(
+                (left, right) =>
+                    new Date(right.endedAt ?? right.importedAt).getTime() -
+                    new Date(left.endedAt ?? left.importedAt).getTime()
+            )
         const recentMatches = sortedMatches.slice(0, 5)
         const firstMatch = sortedMatches.at(-1)
-        const score = player.scores[args.guildId] ?? player.score ?? 0
+        const score =
+            getGameScore(player.scores, args.guildId, gameId) ??
+            (gameId === "hell_let_loose" ? (player.score ?? 0) : 0)
 
         return {
             id: player.id,
@@ -573,17 +594,7 @@ export const getClanPlayerProfile = query({
                 pausedNote: assignment.pausedNote,
             },
             score,
-            performance: player.performance ?? {
-                matchesPlayed: 0,
-                averages: {
-                    kills: 0,
-                    killDeathRatio: 0,
-                    deaths: 0,
-                    offense: 0,
-                    defense: 0,
-                    support: 0,
-                },
-            },
+            performance: buildPerformanceSummary(sortedMatches),
             recentMatches: recentMatches.map((match) => ({
                 mapName: match.mapName,
                 mapId: match.mapId,
@@ -1031,6 +1042,7 @@ export const updateScore = mutation({
         userId: v.string(),
         guildId: v.string(),
         score: v.number(),
+        gameId: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         assertInternalSecret(args.secret)
@@ -1044,13 +1056,16 @@ export const updateScore = mutation({
             throw new Error("Player not found.")
         }
 
+        const gameId = resolveGameScope(args.gameId)
         const scores = {
             ...(user.scores ?? {}),
-            [args.guildId]: args.score,
+            [gameScoreKey(args.guildId, gameId)]: args.score,
         }
 
         await ctx.db.patch(user._id, {
-            score: args.score,
+            // Retain the old top-level value only as a Hell Let Loose fallback
+            // for consumers that have not yet read game-aware score keys.
+            ...(gameId === "hell_let_loose" ? { score: args.score } : {}),
             scores,
             updatedAt: new Date().toISOString(),
         })

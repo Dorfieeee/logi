@@ -76,7 +76,8 @@ export default async function ServerUsersPage({
     const performanceByUserId = await getPlayersPerformanceHistories(
         context.server.discordId,
         assignments.map((assignment) => assignment.userId),
-        serverId
+        serverId,
+        typeof game === "string" && isGameId(game) ? game : "all"
     )
     const mergeUserOptions = assignmentUsers
         .map((user) => ({
@@ -96,7 +97,11 @@ export default async function ServerUsersPage({
                 user?.platformIds?.join(" "),
                 String(
                     user
-                        ? getUserScoreForGuild(user, context.server.discordId)
+                        ? getUserScoreForGuild(
+                              user,
+                              context.server.discordId,
+                              assignment.gameId
+                          )
                         : ""
                 ),
                 groupNameById.get(assignment.primaryGroupId ?? ""),
@@ -227,7 +232,8 @@ export default async function ServerUsersPage({
 
                             const score = getUserScoreForGuild(
                                 user,
-                                context.server.discordId
+                                context.server.discordId,
+                                assignment.gameId
                             )
                             const kd = user.performance?.averages.killDeathRatio
                             return typeof kd === "number"

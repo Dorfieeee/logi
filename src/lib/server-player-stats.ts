@@ -1,6 +1,7 @@
 import { fetchMutation, fetchQuery } from "convex/nextjs"
 import { makeFunctionReference } from "convex/server"
 
+import { matchesGameScope, type GameScope } from "@/domain/games/game"
 import type { EventRecord, PlayerMatchStats } from "@/types/domain"
 import { appCacheTags, cachedRead } from "@/lib/cache-tags"
 import { getInternalAuthSecret } from "@/lib/env"
@@ -151,6 +152,20 @@ export function flattenPlayerMatches(
     }
 
     return [...matchesByKey.values()]
+}
+
+/** Player-stat rows are account-global; restrict them to this clan's events
+ * and selected game before rendering a clan member profile. */
+export function filterPlayerMatchesForEvents(
+    matches: PlayerMatchStats[],
+    events: EventRecord[],
+    gameScope: GameScope
+) {
+    const eventById = new Map(events.map((event) => [event.id, event]))
+    return matches.filter((match) => {
+        const event = eventById.get(match.eventId)
+        return Boolean(event && matchesGameScope(event.gameId, gameScope))
+    })
 }
 
 function shouldPreferPlayerMatch(

@@ -1,12 +1,17 @@
+import { DEFAULT_GAME_ID, type GameId } from "@/domain/games/game"
+import { getGameScore } from "@/domain/players/game-score"
 import type { AppUser } from "@/types/domain"
 
 export function getUserScoreForGuild(
     user: Pick<AppUser, "guildId" | "score" | "scores">,
-    guildId: string
+    guildId: string,
+    gameId: GameId = DEFAULT_GAME_ID
 ) {
     return (
-        user.scores?.[guildId] ??
-        (user.guildId === guildId ? (user.score ?? 0) : 0)
+        getGameScore(user.scores, guildId, gameId) ??
+        (gameId === DEFAULT_GAME_ID && user.guildId === guildId
+            ? (user.score ?? 0)
+            : 0)
     )
 }
 
