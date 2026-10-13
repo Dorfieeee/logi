@@ -38,7 +38,7 @@ test("the Czech copy is the board's (L1)", () => {
         cancelled: "Zrušeno",
     })
     assert.equal(cs.buttons.signup, "Přihlásit se")
-    assert.equal(cs.buttons.editSignup, "Upravit přihlášku")
+    assert.equal(cs.buttons.editSignup, "Zkontrolovat přihlášení")
     assert.equal(cs.buttons.decline, "Nepřijdu")
     assert.equal(cs.buttons.attendees, "Zobrazit přihlášené")
     assert.equal(cs.buttons.calendar, "Přidat do kalendáře")

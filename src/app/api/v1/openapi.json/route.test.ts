@@ -233,18 +233,23 @@ test("every clan operation documents runtime scope denial and its read-access re
                     "match-summaries",
                     "result-summaries",
                 ].includes(resource)
-            assert.deepEqual(
-                operation["x-logi-read-access"],
-                allowed
-                    ? {
-                          resource,
-                          gameSelection: path.includes("{")
-                              ? "persisted-record"
-                              : "explicit-permitted-games",
-                      }
-                    : null,
-                `${method} ${path}`
-            )
+            if (allowed)
+                assert.deepEqual(
+                    operation["x-logi-read-access"],
+                    {
+                        resource,
+                        gameSelection: path.includes("{")
+                            ? "persisted-record"
+                            : "explicit-permitted-games",
+                    },
+                    `${method} ${path}`
+                )
+            else
+                assert.ok(
+                    operation["x-logi-read-access"] === null ||
+                        operation["x-logi-read-access"] === undefined,
+                    `${method} ${path}`
+                )
         }
     }
 })

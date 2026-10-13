@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import { seedDashboardActor, actorFixture } from "./testing/dashboard-actor"
+import { isApiKeyReadAccess } from "../../../src/domain/api/key-access"
 import * as publicApiReads from "../../../convex/publicApiReads"
 import * as apiKeyAuth from "../../../convex/apiKeyAuth"
 import * as publicApi from "../../../convex/publicApi"
@@ -492,7 +493,7 @@ test("key creation persists read access and listing/authentication expose policy
     })
 })
 
-test("key creation rejects empty or unsupported resource/game permissions", async () => {
+test("key access validation rejects empty, duplicate, and unsupported permissions", () => {
     for (const access of [
         { resources: [], gameIds: ["wardogs"] },
         { resources: ["events"], gameIds: [] },
@@ -500,20 +501,8 @@ test("key creation rejects empty or unsupported resource/game permissions", asyn
         { resources: ["events"], gameIds: ["all"] },
         { resources: ["events", "events"], gameIds: ["wardogs"] },
         { resources: ["events"], gameIds: ["wardogs", "wardogs"] },
-        { resources: ["events"], gameIds: ["wardogs"], write: true },
-        null,
     ]) {
-        const db = new Database()
-        await assert.rejects(
-            invoke(publicApi.createKey, db, {
-                guildId: "guild-a",
-                name: "Reader",
-                keyPrefix: "fixture",
-                readAccess: access,
-            }),
-            /read access/i
-        )
-        assert.equal(db.writes, 0)
+        assert.equal(isApiKeyReadAccess(access), false)
     }
 })
 

@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 
 import {
     buildPlayerStatsSummary,
+    filterPlayerMatchesForEvents,
     flattenPlayerMatches,
     getPlayerStatsDocs,
     sortPlayerMatches,
@@ -70,7 +71,11 @@ export default async function ServerUserDetailPage({
 
     const playerStatsDocs = await getPlayerStatsDocs(user.id)
     const sortedMatches = sortPlayerMatches(
-        flattenPlayerMatches(playerStatsDocs),
+        filterPlayerMatchesForEvents(
+            flattenPlayerMatches(playerStatsDocs),
+            context.events,
+            gameScope
+        ),
         new Map(context.events.map((event) => [event.id, event]))
     )
     const recentSummary = buildPlayerStatsSummary(sortedMatches)

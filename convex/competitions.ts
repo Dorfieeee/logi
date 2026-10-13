@@ -277,10 +277,20 @@ export const getPublic = query({
                                 phase: row.phase,
                                 teamAId,
                                 teamBId,
-                                participantTeamIds: fixtureParticipants(row),
+                                ...(row.participantTeamIds
+                                    ? {
+                                          participantTeamIds:
+                                              fixtureParticipants(row),
+                                      }
+                                    : {}),
                                 scoreA: row.scoreA,
                                 scoreB: row.scoreB,
-                                participantScores: row.participantScores,
+                                ...(row.participantScores
+                                    ? {
+                                          participantScores:
+                                              row.participantScores,
+                                      }
+                                    : {}),
                                 status: row.status,
                                 scheduledAt: row.scheduledAt,
                                 // Optional: fixtures saved before rounds have none.

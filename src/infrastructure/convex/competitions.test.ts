@@ -668,6 +668,7 @@ test("public competitions carry global team IDs, short codes and logos, with leg
             phase: "league",
             teamAId: "teamDirectory:omen",
             teamBId: "teamDirectory:circle",
+            participantTeamIds: ["teamDirectory:omen", "teamDirectory:circle"],
             scoreA: 5,
             scoreB: 0,
             status: "forfeit",
@@ -815,10 +816,10 @@ test("a fixture links to one free match event of the same game with both teams, 
             (row) => row._id === first.fixtureId
         )!
     assert.equal(stored().eventId, "events:match")
-    // An imported result fills the still-scheduled fixture by each team's side.
+    // Linking only relates the local event; a reviewed result finalizes it.
     assert.deepEqual(
         [stored().status, stored().scoreA, stored().scoreB],
-        ["final", 2, 3]
+        ["scheduled", undefined, undefined]
     )
     const linkedEvent = () =>
         ctx.db.tables.events.find((row) => row._id === "events:match")!
@@ -829,8 +830,8 @@ test("a fixture links to one free match event of the same game with both teams, 
     // Relinking the same pair is idempotent; a legacy match without teams can be linked.
     assert.equal((await link(first.fixtureId, "events:match")).ok, true)
     assert.equal((await link(first.fixtureId, "events:legacy")).ok, true)
-    assert.equal(linkedEvent().competitionFixtureId, undefined)
-    assert.equal(stored().eventId, "events:legacy")
+    assert.equal(linkedEvent().competitionFixtureId, first.fixtureId)
+    assert.equal(stored().eventId, "events:match")
     assert.equal((await link(first.fixtureId, null)).ok, true)
     assert.equal(stored().eventId, undefined)
     assert.equal(

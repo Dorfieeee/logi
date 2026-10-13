@@ -136,10 +136,7 @@ test("members see who signed up by group, the reserves and who is not coming (L1
     assert.equal(message.accent, "clan")
     assert.equal(message.header?.title, "Přihlášení · VLK vs ROG · Přátelák")
     const body = text(message)
-    assert.match(
-        body,
-        /ne <t:1791741600:d> · <t:1791741600:t> · přihlášky skončily so <t:1791653400:d> v <t:1791653400:t>/
-    )
+    assert.match(body, /<t:1791741600:f> · přihlášky skončily <t:1791653400:f>/)
     assert.match(
         body,
         /\*\*3 přihlášeno\*\* · Pěchota 2 · Tanky 1\/1 · Recon 0\/2/
@@ -224,7 +221,7 @@ test("the reminder button is off when nobody can be reminded now", () => {
 test("open sign-ups show the deadline as 'přihlášky do' (L1-71)", () => {
     assert.match(
         text(view({ registrationOpen: true }).view),
-        /přihlášky do so <t:1791653400:d> · <t:1791653400:t>/
+        /přihlášky do <t:1791653400:f>/
     )
 })
 

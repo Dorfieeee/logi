@@ -47,7 +47,8 @@ export function isApiKeyReadAccess(value: unknown): value is ApiKeyReadAccess {
         Array.isArray(input.gameIds) &&
         input.gameIds.length > 0 &&
         input.gameIds.every(
-            (game) => typeof game === "string" && isGameId(game)
+            (game) =>
+                typeof game === "string" && game !== "all" && isGameId(game)
         ) &&
         new Set(input.gameIds).size === input.gameIds.length
     )

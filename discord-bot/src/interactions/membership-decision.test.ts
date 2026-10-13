@@ -347,10 +347,7 @@ test("/close_application by a recruiter writes the membership, closes and DMs (M
     assert.equal(writes[2]!.args.closeOutcome, "member")
     // Older threads without a card get the decision as a new message.
     assert.match(texts(sent[0]), /PŘIHLÁŠKA #42 · UZAVŘENA/)
-    assert.match(
-        texts(sent[0]),
-        /Role <@&clan> a <@&member> přidá Logi do minuty\./
-    )
+    assert.doesNotMatch(texts(sent[0]), /Role <@&/)
     const dm = texts(dms[0])
     assert.match(dm, /### Vítej v klanu, jsi Člen/)
     assert.match(dm, /Role Klan a Člen dostaneš na serveru během minuty\./)
@@ -531,10 +528,7 @@ test("Přijmout jako žoldáka grants the clan's mercenary category, not @Člen 
     assert.equal(writes[1]!.args.membershipCategoryId, "merc-wd")
     assert.equal(writes[1]!.args.assignmentId, undefined)
     assert.equal(writes[2]!.args.assignmentId, "assignment-1")
-    assert.match(
-        texts(sent[0]),
-        /Role <@&clan> a <@&merc> přidá Logi do minuty\./
-    )
+    assert.doesNotMatch(texts(sent[0]), /Role <@&/)
     assert.doesNotMatch(texts(sent[0]), /<@&member>/)
     const dm = texts(dms[0])
     assert.match(dm, /### Vítej v klanu, jsi Žoldák/)

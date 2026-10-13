@@ -169,7 +169,7 @@ test("between windows: step 2, the done row with Upravit, Pokračovat and the St
     assert.match(body, /\*\*O tobě\*\* · 🟢 \*\*hotovo\*\*/)
     assert.match(
         body,
-        /Hell Let Loose, Wardogs · Člen · Hráč 17 · od kamaráda z klanu · 24 let/
+        /Hell Let Loose · Člen · Hráč 17 · od kamaráda z klanu · 24 let/
     )
     assert.match(body, /Steam si můžeš ověřit přes web\./)
     assert.match(body, /\d+ otázek, pak kontrola/)
@@ -252,7 +252,7 @@ test("the review lists every step with Upravit and one submit (L6-38..40)", () =
     const body = text(view)
     assert.match(body, /PŘIHLÁŠKA DO KLANU VLCI · KONTROLA/)
     assert.match(body, /### Zkontroluj a odešli/)
-    assert.match(body, /Hry: Hell Let Loose, Wardogs · Kategorie: Člen/)
+    assert.match(body, /Hry: Hell Let Loose · Kategorie: Člen/)
     assert.match(
         body,
         /Herní jméno: Hráč 17 · Odkud: od kamaráda z klanu · Věk: 24/

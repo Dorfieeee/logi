@@ -486,7 +486,8 @@ export function UserAssignmentForm({
                                                     •{" "}
                                                     {getUserScoreForGuild(
                                                         user,
-                                                        server.discordId
+                                                        server.discordId,
+                                                        selectedGameId
                                                     )}{" "}
                                                     {
                                                         dictionary.navUser
@@ -576,7 +577,8 @@ export function UserAssignmentForm({
                                         {selected.user.discordId} •{" "}
                                         {getUserScoreForGuild(
                                             selected.user,
-                                            server.discordId
+                                            server.discordId,
+                                            selectedGameId
                                         )}{" "}
                                         {dictionary.navUser.scoreSuffix}
                                     </div>
