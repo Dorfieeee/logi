@@ -155,7 +155,7 @@ export default async function ServerUsersPage({
                     getGameId: (assignment) => assignment.gameId,
                 }}
                 getHref={(assignment) =>
-                    `/${locale}/dashboard/servers/${serverId}/users/${assignment.id}`
+                    `/${locale}/dashboard/servers/${serverId}/users/${assignment.id}?game=${encodeURIComponent(assignment.gameId ?? "hell_let_loose")}`
                 }
                 columns={[
                     {
