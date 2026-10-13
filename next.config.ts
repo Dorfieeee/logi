@@ -26,10 +26,18 @@ function getBuildVersion() {
 }
 
 const nextConfig: NextConfig = {
+    // Static pages read several server-side data sources. Next's defaults can
+    // fan this out to 8 renders for every CPU worker (88 concurrent renders on
+    // a 11-core build host), which overloads those sources and causes unrelated
+    // pages to hit the static-generation timeout together.
+    staticPageGenerationTimeout: 180,
     env: {
         NEXT_PUBLIC_APP_VERSION: getBuildVersion(),
     },
     experimental: {
+        cpus: 2,
+        staticGenerationMaxConcurrency: 1,
+        staticGenerationMinPagesPerWorker: 25,
         optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
     },
     turbopack: {},
