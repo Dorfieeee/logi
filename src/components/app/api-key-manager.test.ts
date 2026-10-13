@@ -31,8 +31,8 @@ for (const [locale, readOnly, createLabel] of [
         // Areas replace one box per resource (design G5).
         assert.equal(
             (markup.match(/role="checkbox"/g) ?? []).length,
-            6 + 3,
-            "six areas and three games"
+            7 + 3,
+            "seven areas and three games"
         )
         assert.doesNotMatch(markup, /A key can read your clan’s website data/)
     })

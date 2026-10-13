@@ -135,7 +135,7 @@ test("the live preview is the bot's own announcement while sign-ups are open (N1
     assert.match(rendered, /\*\*Přihlášeno 23\*\* · Pěchota 15 · Tanky 6\/6/)
     assert.match(
         rendered,
-        /\[Přihlásit se\] \[Upravit přihlášku\] \[Nepřijdu\]/
+        /\[Přihlásit se\] \[Zkontrolovat přihlášení\] \[Nepřijdu\]/
     )
     assert.match(rendered, /Spravováno v Logi/)
 })

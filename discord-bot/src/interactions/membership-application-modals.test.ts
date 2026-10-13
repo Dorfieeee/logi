@@ -95,7 +95,7 @@ test("window 1: labels with descriptions, selects and the name (L6-18..23)", () 
         ["Věk", null, 4],
     ])
     const games = modal.components[0]!.component as Json
-    assert.equal(games.max_values, 2)
+    assert.equal(games.max_values, 1)
     const category = modal.components[1]!.component as Json
     assert.deepEqual(
         (category.options as Json[]).map((option) => [

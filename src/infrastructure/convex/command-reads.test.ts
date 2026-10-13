@@ -11,7 +11,7 @@ const GUILD = "100000000000000000"
 const MEMBER = "100000000000000017"
 
 test("/notice's choices carry the match category (M3-15)", async (t) => {
-    t.mock.method(Date, "now", () => Date.parse("2026-10-05T12:00:00Z"))
+    t.mock.method(Date, "now", () => Date.parse("2026-10-20T12:00:00Z"))
     const ctx = testContext()
     ctx.db.seed("guilds", {
         _id: "guilds:a",
@@ -25,9 +25,9 @@ test("/notice's choices carry the match category (M3-15)", async (t) => {
             _id: `events:${id}`,
             guildId: GUILD,
             name,
-            gameStart: "2026-10-11T18:00:00.000Z",
-            gameEnd: "2026-10-11T20:00:00.000Z",
-            meetingStart: "2026-10-11T17:30:00.000Z",
+            gameStart: "2026-10-21T18:00:00.000Z",
+            gameEnd: "2026-10-21T20:00:00.000Z",
+            meetingStart: "2026-10-21T17:30:00.000Z",
             participants: [{ userId: MEMBER, status: "attending" }],
             signUps: [],
             ...extra,

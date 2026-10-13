@@ -82,10 +82,7 @@ test("Přihlásit se opens the group picker with counts and full groups (L1-88, 
         body,
         /^-# \*\*PŘIHLÁŠKA · VLK VS ROG\*\*\n### Kde chceš hrát\?/
     )
-    assert.match(
-        body,
-        /ne <t:1791741600:d> · <t:1791741600:t> · přihlášky do so <t:1791653400:d> · <t:1791653400:t>/
-    )
+    assert.match(body, /<t:1791741600:f> · přihlášky do <t:1791653400:f>/)
     const select = view.blocks.find((block) => block.kind === "select")
     assert.ok(select?.kind === "select")
     assert.equal(select.select.id, "signup:event-1:select:111111111111111111")
@@ -131,7 +128,7 @@ test("a training's saved sign-up names the meeting and offers only Nepřijdu", (
         event: { ...event, kind: "training", teams: [], name: "Trénink" },
     })
     assert.equal(view.header?.title, "Přihláška uložena")
-    assert.match(text(view), /Sraz je ne <t:1791739800:d> · <t:1791739800:t>\./)
+    assert.match(text(view), /Sraz je <t:1791739800:f>\./)
     assert.deepEqual(buttons(view), [
         "Nepřijdu|danger|signup:event-1:NOT_ATTENDING:111111111111111111",
     ])
@@ -187,7 +184,7 @@ test("closed sign-ups say when they closed and what to do, without a button (L1-
     assert.equal(view.header?.title, "Přihlášky už skončily")
     assert.match(
         text(view),
-        /Skončily v so <t:1791653400:d> v <t:1791653400:t>\. Jestli chceš ještě hrát, napiš velení\./
+        /Skončily v <t:1791653400:f>\. Jestli chceš ještě hrát, napiš velení\./
     )
     assert.deepEqual(buttons(view), [])
 })
