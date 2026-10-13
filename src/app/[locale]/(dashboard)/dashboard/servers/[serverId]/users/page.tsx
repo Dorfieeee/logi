@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MergeUsersButton } from "@/components/app/merge-users-button"
 import { PlatformIdList } from "@/components/app/platform-id-display"
 import { TablePageLayout } from "@/components/app/table-page-layout"
+import { isGameId, resolveGameScope } from "@/domain/games/game"
 import { PageHeader } from "@/components/app/page-header"
 import { getGuildMetadata } from "@/lib/server-metadata"
 import { getUserScoreForGuild } from "@/lib/user-scores"
@@ -19,7 +20,6 @@ import { getServerContext } from "@/lib/server-context"
 import { getDictionary } from "@/i18n/dictionaries"
 import { getPaginatedRows } from "@/lib/data-table"
 import { Button } from "@/components/ui/button"
-import { isGameId } from "@/domain/games/game"
 import { isLocale } from "@/i18n/config"
 
 function getAssignmentStatusLabel(
@@ -73,12 +73,40 @@ export default async function ServerUsersPage({
     const assignmentUserMap = new Map(
         assignmentUsers.map((user) => [user.discordId, user])
     )
-    const performanceByUserId = await getPlayersPerformanceHistories(
-        context.server.discordId,
-        assignments.map((assignment) => assignment.userId),
-        serverId,
-        typeof game === "string" && isGameId(game) ? game : "all"
+    // A person can have multiple assignments in one clan. Histories are
+    // therefore keyed by both user and game, not only the user ID.
+    const userIdsByGame = new Map<string, string[]>()
+    for (const assignment of assignments) {
+        const gameId = resolveGameScope(assignment.gameId)
+        const userIds = userIdsByGame.get(gameId) ?? []
+        if (!userIds.includes(assignment.userId)) {
+            userIds.push(assignment.userId)
+        }
+        userIdsByGame.set(gameId, userIds)
+    }
+    const performanceByUserAndGame = new Map<
+        string,
+        Awaited<ReturnType<typeof getPlayersPerformanceHistories>>[string]
+    >()
+    await Promise.all(
+        [...userIdsByGame].map(async ([gameId, userIds]) => {
+            const histories = await getPlayersPerformanceHistories(
+                context.server.discordId,
+                userIds,
+                serverId,
+                gameId
+            )
+            for (const [userId, matches] of Object.entries(histories)) {
+                performanceByUserAndGame.set(`${userId}:${gameId}`, matches)
+            }
+        })
     )
+    const getAssignmentPerformance = (
+        assignment: (typeof assignments)[number]
+    ) =>
+        performanceByUserAndGame.get(
+            `${assignment.userId}:${resolveGameScope(assignment.gameId)}`
+        ) ?? []
     const mergeUserOptions = assignmentUsers
         .map((user) => ({
             id: user.id,
@@ -235,8 +263,14 @@ export default async function ServerUsersPage({
                                 context.server.discordId,
                                 assignment.gameId
                             )
-                            const kd = user.performance?.averages.killDeathRatio
-                            return typeof kd === "number"
+                            const matches = getAssignmentPerformance(assignment)
+                            const kd = matches.length
+                                ? matches.reduce(
+                                      (sum, match) => sum + match.kd,
+                                      0
+                                  ) / matches.length
+                                : null
+                            return kd !== null
                                 ? `${score} • ${dictionary.userManagement.matchKd} ${kd.toFixed(kd % 1 === 0 ? 0 : 2)}`
                                 : score
                         },
@@ -246,9 +280,7 @@ export default async function ServerUsersPage({
                         title: dictionary.clan.playerPerformanceTrend,
                         render: (assignment) => (
                             <PlayerTrendIndicators
-                                matches={
-                                    performanceByUserId[assignment.userId] ?? []
-                                }
+                                matches={getAssignmentPerformance(assignment)}
                                 dictionary={dictionary}
                             />
                         ),

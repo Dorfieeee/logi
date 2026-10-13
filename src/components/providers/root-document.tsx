@@ -25,7 +25,7 @@ export function RootDocument({
             className={`${inter.variable} antialiased`}
             data-scroll-behavior="smooth"
         >
-            <body className={inter.className}>
+            <body className={inter.className} suppressHydrationWarning>
                 <AppProviders>
                     <ThemeProvider
                         defaultTheme="system"
