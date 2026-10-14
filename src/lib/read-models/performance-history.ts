@@ -16,6 +16,7 @@ export type PerformanceSnapshot = {
     kills: number
     deaths: number
     points: number
+    cashDelta?: number | null
     kd: number
 }
 const guildRef = makeFunctionReference<"query">("performanceHistory:getGuild")

@@ -15,6 +15,7 @@ import {
 import { isClanApiResourceDocument } from "../src/domain/api/resource-document"
 import { projectHealth, projectSnapshot } from "../src/domain/game-data/policy"
 import { CLAN_SETTINGS_SLICES } from "../src/domain/api/clan-settings-slices"
+import { playerStatProfile } from "../src/domain/player-stats/game-metrics"
 import { readClanSettingsSlices } from "../src/domain/api/settings-slices"
 import { authorizeDashboardAdmin, dashboardActor } from "./dashboardActor"
 import { projectResultSummary } from "../src/domain/api/result-summaries"
@@ -187,11 +188,29 @@ export const getClanPerformanceHistory = query({
         if (!history) return { matches: [], updatedAt: null }
         return {
             matches: history.matches
-                .filter((match) => matchesGameScope(match.gameId, args.game))
-                .map((match) => ({
-                    ...match,
-                    gameId: resolveGameScope(match.gameId),
-                })),
+                .filter(
+                    (match) =>
+                        matchesGameScope(match.gameId, args.game) &&
+                        playerStatProfile(match.gameId)
+                )
+                .map((match) =>
+                    match.gameId === "wardogs"
+                        ? {
+                              eventId: match.eventId,
+                              gameId: "wardogs",
+                              playedAt: match.playedAt,
+                              label: match.label,
+                              kills: match.kills,
+                              deaths: match.deaths,
+                              kd:
+                                  match.kd ??
+                                  (match.deaths
+                                      ? match.kills / match.deaths
+                                      : match.kills),
+                              cashDelta: match.cashDelta ?? null,
+                          }
+                        : { ...match, gameId: resolveGameScope(match.gameId) }
+                ),
             updatedAt: history.updatedAt,
         }
     },

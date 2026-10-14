@@ -104,8 +104,11 @@ This is a global data operation, not merely a change to the currently open Membe
 
 ### Player statistics and trends
 
-On a member's assignment detail, the averages for kills, K/D, deaths, offense,
-defense, and support use the ten newest stored match records for that person
+On a member's assignment detail, HLL and HLL Vietnam show kills, K/D, deaths,
+offense, defense and support. Wardogs shows kills, K/D, deaths and money
+(money earned or lost while playing), with a money chart instead of HLL effectiveness.
+Other games hide gameplay stats. K/D always displays two decimal places,
+including whole ratios and chart tooltips. Averages use the ten newest stored match records for that person
 (or fewer when fewer are available) in that workspace and game. Hell Let Loose
 and Wardogs records, trends, match histories, scores, and ratings do not mix.
 Older records with no game are Hell Let Loose. The all-time match count shown
@@ -116,7 +119,7 @@ statistic values to avoid showing an obvious duplicate.
 
 The performance charts are separate, per-workspace history snapshots. They are
 built from up to ten recent recorded non-training events that have imported
-match statistics and from players assigned to that workspace at refresh time.
+match statistics or a confirmed Wardogs source, and from players assigned to that workspace at refresh time.
 They can be empty or stale until qualifying result data exists and a history
 refresh has run. They are useful trends, not attendance evidence or a complete
 career record.

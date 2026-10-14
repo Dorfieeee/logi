@@ -1,5 +1,7 @@
 "use client"
 
+import { formatKd } from "@/lib/format"
+
 import {
     AlarmClock,
     Ban,
@@ -773,5 +775,5 @@ function formatRosterScoreline(
         return `${score} ${dictionary.navUser.scoreSuffix}`
     }
 
-    return `${score} ${dictionary.navUser.scoreSuffix} • ${dictionary.userManagement.matchKd} ${kd.toFixed(kd % 1 === 0 ? 0 : 2)}`
+    return `${score} ${dictionary.navUser.scoreSuffix} • ${dictionary.userManagement.matchKd} ${formatKd(kd)}`
 }

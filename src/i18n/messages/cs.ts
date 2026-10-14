@@ -46,7 +46,8 @@ export const csMessages = {
         losses: "Prohry",
         kills: "Kills",
         deaths: "Deaths",
-        cash: "Změna cash",
+        cash: "Peníze",
+        cashHelp: "Peníze získané nebo ztracené během zápasu.",
         winRate: "Úspěšnost",
         kd: "K/D",
         sort: "Řadit podle",
@@ -785,6 +786,8 @@ export const csMessages = {
         },
     },
     publicProfiles: {
+        independentPlayer: "Hráč bez klanu",
+        kdChartHint: "Každý sloupec ukazuje K/D",
         communityTitle: "Komunita",
         communityDescription:
             "Procházejte aktivní klany a jejich veřejné historie zápasů.",

@@ -584,6 +584,9 @@ export type MatchStatsRecord = {
 export type MatchRecord = MatchStatsRecord
 
 export type PlayerMatchStats = {
+    gameId?: string
+    cashDelta?: number | null
+    collected?: boolean
     eventId: string
     sourceUrl: string
     importedAt: Timestamp

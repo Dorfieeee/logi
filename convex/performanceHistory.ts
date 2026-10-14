@@ -11,6 +11,7 @@ import {
     resolveGameScope,
     type GameId,
 } from "../src/domain/games/game"
+import { playerStatProfile } from "../src/domain/player-stats/game-metrics"
 import { assertInternalSecret, internalAuthSecret } from "./discord_shared"
 import { authorizeDashboardAdmin, dashboardActor } from "./dashboardActor"
 import { canonicalJson } from "../src/domain/game-data/canonical-json"
@@ -20,12 +21,7 @@ import type { Doc } from "./_generated/dataModel"
 import { api, internal } from "./_generated/api"
 import { v } from "convex/values"
 
-const gameIdValidator = v.union(
-    v.literal("hell_let_loose"),
-    v.literal("hell_let_loose_vietnam"),
-    v.literal("wardogs"),
-    v.literal("world_of_warcraft_forever")
-)
+const gameIdValidator = v.string()
 
 type Snapshot = {
     eventId: string
@@ -39,6 +35,7 @@ type Snapshot = {
     deaths: number
     points: number
     kd: number
+    cashDelta?: number | null
 }
 const limitMatchesPerGame = <T extends { gameId?: GameId }>(matches: T[]) => {
     const counts = new Map<GameId, number>()
@@ -141,7 +138,10 @@ export async function rebuildGuildPerformanceHistory(
         .filter(
             (event) =>
                 event.kind !== "training" &&
-                event.matchStatsId &&
+                (event.matchStatsId ||
+                    (event.gameId === "wardogs" &&
+                        event.reviewedResult &&
+                        event.reviewedResult.status !== "provisional")) &&
                 (!gameId || resolveGameScope(event.gameId) === gameId)
         )
         .sort(
@@ -191,6 +191,45 @@ export async function rebuildGuildPerformanceHistory(
                 (assignment) => assignment.userId
             )
         )
+        if (eventGameId === "wardogs") {
+            const playerRows = playerDocs
+                .filter((doc) => doc.userId && eventClanUserIds.has(doc.userId))
+                .flatMap((doc) =>
+                    doc.matches[event._id] ? [doc.matches[event._id]!] : []
+                )
+            if (playerRows.length) {
+                const kills = playerRows.reduce(
+                    (sum, row) => sum + row.kills,
+                    0
+                )
+                const deaths = playerRows.reduce(
+                    (sum, row) => sum + row.deaths,
+                    0
+                )
+                guildMatches.push({
+                    eventId: String(event._id),
+                    gameId: "wardogs",
+                    playedAt: playerRows[0]!.endedAt ?? event.gameEnd,
+                    label: event.name,
+                    combat: 0,
+                    offense: 0,
+                    support: 0,
+                    points: 0,
+                    kills: kills / playerRows.length,
+                    deaths: deaths / playerRows.length,
+                    kd: deaths ? kills / deaths : kills,
+                    cashDelta: playerRows.every(
+                        (row) => typeof row.cashDelta === "number"
+                    )
+                        ? playerRows.reduce(
+                              (sum, row) => sum + (row.cashDelta ?? 0),
+                              0
+                          ) / playerRows.length
+                        : null,
+                })
+            }
+            continue
+        }
         const rows = (stats[index]?.raw.player_stats ?? []).filter((row) =>
             eventClanUserIds.has(userByPlatformId.get(row.player_id) ?? "")
         )
@@ -261,6 +300,9 @@ export async function rebuildGuildPerformanceHistory(
                 combat: 0,
                 offense: whole(number(match.offense)),
                 support: whole(number(match.support)),
+                ...(event.gameId === "wardogs"
+                    ? { cashDelta: match.cashDelta ?? null }
+                    : {}),
                 kills: whole(kills),
                 deaths: whole(deaths),
                 points: clanPoints(event),
@@ -359,7 +401,11 @@ export const refreshPlayerForGuild = mutation({
                 .filter(
                     (event) =>
                         event.kind !== "training" &&
-                        event.matchStatsId &&
+                        (event.matchStatsId ||
+                            (event.gameId === "wardogs" &&
+                                event.reviewedResult &&
+                                event.reviewedResult.status !==
+                                    "provisional")) &&
                         resolveGameScope(event.gameId) === args.gameId
                 )
                 .map((event) => [String(event._id), event])
@@ -379,6 +425,9 @@ export const refreshPlayerForGuild = mutation({
                     combat: 0,
                     offense: whole(number(match.offense)),
                     support: whole(number(match.support)),
+                    ...(event.gameId === "wardogs"
+                        ? { cashDelta: match.cashDelta ?? null }
+                        : {}),
                     kills: whole(kills),
                     deaths: whole(deaths),
                     points: clanPoints(event),
@@ -455,7 +504,7 @@ async function refreshHistories(
     ctx: ActionCtx,
     args: {
         guildId: string
-        gameId: "hell_let_loose" | "hell_let_loose_vietnam" | "wardogs"
+        gameId: string
     },
     players?: string[]
 ): Promise<RefreshResult> {
@@ -489,8 +538,8 @@ export const refreshInBackground = internalAction({
     handler: async (ctx, args): Promise<RefreshResult> => {
         if (args.secret !== internalAuthSecret())
             throw new Error("Unauthorized.")
-        if (args.gameId === "world_of_warcraft_forever")
-            throw new Error("WoW:F does not collect player statistics.")
+        if (!playerStatProfile(args.gameId))
+            throw new Error("This game does not collect player statistics.")
         const target = { guildId: args.guildId, gameId: args.gameId }
         return await refreshHistories(
             ctx,
@@ -526,8 +575,8 @@ export const refreshForDashboard = action({
     },
     handler: async (ctx, args): Promise<RefreshResult> => {
         assertSessionGateway(args.secret)
-        if (args.gameId === "world_of_warcraft_forever")
-            throw new Error("WoW:F does not collect player statistics.")
+        if (!playerStatProfile(args.gameId))
+            throw new Error("This game does not collect player statistics.")
         await ctx.runQuery(internal.performanceHistory.authorizeRefresh, {
             secret: args.secret,
             guildId: args.guildId,

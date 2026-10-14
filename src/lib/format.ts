@@ -51,3 +51,13 @@ export function formatDateKey(value: string, timezone?: string) {
     const day = parts.find((part) => part.type === "day")?.value ?? "00"
     return `${year}-${month}-${day}`
 }
+
+/** K/D is always shown with two decimal places, including whole ratios. */
+export function formatKd(value: number, locale?: string) {
+    return locale
+        ? new Intl.NumberFormat(locale, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+          }).format(value)
+        : value.toFixed(2)
+}

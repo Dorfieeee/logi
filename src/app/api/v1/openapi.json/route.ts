@@ -455,8 +455,16 @@ const paths: Record<string, unknown> = {
             summary: "Get a public player profile",
             tags: ["Public API — no key required"],
             description:
-                "Public, rate-limited player profile. Use collection=clans or collection=recentMatches for related records.",
+                "Public, rate-limited player profile. Optional game selects a supported game; by default the most recently played game is selected. gameId and games describe the selection. clans contains one record per active clan with gameIds listing the player’s active membership games for its badge icons. Totals and recentMatches never combine games. Wardogs matches expose kills, deaths, killDeathRatio and nullable signed cashDelta, excluding HLL offense/defense/support. HLL and HLL Vietnam expose their existing metrics. Unregistered games have no gameplay statistics. Use collection=clans or collection=recentMatches for related records.",
             parameters: [
+                {
+                    name: "game",
+                    in: "query",
+                    required: false,
+                    schema: { type: "string" },
+                    description:
+                        "Selected gameplay-stat game; defaults to the latest played game.",
+                },
                 {
                     name: "playerId",
                     in: "path",
@@ -586,6 +594,8 @@ const paths: Record<string, unknown> = {
         get: {
             summary:
                 "Get stored clan performance history (up to ten matches per game)",
+            description:
+                "Supported gameplay-stat games only. Wardogs snapshots contain kills, deaths, kd and nullable signed cashDelta; HLL combat, offense, support and points fields are omitted. HLL and HLL Vietnam retain their existing metrics. Cash is the provider cash delta, not wallet balance. Unknown cash is null, never zero.",
             tags: ["Clan API — Matches"],
             security: [{ clanApiKey: [] }],
             parameters: [gameParameter],

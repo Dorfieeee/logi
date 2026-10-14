@@ -56,6 +56,34 @@ The **Settings → Game servers** section shows retained history, filters, facti
 
 This delivers Logi's archive, dashboard and backend contract. It does not deploy a Valkyria www history page or start production collection. Production activation needs the existing operator source configuration and an explicit website key. The workspace team directory remains a separate approved design awaiting implementation.
 
+## Reviewed player statistics
+
+Confirming/correcting a local Wardogs result materializes its linked Warcon
+player K/D and signed cash delta into player history. Source digest and
+workspace/game checks prevent changed or foreign records from being used.
+Exact platform-ID matching for statistics remains separate from verified
+result attribution. No display-name matching or identity grant is performed.
+Provider cash gaps stay null. Corrections replace contributions; repeated
+recovery is idempotent. The immutable result revision remains unchanged.
+
+Public player profiles and `/api/v1/public/players/{id}?game=wardogs` use one
+game per response and expose `gameId`, available `games`, deduplicated active
+`clans` with membership `gameIds`, per-match
+`cashDelta` and an all-match cash total (null when incomplete). Wardogs excludes
+HLL offense/defense/support fields. `/api/v1/clan/performance-history` likewise
+exposes Wardogs kills, deaths, K/D and cash, without HLL effectiveness fields.
+HLL Vietnam shares the HLL metric definition. Other games have no gameplay
+metrics until registered in `src/domain/player-stats/game-metrics.ts`; UI
+fields, trends and supported-game checks reuse that definition. Provider
+normalization and persistence schemas stay explicit.
+
+Run `npx tsx scripts/backfill-collected-player-stats.ts` against the configured
+Convex deployment to recover existing confirmed/corrected Wardogs results.
+It reads one event per transaction, checks the original source digest, and
+reports only counts. Changed/unavailable sources are skipped; repair their
+source through the reviewed-result correction workflow. This is a data write,
+so run it only for an authorized deployment.
+
 ## Verification
 
 See [local acceptance evidence](evidence/2026-10-03-warcon-history/README.md). The live collector was exercised against the authorized Warcon origin into an isolated loopback Convex database. Screenshots use a separate synthetic workspace dataset. No provider write, production database deployment or real player export is part of the proof.

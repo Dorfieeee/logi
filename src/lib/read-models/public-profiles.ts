@@ -66,9 +66,9 @@ export async function getPublicPreview(
     )
 }
 
-export async function getPublicPlayerProfile(playerId: string) {
+export async function getPublicPlayerProfile(playerId: string, game?: GameId) {
     return await cachedRead(
-        ["public-player", playerId],
+        ["public-player:v4", playerId, game ?? "default"],
         [
             appCacheTags.publicProfile(playerId),
             appCacheTags.player(playerId),
@@ -80,12 +80,21 @@ export async function getPublicPlayerProfile(playerId: string) {
             (await fetchQuery(getPublicPlayerReference, {
                 secret: getInternalAuthSecret(),
                 playerId,
+                ...(game ? { game } : {}),
             })) as {
                 id: string
                 name: string
                 avatar: string
-                clans: Array<{ id: string; name: string; avatar: string }>
+                clans: Array<{
+                    id: string
+                    name: string
+                    avatar: string
+                    gameIds: GameId[]
+                }>
+                gameId: GameId
+                games: GameId[]
                 stats: {
+                    cashDelta?: number | null
                     matches: number
                     kills: number
                     deaths: number
@@ -99,9 +108,11 @@ export async function getPublicPlayerProfile(playerId: string) {
                     kills: number
                     deaths: number
                     killDeathRatio: number
-                    offense: number
-                    defense: number
-                    support: number
+                    gameId: GameId
+                    cashDelta?: number | null
+                    offense?: number
+                    defense?: number
+                    support?: number
                 }>
                 updatedAt: string
             } | null,
@@ -274,7 +285,7 @@ export async function searchPublicPlayers(
     game: GameId
 ) {
     return await cachedRead(
-        ["public-player-search", term, cursor ?? "start"],
+        ["public-player-search:v2", term, cursor ?? "start", game],
         [appCacheTags.publicDiscovery()],
         async () =>
             (await fetchQuery(searchPublicPlayersReference, {

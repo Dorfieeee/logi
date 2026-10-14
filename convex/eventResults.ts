@@ -22,6 +22,7 @@ import { rankSourceCandidates } from "../src/domain/match-results/source-candida
 import type { ResultRevision } from "../src/domain/match-results/result-revision"
 import { confirmResult } from "../src/application/match-results/confirm-result"
 import { providerSessionSchema } from "../src/domain/game-data/contracts"
+import { saveCollectedPlayerStats } from "./collectedPlayerStatsStore"
 import { resolveGameScope, isGameId } from "../src/domain/games/game"
 import { assertMembershipSecret } from "./membershipAccess"
 import { query, type QueryCtx } from "./_generated/server"
@@ -250,6 +251,7 @@ export const review = mutation({
         assertMembershipSecret(args.secret)
         const event = await authorize(ctx, args),
             command = resultCommandSchema.parse(args.command)
+        const previous = await currentEventResult(ctx, event)
         const revision = await confirmResult(
             {
                 ...command,
@@ -294,6 +296,7 @@ export const review = mutation({
                 now: () => new Date().toISOString(),
             }
         )
+        await saveCollectedPlayerStats(ctx, event, revision, previous)
         await applyReviewedResultToFixture(ctx, event, revision)
         return revision
     },

@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server"
 
 import { query, type QueryCtx } from "./_generated/server"
-import type { Id } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import { v } from "convex/values"
 
 import {
@@ -21,6 +21,8 @@ import {
     paginateCollection,
 } from "../src/domain/shared/collection-query"
 import { selectPlayerMatchWindow } from "../src/domain/player-stats/match-window"
+import { groupPlayerClans } from "../src/domain/player-stats/clan-memberships"
+import { playerMetricKind } from "../src/domain/player-stats/game-metrics"
 import { assertInternalSecret } from "./discord_shared"
 
 const gameIdValidator = v.string()
@@ -30,6 +32,21 @@ function sortedMatches<T extends Record<string, unknown>>(matches: T[]): T[] {
         (left, right) =>
             new Date(String(right.endedAt ?? right.importedAt)).getTime() -
             new Date(String(left.endedAt ?? left.importedAt)).getTime()
+    )
+}
+
+function hasPublicPlayerStats(
+    event: Doc<"events"> | null,
+    collected?: boolean
+) {
+    return Boolean(
+        event &&
+        event.kind !== "training" &&
+        playerMetricKind(event.gameId) &&
+        (event.matchStatsId ||
+            (collected &&
+                event.reviewedResult &&
+                event.reviewedResult.status !== "provisional"))
     )
 }
 
@@ -56,10 +73,8 @@ async function loadPublicPlayerMatches(
                     const event = await ctx.db.get(
                         match.eventId as Id<"events">
                     )
-                    return event &&
-                        event.kind !== "training" &&
-                        event.matchStatsId
-                        ? match
+                    return hasPublicPlayerStats(event, match.collected)
+                        ? { ...match, gameId: resolveGameScope(event?.gameId) }
                         : null
                 })
             )
@@ -80,23 +95,40 @@ async function toPublicMatchSummary(
         kills: Number(match.kills ?? 0),
         deaths: Number(match.deaths ?? 0),
         killDeathRatio: Number(match.killDeathRatio ?? 0),
-        offense: Number(match.offense ?? 0),
-        defense: Number(match.defense ?? 0),
-        support: Number(match.support ?? 0),
+        gameId: resolveGameScope(event?.gameId),
+        ...(event?.gameId === "wardogs"
+            ? {
+                  cashDelta:
+                      typeof match.cashDelta === "number"
+                          ? match.cashDelta
+                          : null,
+              }
+            : {
+                  offense: Number(match.offense ?? 0),
+                  defense: Number(match.defense ?? 0),
+                  support: Number(match.support ?? 0),
+              }),
     }
 }
 
 /** Public, intentionally limited player data. Never add Discord IDs, notes,
  * platform identifiers, assignment details, or unpublished roster data here. */
 export const getPlayer = query({
-    args: { secret: v.string(), playerId: v.string() },
+    args: {
+        secret: v.string(),
+        playerId: v.string(),
+        game: v.optional(v.string()),
+    },
     handler: async (ctx, args) => {
         assertInternalSecret(args.secret)
         const user = await getUserByIdentifier(ctx, args.playerId)
         if (!user) return null
 
         const userId = getUserStableId(user)
-        const matches = await loadPublicPlayerMatches(ctx, userId)
+        const allMatches = await loadPublicPlayerMatches(ctx, userId)
+        const games = [...new Set(allMatches.map((match) => match.gameId))]
+        const gameId = args.game ?? games[0] ?? "hell_let_loose"
+        const matches = allMatches.filter((match) => match.gameId === gameId)
         if (!matches.length) return null
 
         const assignments = await ctx.db
@@ -105,22 +137,22 @@ export const getPlayer = query({
             .collect()
         const clans = (
             await Promise.all(
-                assignments
-                    .filter((assignment) => assignment.status === "active")
-                    .map(
-                        async (assignment) =>
-                            await getGuildByDiscordId(ctx, assignment.serverId)
+                groupPlayerClans(assignments).map(async (membership) => {
+                    const guild = await getGuildByDiscordId(
+                        ctx,
+                        membership.serverId
                     )
+                    return guild
+                        ? {
+                              id: getGuildDiscordId(guild),
+                              name: guild.name,
+                              avatar: guild.avatar,
+                              gameIds: membership.gameIds,
+                          }
+                        : null
+                })
             )
-        )
-            .filter((guild): guild is NonNullable<typeof guild> =>
-                Boolean(guild)
-            )
-            .map((guild) => ({
-                id: getGuildDiscordId(guild),
-                name: guild.name,
-                avatar: guild.avatar,
-            }))
+        ).filter((clan): clan is NonNullable<typeof clan> => clan !== null)
 
         const recentMatches = await Promise.all(
             matches
@@ -140,7 +172,20 @@ export const getPlayer = query({
             name: user.name,
             avatar: user.avatar,
             clans,
+            gameId,
+            games,
             stats: {
+                cashDelta:
+                    gameId === "wardogs"
+                        ? matches.every(
+                              (match) => typeof match.cashDelta === "number"
+                          )
+                            ? matches.reduce(
+                                  (sum, match) => sum + (match.cashDelta ?? 0),
+                                  0
+                              )
+                            : null
+                        : undefined,
                 matches: matches.length,
                 kills: totals.kills,
                 deaths: totals.deaths,
@@ -164,8 +209,11 @@ export const getPlayerMatch = query({
         if (!user) return null
 
         const userId = getUserStableId(user)
+        const event = await ctx.db.get(args.eventId as Id<"events">)
         const window = selectPlayerMatchWindow(
-            await loadPublicPlayerMatches(ctx, userId),
+            (await loadPublicPlayerMatches(ctx, userId)).filter(
+                (match) => match.gameId === resolveGameScope(event?.gameId)
+            ),
             args.eventId,
             10
         )
@@ -607,10 +655,11 @@ export const searchPlayers = query({
                                 eventId as Id<"events">
                             )
                             if (
-                                event &&
-                                event.kind !== "training" &&
-                                event.matchStatsId &&
-                                matchesGameScope(event.gameId, args.game)
+                                hasPublicPlayerStats(
+                                    event,
+                                    entry.matches[eventId]?.collected
+                                ) &&
+                                matchesGameScope(event?.gameId, args.game)
                             )
                                 return {
                                     id: getUserStableId(user),

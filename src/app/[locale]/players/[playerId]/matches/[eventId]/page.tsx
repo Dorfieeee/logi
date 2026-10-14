@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { formatKd } from "@/lib/format"
 import type { Metadata } from "next"
 import Link from "next/link"
 
@@ -8,10 +9,10 @@ import {
 } from "@/components/public/public-site-shell"
 import { PerformanceHistoryChart } from "@/components/app/performance-history-chart"
 import { PlayerTrendIndicators } from "@/components/app/player-trend-indicators"
-import type { PerformanceSnapshot } from "@/lib/read-models/performance-history"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs"
 import { getPublicPlayerMatch } from "@/lib/read-models/public-profiles"
+import { playerMatchSnapshot } from "@/lib/player-stat-presentation"
 import { PublicStat } from "@/components/public/public-stat"
 import { getDictionary } from "@/i18n/dictionaries"
 import { getLocalizedCanonical } from "@/lib/seo"
@@ -44,25 +45,17 @@ export default async function PublicPlayerMatchPage({ params }: Props) {
     const playerMatch = await getPublicPlayerMatch(playerId, eventId)
     if (!playerMatch) notFound()
     const { player, match, previousMatches } = playerMatch
+    const number = new Intl.NumberFormat(resolvedLocale)
+    const averageNumber = new Intl.NumberFormat(resolvedLocale, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    })
     const average = (metric: "kills" | "deaths" | "killDeathRatio") =>
         previousMatches.length
             ? previousMatches.reduce((sum, item) => sum + item[metric], 0) /
               previousMatches.length
             : null
-    const trendMatches: PerformanceSnapshot[] = [match, ...previousMatches].map(
-        (item) => ({
-            eventId: item.eventId,
-            playedAt: item.endedAt,
-            label: item.name,
-            combat: Math.round(item.offense + item.defense),
-            offense: Math.round(item.offense + item.defense),
-            support: Math.round(item.support),
-            kills: item.kills,
-            deaths: item.deaths,
-            points: 0,
-            kd: item.killDeathRatio,
-        })
-    )
+    const trendMatches = [match, ...previousMatches].map(playerMatchSnapshot)
 
     return (
         <PublicSiteShell locale={resolvedLocale} current="community">
@@ -94,17 +87,31 @@ export default async function PublicPlayerMatchPage({ params }: Props) {
                             </p>
                         </CardHeader>
                         <CardContent className="grid grid-cols-3 gap-5 text-center">
+                            {match.gameId === "wardogs" ? (
+                                <PublicStat
+                                    label={dictionary.gameHistory.cash}
+                                    help={dictionary.gameHistory.cashHelp}
+                                    value={
+                                        match.cashDelta == null
+                                            ? dictionary.common.notAvailable
+                                            : number.format(match.cashDelta)
+                                    }
+                                />
+                            ) : null}
                             <PublicStat
                                 label={dictionary.publicProfiles.kills}
-                                value={String(match.kills)}
+                                value={number.format(match.kills)}
                             />
                             <PublicStat
                                 label={dictionary.publicProfiles.deaths}
-                                value={String(match.deaths)}
+                                value={number.format(match.deaths)}
                             />
                             <PublicStat
                                 label={dictionary.publicProfiles.kd}
-                                value={match.killDeathRatio.toFixed(2)}
+                                value={formatKd(
+                                    match.killDeathRatio,
+                                    resolvedLocale
+                                )}
                             />
                         </CardContent>
                     </Card>
@@ -121,6 +128,7 @@ export default async function PublicPlayerMatchPage({ params }: Props) {
                                     <PlayerTrendIndicators
                                         matches={trendMatches}
                                         dictionary={dictionary}
+                                        locale={resolvedLocale}
                                     />
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-3 gap-5 text-center">
@@ -129,22 +137,27 @@ export default async function PublicPlayerMatchPage({ params }: Props) {
                                             dictionary.userManagement
                                                 .averageKills
                                         }
-                                        value={average("kills")!.toFixed(1)}
+                                        value={averageNumber.format(
+                                            average("kills")!
+                                        )}
                                     />
                                     <PublicStat
                                         label={
                                             dictionary.userManagement
                                                 .averageDeaths
                                         }
-                                        value={average("deaths")!.toFixed(1)}
+                                        value={averageNumber.format(
+                                            average("deaths")!
+                                        )}
                                     />
                                     <PublicStat
                                         label={
                                             dictionary.userManagement.averageKd
                                         }
-                                        value={average(
-                                            "killDeathRatio"
-                                        )!.toFixed(2)}
+                                        value={formatKd(
+                                            average("killDeathRatio")!,
+                                            resolvedLocale
+                                        )}
                                     />
                                 </CardContent>
                             </Card>
@@ -155,12 +168,14 @@ export default async function PublicPlayerMatchPage({ params }: Props) {
                                     }
                                     matches={trendMatches}
                                     dictionary={dictionary}
+                                    locale={resolvedLocale}
                                     kind="playerEffectiveness"
                                 />
                                 <PerformanceHistoryChart
                                     title={dictionary.clan.kd}
                                     matches={trendMatches}
                                     dictionary={dictionary}
+                                    locale={resolvedLocale}
                                     kind="combat"
                                 />
                             </div>

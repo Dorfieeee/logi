@@ -46,7 +46,8 @@ export const enMessages = {
         losses: "Losses",
         kills: "Kills",
         deaths: "Deaths",
-        cash: "Cash delta",
+        cash: "Money",
+        cashHelp: "Money earned or lost during the match.",
         winRate: "Win rate",
         kd: "K/D",
         sort: "Rank by",
@@ -633,7 +634,7 @@ export const enMessages = {
         faction: "Faction",
         kills: "Kills",
         deaths: "Deaths",
-        cash: "Cash",
+        cash: "Money",
         ping: "Ping (ms)",
         collectedSessions: "Collected sessions",
         historyObserved: "Last history import",
@@ -795,6 +796,8 @@ export const enMessages = {
         },
     },
     publicProfiles: {
+        independentPlayer: "Player without a clan",
+        kdChartHint: "Each bar shows K/D",
         communityTitle: "Community",
         communityDescription:
             "Browse active clans and their public match histories.",

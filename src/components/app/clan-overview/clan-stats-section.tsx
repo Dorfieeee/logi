@@ -49,6 +49,7 @@ export function ClanStatsSection({
     matchHref,
     playerHref,
     dictionary,
+    locale = "en",
 }: {
     totals: ClanStatTotals
     performance: PerformanceSnapshot[]
@@ -56,6 +57,7 @@ export function ClanStatsSection({
     matchHref: (eventId: string) => string
     playerHref: (userId: string) => string
     dictionary: Dictionary
+    locale?: string
 }) {
     const text = dictionary.clan
     const outcomes = {
@@ -106,12 +108,14 @@ export function ClanStatsSection({
                     matches={performance}
                     dictionary={dictionary}
                     kind="effectiveness"
+                    locale={locale}
                 />
                 <PerformanceHistoryChart
                     title={text.kd}
                     matches={performance}
                     dictionary={dictionary}
                     kind="combat"
+                    locale={locale}
                 />
                 <div className="xl:col-span-2">
                     <PerformanceHistoryChart
@@ -119,6 +123,7 @@ export function ClanStatsSection({
                         matches={performance}
                         dictionary={dictionary}
                         kind="points"
+                        locale={locale}
                     />
                 </div>
             </div>

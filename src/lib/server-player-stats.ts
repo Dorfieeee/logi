@@ -31,6 +31,7 @@ export type PlayerStatsSummary = {
     totalMatches: number
     lastTenMatches: number
     averages: {
+        cashDelta: number | null
         kills: number
         killDeathRatio: number
         deaths: number
@@ -274,6 +275,14 @@ export function buildPlayerStatsSummary(
         totalMatches: matches.length,
         lastTenMatches: lastTen.length,
         averages: {
+            cashDelta:
+                lastTen.length &&
+                lastTen.every((match) => typeof match.cashDelta === "number")
+                    ? lastTen.reduce(
+                          (sum, match) => sum + (match.cashDelta ?? 0),
+                          0
+                      ) / divisor
+                    : null,
             kills: totals.kills / divisor,
             killDeathRatio: totals.killDeathRatio / divisor,
             deaths: totals.deaths / divisor,

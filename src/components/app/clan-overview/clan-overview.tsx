@@ -274,6 +274,7 @@ export function ClanOverview({
                 ) : null}
             </div>
             <ClanStatsSection
+                locale={locale}
                 totals={{
                     upcomingEvents: upcoming.length,
                     nextEventName: upcoming[0]?.name,

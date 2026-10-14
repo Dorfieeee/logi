@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { historyPageSchema } from "@/domain/game-data/history"
 import type { Dictionary } from "@/i18n/dictionaries"
 import { Button } from "@/components/ui/button"
+import { formatKd } from "@/lib/format"
 
 type Loaded = Awaited<ReturnType<typeof buildHistoryReport>>
 type Sort = "kills" | "kd" | "cashDelta" | "wins" | "winRate"
@@ -415,7 +416,11 @@ export function GameHistoryPanel({
                                                             </small>
                                                         </td>
                                                         <td className="p-2 tabular-nums">
-                                                            {numeric(player.kd)}
+                                                            {player.kd === null
+                                                                ? "—"
+                                                                : formatKd(
+                                                                      player.kd
+                                                                  )}
                                                         </td>
                                                         <td className="p-2 tabular-nums">
                                                             {numeric(
