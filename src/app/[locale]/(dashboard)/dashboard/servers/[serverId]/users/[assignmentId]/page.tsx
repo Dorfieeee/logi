@@ -1,4 +1,6 @@
 import { Activity, Shield, Skull, Swords, Target, Wrench } from "lucide-react"
+import { playerStatProfile } from "@/domain/player-stats/game-metrics"
+import { playerMetricLabels } from "@/lib/player-stat-presentation"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 
@@ -25,10 +27,10 @@ import { ResourceTable } from "@/components/app/resource-table"
 import { PageHeader } from "@/components/app/page-header"
 import { GameBadge } from "@/components/app/game-badge"
 import { getServerContext } from "@/lib/server-context"
+import { formatDateTime, formatKd } from "@/lib/format"
 import { StatCard } from "@/components/app/stat-card"
 import { getDictionary } from "@/i18n/dictionaries"
 import { getPaginatedRows } from "@/lib/data-table"
-import { formatDateTime } from "@/lib/format"
 import { isLocale } from "@/i18n/config"
 
 export const metadata: Metadata = {
@@ -77,6 +79,8 @@ export default async function ServerUserDetailPage({
     // of mixing the player's statistics from every game.
     const gameScope = requestedGameScope ?? resolveGameScope(assignment.gameId)
 
+    const statProfile = playerStatProfile(gameScope)
+    const metricLabels = playerMetricLabels(dictionary)
     const playerStatsDocs = await getPlayerStatsDocs(user.id)
     const sortedMatches = sortPlayerMatches(
         filterPlayerMatchesForEvents(
@@ -161,162 +165,137 @@ export default async function ServerUserDetailPage({
             }
         >
             <div className="flex min-h-0 flex-col gap-6 overflow-y-auto pb-6">
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <StatCard
-                        title={dictionary.userManagement.averageKills}
-                        value={formatAverage(recentSummary.averages.kills)}
-                        description={dictionary.userManagement.storedAverageDescription.replace(
-                            "{count}",
-                            String(sortedMatches.length)
-                        )}
-                        icon={Target}
-                    />
-                    <StatCard
-                        title={dictionary.userManagement.averageKd}
-                        value={formatAverage(
-                            recentSummary.averages.killDeathRatio
-                        )}
-                        description={dictionary.userManagement.storedAverageDescription.replace(
-                            "{count}",
-                            String(sortedMatches.length)
-                        )}
-                        icon={Swords}
-                    />
-                    <StatCard
-                        title={dictionary.userManagement.averageDeaths}
-                        value={formatAverage(recentSummary.averages.deaths)}
-                        description={dictionary.userManagement.storedAverageDescription.replace(
-                            "{count}",
-                            String(sortedMatches.length)
-                        )}
-                        icon={Skull}
-                    />
-                    <StatCard
-                        title={dictionary.userManagement.averageOffense}
-                        value={formatAverage(recentSummary.averages.offense)}
-                        description={dictionary.userManagement.storedAverageDescription.replace(
-                            "{count}",
-                            String(sortedMatches.length)
-                        )}
-                        icon={Activity}
-                    />
-                    <StatCard
-                        title={dictionary.userManagement.averageDefense}
-                        value={formatAverage(recentSummary.averages.defense)}
-                        description={dictionary.userManagement.storedAverageDescription.replace(
-                            "{count}",
-                            String(sortedMatches.length)
-                        )}
-                        icon={Shield}
-                    />
-                    <StatCard
-                        title={dictionary.userManagement.averageSupport}
-                        value={formatAverage(recentSummary.averages.support)}
-                        description={dictionary.userManagement.storedAverageDescription.replace(
-                            "{count}",
-                            String(sortedMatches.length)
-                        )}
-                        icon={Wrench}
-                    />
-                </div>
-                <div className="grid gap-6 xl:grid-cols-2">
-                    <PerformanceHistoryChart
-                        title={dictionary.clan.playerPerformanceTrend}
-                        matches={performanceHistory}
-                        dictionary={dictionary}
-                        kind="playerEffectiveness"
-                    />
-                    <PerformanceHistoryChart
-                        title={dictionary.clan.kd}
-                        matches={performanceHistory}
-                        dictionary={dictionary}
-                        kind="combat"
-                    />
-                </div>
-                <ResourceTable
-                    className="h-auto max-h-[32rem]"
-                    dictionary={dictionary}
-                    rows={matchRows}
-                    page={paginatedMatches.page}
-                    pageSize={paginatedMatches.pageSize}
-                    pageCount={paginatedMatches.pageCount}
-                    totalRows={paginatedMatches.totalRows}
-                    search={paginatedMatches.search}
-                    searchPlaceholder={
-                        dictionary.userManagement.matchHistorySearch
-                    }
-                    getHref={(match) =>
-                        `/${safeLocale}/dashboard/servers/${serverId}/matches/${match.eventId}`
-                    }
-                    columns={[
-                        {
-                            key: "event",
-                            title: dictionary.userManagement.matchHistoryEvent,
-                            render: (match) => {
-                                const event = context.events.find(
-                                    (item) => item.id === match.eventId
-                                )
+                {statProfile ? (
+                    <>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            {statProfile.fields.map((metric) => {
+                                const key =
+                                    metric === "kd" ? "killDeathRatio" : metric
+                                const value = recentSummary.averages[key]
+                                const icons = {
+                                    kills: Target,
+                                    kd: Swords,
+                                    deaths: Skull,
+                                    offense: Activity,
+                                    defense: Shield,
+                                    support: Wrench,
+                                    cashDelta: Activity,
+                                }
                                 return (
-                                    <div>
-                                        <div className="font-medium">
-                                            {event?.name ??
-                                                dictionary.common.unknown}
-                                        </div>
-                                        <div className="text-muted-foreground text-xs">
-                                            {match.mapName ?? match.mapId}
-                                        </div>
-                                    </div>
+                                    <StatCard
+                                        key={metric}
+                                        title={metricLabels[metric]}
+                                        value={
+                                            value == null
+                                                ? dictionary.common.notAvailable
+                                                : metric === "kd"
+                                                  ? formatKd(value, safeLocale)
+                                                  : formatAverage(value)
+                                        }
+                                        description={dictionary.userManagement.averageDescription.replace(
+                                            "{count}",
+                                            String(recentSummary.lastTenMatches)
+                                        )}
+                                        icon={icons[metric]}
+                                    />
                                 )
-                            },
-                        },
-                        {
-                            key: "playedAt",
-                            title: dictionary.userManagement
-                                .matchHistoryPlayedAt,
-                            render: (match) =>
-                                formatDateTime(
-                                    match.endedAt ?? match.importedAt,
-                                    context.discordConfig?.timezone,
-                                    safeLocale === "cs"
-                                        ? "cs-CZ"
-                                        : safeLocale === "de"
-                                          ? "de-DE"
-                                          : "en-GB"
-                                ),
-                        },
-                        {
-                            key: "kills",
-                            title: dictionary.userManagement.matchKills,
-                            render: (match) => match.kills,
-                        },
-                        {
-                            key: "kd",
-                            title: dictionary.userManagement.matchKd,
-                            render: (match) =>
-                                formatAverage(match.killDeathRatio),
-                        },
-                        {
-                            key: "deaths",
-                            title: dictionary.userManagement.matchDeaths,
-                            render: (match) => match.deaths,
-                        },
-                        {
-                            key: "offense",
-                            title: dictionary.userManagement.matchOffense,
-                            render: (match) => match.offense,
-                        },
-                        {
-                            key: "defense",
-                            title: dictionary.userManagement.matchDefense,
-                            render: (match) => match.defense,
-                        },
-                        {
-                            key: "support",
-                            title: dictionary.userManagement.matchSupport,
-                            render: (match) => match.support,
-                        },
-                    ]}
-                />
+                            })}
+                        </div>
+                        <div className="grid gap-6 xl:grid-cols-2">
+                            <PerformanceHistoryChart
+                                title={dictionary.clan.playerPerformanceTrend}
+                                matches={performanceHistory}
+                                dictionary={dictionary}
+                                kind={statProfile.primaryChart}
+                                gameId={gameScope}
+                                locale={safeLocale}
+                            />
+                            <PerformanceHistoryChart
+                                title={dictionary.clan.kd}
+                                matches={performanceHistory}
+                                dictionary={dictionary}
+                                kind="combat"
+                                gameId={gameScope}
+                                locale={safeLocale}
+                            />
+                        </div>
+                        <ResourceTable
+                            className="h-auto max-h-[32rem]"
+                            dictionary={dictionary}
+                            rows={matchRows}
+                            page={paginatedMatches.page}
+                            pageSize={paginatedMatches.pageSize}
+                            pageCount={paginatedMatches.pageCount}
+                            totalRows={paginatedMatches.totalRows}
+                            search={paginatedMatches.search}
+                            searchPlaceholder={
+                                dictionary.userManagement.matchHistorySearch
+                            }
+                            getHref={(match) =>
+                                `/${safeLocale}/dashboard/servers/${serverId}/matches/${match.eventId}`
+                            }
+                            columns={[
+                                {
+                                    key: "event",
+                                    title: dictionary.userManagement
+                                        .matchHistoryEvent,
+                                    render: (match) => {
+                                        const event = context.events.find(
+                                            (item) => item.id === match.eventId
+                                        )
+                                        return (
+                                            <div>
+                                                <div className="font-medium">
+                                                    {event?.name ??
+                                                        dictionary.common
+                                                            .unknown}
+                                                </div>
+                                                <div className="text-muted-foreground text-xs">
+                                                    {match.mapName ??
+                                                        match.mapId}
+                                                </div>
+                                            </div>
+                                        )
+                                    },
+                                },
+                                {
+                                    key: "playedAt",
+                                    title: dictionary.userManagement
+                                        .matchHistoryPlayedAt,
+                                    render: (match) =>
+                                        formatDateTime(
+                                            match.endedAt ?? match.importedAt,
+                                            context.discordConfig?.timezone,
+                                            safeLocale === "cs"
+                                                ? "cs-CZ"
+                                                : safeLocale === "de"
+                                                  ? "de-DE"
+                                                  : "en-GB"
+                                        ),
+                                },
+                                ...statProfile.fields.map((metric) => ({
+                                    key: metric,
+                                    title: metricLabels[metric],
+                                    render: (
+                                        match: (typeof matchRows)[number]
+                                    ) => {
+                                        const value =
+                                            match[
+                                                metric === "kd"
+                                                    ? "killDeathRatio"
+                                                    : metric
+                                            ]
+                                        return value == null
+                                            ? dictionary.common.notAvailable
+                                            : metric === "kd"
+                                              ? formatKd(value, safeLocale)
+                                              : formatAverage(value)
+                                    },
+                                })),
+                            ]}
+                        />
+                    </>
+                ) : null}
                 <UserAssignmentForm
                     locale={safeLocale}
                     server={server}

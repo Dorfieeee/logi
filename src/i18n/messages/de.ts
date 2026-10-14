@@ -46,7 +46,8 @@ export const deMessages = {
         losses: "Niederlagen",
         kills: "Kills",
         deaths: "Tode",
-        cash: "Cash-Differenz",
+        cash: "Geld",
+        cashHelp: "Im Spiel gewonnenes oder verlorenes Geld.",
         winRate: "Siegquote",
         kd: "K/D",
         sort: "Sortieren nach",
@@ -821,6 +822,8 @@ export const deMessages = {
         },
     },
     publicProfiles: {
+        independentPlayer: "Spieler ohne Clan",
+        kdChartHint: "Jeder Balken zeigt K/D",
         communityTitle: "Community",
         communityDescription:
             "Durchsuche aktive Clans und ihre öffentlichen Match-Historien.",

@@ -26,6 +26,7 @@ export function GameBadge({
                 "border-border/70 bg-muted inline-flex size-5 shrink-0 overflow-hidden rounded-full border shadow-sm",
                 className
             )}
+            role="img"
             aria-label={`${dictionary.games.column}: ${gameLabel(resolvedGame)}`}
             title={gameLabel(resolvedGame)}
         >

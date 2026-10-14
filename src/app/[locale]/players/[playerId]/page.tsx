@@ -1,3 +1,4 @@
+import { gameLabel } from "@/domain/games/game"
 import { notFound } from "next/navigation"
 import { connection } from "next/server"
 import type { Metadata } from "next"
@@ -15,18 +16,23 @@ import {
 } from "@/components/public/public-site-shell"
 import { PerformanceHistoryChart } from "@/components/app/performance-history-chart"
 import { PlayerTrendIndicators } from "@/components/app/player-trend-indicators"
-import type { PerformanceSnapshot } from "@/lib/read-models/performance-history"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs"
 import { getPublicPlayerProfile } from "@/lib/read-models/public-profiles"
 import { getPublicPreviewMetadata } from "@/lib/public-preview-metadata"
+import { playerMatchSnapshot } from "@/lib/player-stat-presentation"
 import { PublicStat } from "@/components/public/public-stat"
+import { GameBadge } from "@/components/app/game-badge"
 import { getDictionary } from "@/i18n/dictionaries"
 import { getLocalizedCanonical } from "@/lib/seo"
 import { Badge } from "@/components/ui/badge"
 import { isLocale } from "@/i18n/config"
+import { formatKd } from "@/lib/format"
 
-type Props = { params: Promise<{ locale: string; playerId: string }> }
+type Props = {
+    params: Promise<{ locale: string; playerId: string }>
+    searchParams?: Promise<{ game?: string }>
+}
 
 async function ConnectionMarker() {
     await connection()
@@ -52,7 +58,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const imageVersion = getPublicImageVersion(
         preview?.imageVersion ?? "current"
     )
-    const image = `/api/og/player/${playerId}?v=${encodeURIComponent(imageVersion)}`
+    const image = `/api/og/player/${playerId}?v=${encodeURIComponent(imageVersion)}&locale=${safeLocale}`
     const imageDimensions = getPublicImageDimensions(imageVersion)
     return {
         title,
@@ -67,26 +73,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 }
 
-export default async function PublicPlayerPage({ params }: Props) {
+export default async function PublicPlayerPage({
+    params,
+    searchParams,
+}: Props) {
     const { locale, playerId } = await params
     const resolvedLocale = isLocale(locale) ? locale : "en"
     const dictionary = getDictionary(resolvedLocale)
-    const player = await getPublicPlayerProfile(playerId)
-    if (!player) notFound()
-    const performanceHistory: PerformanceSnapshot[] = player.recentMatches.map(
-        (match) => ({
-            eventId: match.eventId,
-            playedAt: match.endedAt,
-            label: match.name,
-            combat: Math.round(match.offense + match.defense),
-            offense: Math.round(match.offense + match.defense),
-            support: Math.round(match.support),
-            kills: match.kills,
-            deaths: match.deaths,
-            points: 0,
-            kd: match.killDeathRatio,
-        })
+    const player = await getPublicPlayerProfile(
+        playerId,
+        (await searchParams)?.game
     )
+    if (!player) notFound()
+    const number = new Intl.NumberFormat(resolvedLocale)
+    const performanceHistory = player.recentMatches.map(playerMatchSnapshot)
 
     return (
         <PublicSiteShell locale={resolvedLocale} current="community">
@@ -119,27 +119,90 @@ export default async function PublicPlayerPage({ params }: Props) {
                             </h1>
                             <div className="mt-3 flex flex-wrap gap-2">
                                 {player.clans.map((clan) => (
-                                    <Badge key={clan.id} variant="secondary">
-                                        {clan.name}
+                                    <Badge
+                                        key={clan.id}
+                                        variant="secondary"
+                                        className="max-w-full gap-2 whitespace-normal"
+                                    >
+                                        <span className="min-w-0 break-words">
+                                            {clan.name}
+                                        </span>
+                                        <span className="inline-flex shrink-0 gap-1">
+                                            {clan.gameIds.map((gameId) => (
+                                                <GameBadge
+                                                    key={gameId}
+                                                    gameId={gameId}
+                                                    dictionary={dictionary}
+                                                    className="size-4"
+                                                />
+                                            ))}
+                                        </span>
                                     </Badge>
                                 ))}
                             </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-5 text-center">
+                        <div
+                            className={`grid gap-5 text-center ${player.gameId === "wardogs" ? "grid-cols-3 sm:grid-cols-5" : "grid-cols-3"}`}
+                        >
                             <PublicStat
                                 label={dictionary.publicProfiles.matches}
-                                value={String(player.stats.matches)}
+                                value={number.format(player.stats.matches)}
                             />
                             <PublicStat
                                 label={dictionary.publicProfiles.kd}
-                                value={player.stats.kd.toFixed(2)}
+                                value={formatKd(
+                                    player.stats.kd,
+                                    resolvedLocale
+                                )}
                             />
                             <PublicStat
                                 label={dictionary.publicProfiles.kills}
-                                value={String(player.stats.kills)}
+                                value={number.format(player.stats.kills)}
                             />
+                            {player.gameId === "wardogs" ? (
+                                <>
+                                    <PublicStat
+                                        label={dictionary.publicProfiles.deaths}
+                                        value={number.format(
+                                            player.stats.deaths
+                                        )}
+                                    />
+                                    <PublicStat
+                                        label={dictionary.gameHistory.cash}
+                                        help={dictionary.gameHistory.cashHelp}
+                                        value={
+                                            player.stats.cashDelta == null
+                                                ? dictionary.common.notAvailable
+                                                : number.format(
+                                                      player.stats.cashDelta
+                                                  )
+                                        }
+                                    />
+                                </>
+                            ) : null}
                         </div>
                     </section>
+                    <nav
+                        aria-label={dictionary.games.filterLabel}
+                        className="flex flex-wrap gap-2"
+                    >
+                        {player.games.map((game) => (
+                            <Link
+                                key={game}
+                                href={`/${resolvedLocale}/players/${player.id}?game=${encodeURIComponent(game)}`}
+                                aria-current={
+                                    game === player.gameId ? "page" : undefined
+                                }
+                                className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm"
+                            >
+                                <GameBadge
+                                    gameId={game}
+                                    dictionary={dictionary}
+                                />
+                                {gameLabel(game)}
+                            </Link>
+                        ))}
+                    </nav>
                     {performanceHistory.length ? (
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between gap-4">
@@ -149,6 +212,7 @@ export default async function PublicPlayerPage({ params }: Props) {
                                 <PlayerTrendIndicators
                                     matches={performanceHistory}
                                     dictionary={dictionary}
+                                    locale={resolvedLocale}
                                 />
                             </CardHeader>
                         </Card>
@@ -158,12 +222,14 @@ export default async function PublicPlayerPage({ params }: Props) {
                             title={dictionary.clan.playerPerformanceTrend}
                             matches={performanceHistory}
                             dictionary={dictionary}
+                            locale={resolvedLocale}
                             kind="playerEffectiveness"
                         />
                         <PerformanceHistoryChart
                             title={dictionary.clan.kd}
                             matches={performanceHistory}
                             dictionary={dictionary}
+                            locale={resolvedLocale}
                             kind="combat"
                         />
                     </div>
@@ -177,7 +243,7 @@ export default async function PublicPlayerPage({ params }: Props) {
                             {player.recentMatches.map((match) => (
                                 <Link
                                     key={match.eventId}
-                                    href={`/${resolvedLocale}/matches/${match.eventId}`}
+                                    href={`/${resolvedLocale}/players/${player.id}/matches/${match.eventId}`}
                                     className="hover:bg-muted grid gap-2 rounded-xl border p-4 transition-colors sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"
                                 >
                                     <div>
@@ -200,15 +266,34 @@ export default async function PublicPlayerPage({ params }: Props) {
                                     </div>
                                     <PublicStat
                                         label={dictionary.publicProfiles.kills}
-                                        value={String(match.kills)}
+                                        value={number.format(match.kills)}
                                     />
                                     <PublicStat
                                         label={dictionary.publicProfiles.deaths}
-                                        value={String(match.deaths)}
+                                        value={number.format(match.deaths)}
                                     />
+                                    {match.gameId === "wardogs" ? (
+                                        <PublicStat
+                                            label={dictionary.gameHistory.cash}
+                                            help={
+                                                dictionary.gameHistory.cashHelp
+                                            }
+                                            value={
+                                                match.cashDelta == null
+                                                    ? dictionary.common
+                                                          .notAvailable
+                                                    : number.format(
+                                                          match.cashDelta
+                                                      )
+                                            }
+                                        />
+                                    ) : null}
                                     <PublicStat
                                         label={dictionary.publicProfiles.kd}
-                                        value={match.killDeathRatio.toFixed(2)}
+                                        value={formatKd(
+                                            match.killDeathRatio,
+                                            resolvedLocale
+                                        )}
                                     />
                                 </Link>
                             ))}

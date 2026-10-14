@@ -10,6 +10,9 @@ function assertInternalSecret(secret: string) {
 
 const playerMatchStats = v.object({
     sourceUrl: v.string(),
+    gameId: v.optional(v.string()),
+    cashDelta: v.optional(v.union(v.number(), v.null())),
+    collected: v.optional(v.boolean()),
     importedAt: v.string(),
     endedAt: v.optional(v.string()),
     mapId: v.string(),

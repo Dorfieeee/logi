@@ -11,9 +11,12 @@ import {
 import { getHllStratmapCatalog, parseStratmapState } from "@/lib/stratmaps"
 import { getPublicImageDimensions } from "@/lib/public-image-version"
 import { getPerformanceTrendDeltas } from "@/lib/performance-trends"
+import { getDictionary, type Dictionary } from "@/i18n/dictionaries"
 import { getPublicStratmapDetail } from "@/lib/server-stratmaps"
 import { publicImageCache } from "@/lib/public-image-cache"
 import { getStratmapMapById } from "@/lib/game-stratmaps"
+import { isLocale } from "@/i18n/config"
+import { formatKd } from "@/lib/format"
 
 type Props = { params: Promise<{ kind: string; id: string }> }
 const palette = {
@@ -209,26 +212,54 @@ function Metrics({ items }: { items: Array<[string, string, string?]> }) {
 }
 function PlayerHistory({
     matches,
+    dictionary,
 }: {
+    dictionary: Dictionary
     matches: Array<{
         eventId: string
         kills: number
         deaths: number
-        offense: number
-        defense: number
-        support: number
+        gameId?: string
+        cashDelta?: number | null
+        offense?: number
+        defense?: number
+        support?: number
     }>
 }) {
     const recent = matches.slice(0, 10).reverse()
     const series = [
-        ["Kills", palette.win, recent.map((match) => match.kills)],
-        ["Deaths", palette.loss, recent.map((match) => match.deaths)],
         [
-            "Combat",
-            palette.gold,
-            recent.map((match) => match.offense + match.defense),
+            dictionary.gameHistory.kills,
+            palette.win,
+            recent.map((match) => match.kills),
         ],
-        ["Support", palette.neutral, recent.map((match) => match.support)],
+        [
+            dictionary.gameHistory.deaths,
+            palette.loss,
+            recent.map((match) => match.deaths),
+        ],
+        ...(matches[0]?.gameId === "wardogs"
+            ? [
+                  [
+                      dictionary.gameHistory.cash,
+                      palette.gold,
+                      recent.map((match) => match.cashDelta ?? 0),
+                  ] as const,
+              ]
+            : [
+                  [
+                      dictionary.clan.combatEffectiveness,
+                      palette.gold,
+                      recent.map(
+                          (match) => (match.offense ?? 0) + (match.defense ?? 0)
+                      ),
+                  ] as const,
+                  [
+                      dictionary.clan.supportEffectiveness,
+                      palette.neutral,
+                      recent.map((match) => match.support ?? 0),
+                  ] as const,
+              ]),
     ] as const
     const maximum = Math.max(1, ...series.flatMap(([, , values]) => values))
     return (
@@ -401,21 +432,26 @@ function TeamChart({
 function PlayerCard({
     player,
     avatar,
+    dictionary,
+    locale,
 }: {
+    dictionary: Dictionary
+    locale: string
     player: NonNullable<Awaited<ReturnType<typeof getPublicPlayerProfile>>>
     avatar: string | null
 }) {
+    const number = new Intl.NumberFormat(locale)
     const recent = player.recentMatches.slice(0, 9).reverse()
     const maximum = Math.max(1, ...recent.map((match) => match.killDeathRatio))
     const trends = getPerformanceTrendDeltas(
         player.recentMatches.map((match) => ({
             kd: match.killDeathRatio,
-            offense: match.offense + match.defense,
-            support: match.support,
+            offense: (match.offense ?? 0) + (match.defense ?? 0),
+            support: match.support ?? 0,
         }))
     )
     return (
-        <Shell label="PLAYER PERFORMANCE">
+        <Shell label={dictionary.clan.playerPerformanceTrend}>
             <div
                 style={{
                     display: "flex",
@@ -448,11 +484,12 @@ function PlayerCard({
                             {player.clans
                                 .map((clan) => clan.name)
                                 .slice(0, 2)
-                                .join(" · ") || "Independent player"}
+                                .join(" · ") ||
+                                dictionary.publicProfiles.independentPlayer}
                         </div>
                     </div>
                 </div>
-                {trends ? (
+                {trends && player.gameId !== "wardogs" ? (
                     <div
                         style={{
                             display: "flex",
@@ -478,7 +515,7 @@ function PlayerCard({
                             <span>K/D</span>
                             <span>
                                 {trends.kd >= 0 ? "↑ +" : "↓ "}
-                                {trends.kd.toFixed(2)}
+                                {formatKd(trends.kd, locale)}
                             </span>
                         </div>
                         <div
@@ -494,10 +531,10 @@ function PlayerCard({
                                         : palette.loss,
                             }}
                         >
-                            <span>Combat Score</span>
+                            <span>{dictionary.clan.combatEffectiveness}</span>
                             <span>
                                 {trends.offense >= 0 ? "↑ +" : "↓ "}
-                                {trends.offense}
+                                {number.format(trends.offense)}
                             </span>
                         </div>
                         <div
@@ -513,10 +550,10 @@ function PlayerCard({
                                         : palette.loss,
                             }}
                         >
-                            <span>Support Score</span>
+                            <span>{dictionary.clan.supportEffectiveness}</span>
                             <span>
                                 {trends.support >= 0 ? "↑ +" : "↓ "}
-                                {trends.support}
+                                {number.format(trends.support)}
                             </span>
                         </div>
                     </div>
@@ -524,16 +561,19 @@ function PlayerCard({
             </div>
             <Metrics
                 items={[
-                    ["RECORDED MATCHES", String(player.stats.matches)],
                     [
-                        "KILL / DEATH",
-                        `${player.stats.kd.toFixed(2)} K/D`,
-                        `${player.stats.kills} kills · ${player.stats.deaths} deaths`,
+                        dictionary.publicProfiles.matches,
+                        number.format(player.stats.matches),
                     ],
                     [
-                        "RECENT FORM",
+                        dictionary.publicProfiles.kd,
+                        `${formatKd(player.stats.kd, locale)} K/D`,
+                        `${number.format(player.stats.kills)} ${dictionary.publicProfiles.kills} · ${number.format(player.stats.deaths)} ${dictionary.publicProfiles.deaths}`,
+                    ],
+                    [
+                        dictionary.publicProfiles.recentMatches,
                         recent.length
-                            ? `${recent.at(-1)?.killDeathRatio.toFixed(2)} K/D`
+                            ? `${formatKd(recent.at(-1)!.killDeathRatio, locale)} K/D`
                             : "—",
                     ],
                 ]}
@@ -556,8 +596,8 @@ function PlayerCard({
                         fontSize: 17,
                     }}
                 >
-                    <span>RECENT MATCH FORM</span>
-                    <span>Each bar = K/D</span>
+                    <span>{dictionary.clan.playerPerformanceTrend}</span>
+                    <span>{dictionary.publicProfiles.kdChartHint}</span>
                 </div>
                 <div
                     style={{
@@ -585,7 +625,10 @@ function PlayerCard({
                     ))}
                 </div>
             </div>
-            <PlayerHistory matches={player.recentMatches} />
+            <PlayerHistory
+                matches={player.recentMatches}
+                dictionary={dictionary}
+            />
         </Shell>
     )
 }
@@ -1128,7 +1171,10 @@ function StratmapCard({
 export async function GET(request: Request, { params }: Props) {
     const { kind, id } = await params
     const version = new URL(request.url).searchParams.get("v") ?? "current"
-    const key = `${kind}:${id}:${version}`
+    const requestedLocale =
+        new URL(request.url).searchParams.get("locale") ?? "en"
+    const locale = isLocale(requestedLocale) ? requestedLocale : "en"
+    const key = `${kind}:${id}:${version}:${locale}`
     const cached = publicImageCache.get(key)
     if (cached) return png(cached)
     let element: React.ReactElement | null = null
@@ -1138,6 +1184,8 @@ export async function GET(request: Request, { params }: Props) {
             element = (
                 <PlayerCard
                     player={player}
+                    dictionary={getDictionary(locale)}
+                    locale={locale}
                     avatar={await toDataUrl(player.avatar)}
                 />
             )

@@ -716,3 +716,19 @@ test("OpenAPI documents the template settings of event writes", async () => {
         assert.match(properties.signupGroupLimits.description, /removes nobody/)
     }
 })
+
+test("player and clan history contracts define game-specific Wardogs money without HLL scores", async () => {
+    const document = await (await GET()).json()
+    const player = document.paths["/public/players/{playerId}"].get
+    assert.ok(
+        player.parameters.some(
+            (parameter: { name: string }) => parameter.name === "game"
+        )
+    )
+    assert.match(player.description, /cashDelta/)
+    assert.match(player.description, /never combine games/)
+    assert.match(
+        document.paths["/clan/performance-history"].get.description,
+        /Unknown cash is null/
+    )
+})

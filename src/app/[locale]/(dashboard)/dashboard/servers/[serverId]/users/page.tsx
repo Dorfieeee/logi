@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { formatKd } from "@/lib/format"
 import type { Metadata } from "next"
 
 import {
@@ -271,7 +272,7 @@ export default async function ServerUsersPage({
                                   ) / matches.length
                                 : null
                             return kd !== null
-                                ? `${score} • ${dictionary.userManagement.matchKd} ${kd.toFixed(kd % 1 === 0 ? 0 : 2)}`
+                                ? `${score} • ${dictionary.userManagement.matchKd} ${formatKd(kd, safeLocale)}`
                                 : score
                         },
                     },
@@ -281,6 +282,7 @@ export default async function ServerUsersPage({
                         render: (assignment) => (
                             <PlayerTrendIndicators
                                 matches={getAssignmentPerformance(assignment)}
+                                locale={safeLocale}
                                 dictionary={dictionary}
                             />
                         ),

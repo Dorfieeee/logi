@@ -213,18 +213,21 @@ export function PublicClanView({
                             matches={performanceHistory}
                             dictionary={dictionary}
                             kind="effectiveness"
+                            locale={locale}
                         />
                         <PerformanceHistoryChart
                             title={dictionary.clan.kd}
                             matches={performanceHistory}
                             dictionary={dictionary}
                             kind="combat"
+                            locale={locale}
                         />
                         <PerformanceHistoryChart
                             title={dictionary.clan.points}
                             matches={performanceHistory}
                             dictionary={dictionary}
                             kind="points"
+                            locale={locale}
                         />
                     </div>
                 </section>

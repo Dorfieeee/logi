@@ -12,11 +12,19 @@ import {
 } from "recharts"
 import type { PerformanceSnapshot } from "@/lib/read-models/performance-history"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { playerStatProfile } from "@/domain/player-stats/game-metrics"
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react"
+import { resolveGameScope } from "@/domain/games/game"
 import type { Dictionary } from "@/i18n/dictionaries"
+import { formatKd } from "@/lib/format"
 
 type ChartKind =
-    "effectiveness" | "playerEffectiveness" | "combat" | "points" | "kd"
+    | "effectiveness"
+    | "playerEffectiveness"
+    | "combat"
+    | "points"
+    | "kd"
+    | "cash"
 
 function PerformanceTooltip({
     active,
@@ -24,16 +32,19 @@ function PerformanceTooltip({
     payload,
     matches,
     fallbackLabel,
+    locale,
 }: {
     active?: boolean
     label?: string | number
     payload?: ReadonlyArray<{
         name?: string
+        dataKey?: unknown
         value?: string | number
         color?: string
     }>
     matches: PerformanceSnapshot[]
     fallbackLabel: string
+    locale: string
 }) {
     if (!active || !payload?.length) return null
     const match =
@@ -57,7 +68,14 @@ function PerformanceTooltip({
                             {item.name}
                         </span>
                         <span className="font-medium tabular-nums">
-                            {item.value}
+                            {item.dataKey === "kd" &&
+                            typeof item.value === "number"
+                                ? formatKd(item.value, locale)
+                                : typeof item.value === "number"
+                                  ? new Intl.NumberFormat(locale, {
+                                        maximumFractionDigits: 2,
+                                    }).format(item.value)
+                                  : item.value}
                         </span>
                     </div>
                 ))}
@@ -71,30 +89,56 @@ export function PerformanceHistoryChart({
     matches,
     dictionary,
     kind = "effectiveness",
+    gameId,
+    locale = "en",
 }: {
     title: string
     matches: PerformanceSnapshot[]
     dictionary: Dictionary
     kind?: ChartKind
+    gameId?: string
+    locale?: string
 }) {
+    const activeGame = gameId ?? matches[0]?.gameId
+    const profile = playerStatProfile(activeGame)
+    if (!profile || (profile.kind === "wardogs" && kind === "points"))
+        return null
+    matches = matches.filter(
+        (match) =>
+            resolveGameScope(match.gameId) === resolveGameScope(activeGame)
+    )
+    if (
+        profile.kind === "wardogs" &&
+        (kind === "effectiveness" || kind === "playerEffectiveness")
+    )
+        kind = profile.primaryChart
+    if (kind === "cash") title = dictionary.gameHistory.cash
     const data = [...matches]
         .reverse()
         .map((match, index) => ({ ...match, match: index + 1 }))
     const recent = matches.slice(0, 5),
         previous = matches.slice(5, 10)
     const field =
-        kind === "points"
-            ? "points"
-            : kind === "kd"
-              ? "kd"
-              : kind === "combat"
+        kind === "cash"
+            ? "cashDelta"
+            : kind === "points"
+              ? "points"
+              : kind === "kd"
                 ? "kd"
-                : "combat"
+                : kind === "combat"
+                  ? "kd"
+                  : "combat"
     const average = (rows: PerformanceSnapshot[]) =>
         rows.length
-            ? rows.reduce((sum, row) => sum + row[field], 0) / rows.length
+            ? rows.reduce((sum, row) => sum + (row[field] ?? 0), 0) /
+              rows.length
             : 0
-    const change = previous.length ? average(recent) - average(previous) : null
+    const change =
+        previous.length &&
+        (kind !== "cash" ||
+            [...recent, ...previous].every((row) => row.cashDelta != null))
+            ? average(recent) - average(previous)
+            : null
     const Trend =
         change === null ? Minus : change >= 0 ? ArrowUpRight : ArrowDownRight
     const copy = dictionary.clan
@@ -102,14 +146,21 @@ export function PerformanceHistoryChart({
     const roundedChange =
         change === null
             ? ""
-            : `${change >= 0 ? "+" : ""}${isKdComparison ? change.toFixed(2) : Math.round(change)}`
-    const metricName = kind === "points" ? copy.points : copy.kd
+            : `${change >= 0 ? "+" : ""}${isKdComparison ? formatKd(change, locale) : Math.round(change)}`
+    const metricName =
+        kind === "cash"
+            ? dictionary.gameHistory.cash
+            : kind === "points"
+              ? copy.points
+              : copy.kd
     const comparisonMetric =
-        kind === "points"
-            ? copy.points
-            : kind === "kd" || kind === "combat"
-              ? copy.kd
-              : copy.combatEffectiveness
+        kind === "cash"
+            ? dictionary.gameHistory.cash
+            : kind === "points"
+              ? copy.points
+              : kind === "kd" || kind === "combat"
+                ? copy.kd
+                : copy.combatEffectiveness
     const playerTrendFields: Array<["kd" | "offense" | "support", string]> = [
         ["kd", copy.kd],
         ["offense", copy.combatEffectiveness],
@@ -149,7 +200,7 @@ export function PerformanceHistoryChart({
                                     : Math.round(rawDelta)
                             const formattedDelta =
                                 key === "kd"
-                                    ? `${delta >= 0 ? "+" : ""}${delta.toFixed(2)}`
+                                    ? `${delta >= 0 ? "+" : ""}${formatKd(delta, locale)}`
                                     : `${delta >= 0 ? "+" : ""}${delta}`
                             const Icon =
                                 delta >= 0 ? ArrowUpRight : ArrowDownRight
@@ -202,7 +253,8 @@ export function PerformanceHistoryChart({
                                     allowDecimals={isKdComparison}
                                     tickFormatter={
                                         isKdComparison
-                                            ? (val: number) => val.toFixed(2)
+                                            ? (val: number) =>
+                                                  formatKd(val, locale)
                                             : undefined
                                     }
                                     tickLine={false}
@@ -215,6 +267,7 @@ export function PerformanceHistoryChart({
                                             {...props}
                                             matches={data}
                                             fallbackLabel={copy.matchesPlayed}
+                                            locale={locale}
                                         />
                                     )}
                                 />

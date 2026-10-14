@@ -1645,6 +1645,9 @@ export default defineSchema({
             v.string(),
             v.object({
                 sourceUrl: v.string(),
+                gameId: v.optional(v.string()),
+                cashDelta: v.optional(v.union(v.number(), v.null())),
+                collected: v.optional(v.boolean()),
                 importedAt: v.string(),
                 endedAt: v.optional(v.string()),
                 mapId: v.string(),
@@ -1681,6 +1684,7 @@ export default defineSchema({
                 deaths: v.number(),
                 points: v.optional(v.number()),
                 kd: v.optional(v.number()),
+                cashDelta: v.optional(v.union(v.number(), v.null())),
             })
         ),
         updatedAt: v.string(),
@@ -1702,6 +1706,7 @@ export default defineSchema({
                 deaths: v.number(),
                 points: v.optional(v.number()),
                 kd: v.optional(v.number()),
+                cashDelta: v.optional(v.union(v.number(), v.null())),
             })
         ),
         updatedAt: v.string(),

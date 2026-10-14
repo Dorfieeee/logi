@@ -25,7 +25,10 @@ export async function GET(
             { status: 429 }
         )
     const { playerId } = await params
-    const data = await getPublicPlayerProfile(playerId)
+    const data = await getPublicPlayerProfile(
+        playerId,
+        new URL(request.url).searchParams.get("game") ?? undefined
+    )
     if (!data)
         return NextResponse.json(
             { error: { code: "not_found", message: "Player not found." } },
