@@ -1,4 +1,5 @@
 export type MatchRecapHistoryEntry = {
+    cashDelta?: number | null
     endedAt?: string
     importedAt: string
     kills: number
@@ -17,6 +18,18 @@ export function calculateMatchRecapBaseline(matches: MatchRecapHistoryEntry[]) {
     const count = previousMatches.length || 1
 
     return {
+        ...(previousMatches.some((match) => match.cashDelta !== undefined)
+            ? {
+                  cashDelta: previousMatches.every(
+                      (match) => typeof match.cashDelta === "number"
+                  )
+                      ? previousMatches.reduce(
+                            (sum, match) => sum + (match.cashDelta ?? 0),
+                            0
+                        ) / count
+                      : null,
+              }
+            : {}),
         matches: previousMatches.length,
         kills:
             previousMatches.reduce((sum, match) => sum + match.kills, 0) /

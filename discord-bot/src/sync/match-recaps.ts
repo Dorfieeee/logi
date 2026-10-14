@@ -34,11 +34,13 @@ export type MatchRecapData = {
     kills: number
     deaths: number
     kd: number
+    cashDelta?: number | null
     previousTen?: {
         matches: number
         kills: number
         deaths: number
         kd: number
+        cashDelta?: number | null
     }
 }
 type PendingMatchRecap = MatchRecapData & {
@@ -78,8 +80,12 @@ export function recapStatsUrl(
 }
 
 /** The rendered, Discord-safe performance card that accompanies a recap DM. */
-export function recapPerformanceImageUrl(userId: string, eventId: string) {
-    return `${env.appSiteUrl}/api/og/player-match/${encodeURIComponent(userId)}/${encodeURIComponent(eventId)}`
+export function recapPerformanceImageUrl(
+    userId: string,
+    eventId: string,
+    language?: string
+) {
+    return `${env.appSiteUrl}/api/og/player-match/${encodeURIComponent(userId)}/${encodeURIComponent(eventId)}${language ? `?locale=${resolveClanLanguage(language)}` : ""}`
 }
 
 /** The recap card for one player, turned on or off. */
@@ -111,6 +117,7 @@ export function buildMatchRecapView(input: {
         deaths: input.recap.deaths,
         kd: input.recap.kd,
         previous: input.recap.previousTen,
+        cashDelta: input.recap.cashDelta,
     }
     const provider =
         forum?.provider ?? (event.gameId === "wardogs" ? undefined : "CRCON")
@@ -145,7 +152,8 @@ export function buildMatchRecapView(input: {
             : undefined,
         performanceImage: recapPerformanceImageUrl(
             input.recap.userId,
-            event.id
+            event.id,
+            language
         ),
         statsUrl: recapStatsUrl(language, input.recap.userId, event.id),
         settingsUrl: dmSettingsUrl(language),

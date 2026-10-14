@@ -28,6 +28,7 @@ import {
 } from "@/lib/api/people-openapi"
 import { membershipObservationSchema } from "@/domain/membership/observation.schema"
 import { externalRegistrationPaths } from "@/lib/api/external-registration-openapi"
+import { wardogsMatchResponseSchemas } from "@/lib/api/wardogs-match-openapi"
 import { warconEnvelopeSchema } from "@/domain/game-data/warcon-contracts"
 import { clanResultSummarySchema } from "@/domain/api/result-summaries"
 import { leagueFixtureSchema } from "@/domain/wardogs-league/fixture"
@@ -331,9 +332,15 @@ function resourceSchemaName(resource: string) {
 }
 
 function successResponse(resource: string, isList: boolean) {
-    const document = {
-        $ref: `#/components/schemas/${resourceSchemaName(resource)}`,
-    }
+    const document =
+        resource === "matches" && !isList
+            ? {
+                  oneOf: [
+                      { $ref: "#/components/schemas/ClanMatchesDocument" },
+                      { $ref: "#/components/schemas/WardogsMatchReport" },
+                  ],
+              }
+            : { $ref: `#/components/schemas/${resourceSchemaName(resource)}` }
     return {
         description: "Success",
         headers: responses["200"].headers,
@@ -395,7 +402,7 @@ const paths: Record<string, unknown> = {
             summary: "List public matches",
             tags: ["Public API — no key required"],
             description:
-                "Public, rate-limited match feed. No Authorization header is required. Omit game or use game=all for every game; repeat game for a combination.",
+                "Public, rate-limited match feed including reviewed Wardogs reports. Wardogs entries include participants with names and nullable scores; the HLL two-side score field is null. No Authorization header is required. Omit game or use game=all for every game; repeat game for a combination.",
             parameters: [
                 {
                     ...gameParameter,
@@ -421,7 +428,7 @@ const paths: Record<string, unknown> = {
             summary: "Get a public match",
             tags: ["Public API — no key required"],
             description:
-                "Public, rate-limited match details. Use collection=playerStats for player statistics.",
+                "Public, rate-limited match details. HLL and HLL Vietnam preserve their legacy match DTO. Wardogs returns WardogsMatchReport: a frozen reviewed snapshot with sides, rounds, bounded real score timelines and players (kills, deaths, kd, signed money, seconds). Unknown metrics remain null; old imports may have no timeline. EndedAt is the actual provider match end, not import time. Platform IDs are not exposed. Use collection=playerStats for player statistics (Wardogs players).",
             parameters: [
                 {
                     name: "eventId",
@@ -678,6 +685,12 @@ for (const resource of resources) {
                 : {}),
             ...(resource === "events"
                 ? { description: completeEventRecordDescription }
+                : {}),
+            ...(resource === "matches"
+                ? {
+                      description:
+                          "HLL/HLL Vietnam preserve the existing match document. Reviewed Wardogs matches return WardogsMatchReport with sides, rounds, players and nullable source metrics. Requires matches and the selected game's read grant and matching workspace. No raw platform IDs. Use /clan/match-summaries for the cross-game event listing.",
+                  }
                 : {}),
             tags: [resourceTags[resource]!],
             security: [{ clanApiKey: [] }],
@@ -2358,6 +2371,7 @@ Article, group, calendar-item, roster, assignment, event, signup, stratmap, and 
             ],
             components: {
                 schemas: {
+                    ...wardogsMatchResponseSchemas,
                     ...peopleResponseSchemas,
                     ...generatedOpenApiSchemas,
                     ...summaryResponseSchemas,

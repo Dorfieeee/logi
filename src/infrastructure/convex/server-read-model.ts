@@ -195,6 +195,7 @@ export function normalizeEventDoc<
                 sideB: number
             }
         }
+        wardogsReportId?: unknown
         matchStatsId?: unknown
         competitionFixtureId?: unknown
         attendanceReminderLog?: Array<{
@@ -228,6 +229,9 @@ export function normalizeEventDoc<
         ...normalized,
         matchStatsId: normalized.matchStatsId
             ? String(normalized.matchStatsId)
+            : undefined,
+        wardogsReportId: event.wardogsReportId
+            ? String(event.wardogsReportId)
             : undefined,
         matchId: normalized.matchStatsId
             ? String(normalized.matchStatsId)

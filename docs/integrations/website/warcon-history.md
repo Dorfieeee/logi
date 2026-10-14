@@ -12,7 +12,7 @@ Duplicate faction names are rejected at both the provider detail and retained me
 
 Disabling collection or removing its configuration does not delete retained history. Retention is indefinite by default; a workspace administrator may set a 90-, 180-, 365- or 730-day window in **Settings → Game servers → History retention**. A nightly sweep (and an immediate run after the window is shortened) deletes games that ended before the window in batches, emits `server-game-history` remove changes and advances the workspace history revision, so paginating consumers receive `reset_required` and rebuild. There is no per-game deletion workflow. Operators must consider retention and player-ID visibility before granting website access.
 
-Stored facts include UTC start/end, map, final scores, explicit winner, provider outcome, faction names/colors, mode/lighting, feed flag and per-player platform ID, observed name, faction, result, time, kills/deaths, signed cash delta and available combat metrics. Timeline samples and presentation awards are available through the existing Warcon view, not duplicated in this archive.
+Stored facts include UTC start/end, map, final scores, explicit winner, provider outcome, faction names/colors, mode/lighting, feed flag and per-player platform ID, observed name, faction, result, time, kills/deaths, signed cash delta and available combat metrics. Up to 500 real score timeline samples are retained for new imports, preserving the first and last provider samples. Earlier records may omit them; presentation awards remain in the existing Warcon view. The upstream [timeline writer](https://github.com/warcon-app/warcon/blob/main/src/lib/server/matches.ts) records elapsed seconds followed by scores in faction order.
 
 Warcon defines a game without a winner and with any positive final score as a draw; it does not require a score tie. With no positive score it has no result. This follows the reviewed upstream [`matchResult` rule](https://github.com/warcon-app/warcon/blob/main/src/lib/leaderboard.ts). Explicit player results are retained, including null for unknown or unassigned players. Missing values are never converted into losses or zero scores.
 
@@ -87,3 +87,23 @@ so run it only for an authorized deployment.
 ## Verification
 
 See [local acceptance evidence](evidence/2026-10-03-warcon-history/README.md). The live collector was exercised against the authorized Warcon origin into an isolated loopback Convex database. Screenshots use a separate synthetic workspace dataset. No provider write, production database deployment or real player export is part of the proof.
+
+
+## Reviewed Wardogs reports and recaps
+
+`wardogsMatchReports` stores a frozen, versioned report derived from reviewed
+source sessions. Public `/api/v1/public/matches/{eventId}` and scoped
+`/api/v1/clan/matches/{eventId}` return the same `WardogsMatchReport` shape for
+Wardogs. The latter requires `matches` and Wardogs read access and workspace
+scoping. Raw platform IDs are excluded; player links use existing public IDs.
+Source replacement updates the snapshot through result correction, not live
+reads. Removing all reviewed sources removes the report. Existing recovery
+creates reports but explicitly skips recap queuing.
+
+Recaps use the existing durable HLL queue and explicit roster/account binding.
+Wardogs binds queued recaps to the original confirmed result version; pending
+delivery rechecks status/version, recipient, opt-out and enabled results-panel
+publication. Corrections suppress pending originals and never create additional
+recaps. Sent records survive restart. Discord acceptance and Convex marking are
+not atomic, so the same send/mark crash window as HLL remains. Performance images
+include actual Wardogs kills, deaths and signed money, with localized labels.

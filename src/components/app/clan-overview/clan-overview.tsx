@@ -294,6 +294,7 @@ export function ClanOverview({
                 matchHref={matchHref}
                 playerHref={(userId) => `/${locale}/players/${userId}`}
                 dictionary={dictionary}
+                gameId={gameId}
             />
         </div>
     )

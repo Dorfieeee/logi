@@ -1,4 +1,24 @@
 export const enMessages = {
+    wardogsMatchDetails: {
+        ourTeam: "Your team",
+        players: "Players",
+        scoreTimeline: "Score through the match",
+        noTimeline:
+            "No score timeline was collected for this game. Player statistics are still available below.",
+        factionCombat: "Kills and deaths by faction",
+        factionMoney: "Money by faction",
+        minutes: "Minutes",
+        search: "Find a player",
+        allFactions: "All factions",
+        noPlayers: "No players match these filters.",
+        missingTitle: "This match is missing its result",
+        missingBody:
+            "Choose a collected server game and check its scores before confirming.",
+        suggestion: "Could this be your match?",
+        openReport: "View match details",
+        reviewResult: "Review the result",
+        otherSource: "Not this game? Choose another source.",
+    },
     gameHistory: {
         title: "Warcon game history",
         description:
@@ -5956,6 +5976,7 @@ export const enMessages = {
         matchesPlayed: "matches played",
         noPlayerStats: "No player statistics were imported for these matches.",
         performanceTrend: "Clan performance trend",
+        statsForGame: "{game} statistics",
         playerPerformanceTrend: "Performance trend",
         performanceLastMatches: "Last {count} recorded matches",
         performanceComparedWithPrevious:

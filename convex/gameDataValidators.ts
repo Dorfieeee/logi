@@ -85,6 +85,7 @@ export const gameDataSession = v.object({
                 v.literal("unknown")
             ),
             hasFeed: v.boolean(),
+            scoreTimeline: v.optional(v.array(v.array(v.number()))),
             mode: v.union(v.string(), v.null()),
             lighting: v.union(v.string(), v.null()),
             factions: v.array(

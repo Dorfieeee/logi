@@ -64,7 +64,7 @@ export async function getClanOverviewExtras(input: {
             serverId,
             input.gameScope
         ),
-        getRecentMatchSummary(serverId),
+        getRecentMatchSummary(serverId, input.gameScope),
         attendanceLeaders(context, input.monthKey, input.monthKeyOf),
     ])
     return { performance, recent, leaders }

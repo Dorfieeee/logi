@@ -2,6 +2,7 @@ import { makeFunctionReference } from "convex/server"
 import { fetchQuery } from "convex/nextjs"
 
 import { appCacheTags, cachedRead } from "@/lib/cache-tags"
+import type { GameScope } from "@/domain/games/game"
 import { getInternalAuthSecret } from "@/lib/env"
 
 const getRecentMatchSummaryReference = makeFunctionReference<"query">(
@@ -14,7 +15,7 @@ export type RecentMatchSummary = {
         name: string
         endedAt: string
         outcome: "victory" | "defeat" | "draw"
-        score: { sideA: number; sideB: number }
+        scores: Array<number | null>
     }>
     wins: number
     losses: number
@@ -31,15 +32,17 @@ export type RecentMatchSummary = {
 
 /** Call only after the server-context access check has succeeded. */
 export async function getRecentMatchSummary(
-    serverId: string
+    serverId: string,
+    gameScope: GameScope = "all"
 ): Promise<RecentMatchSummary | null> {
     return await cachedRead(
-        ["server-recent-match-summary:v4", serverId],
+        ["server-recent-match-summary:v5", serverId, gameScope],
         [appCacheTags.serverContext(serverId), appCacheTags.matches(serverId)],
         async () =>
             (await fetchQuery(getRecentMatchSummaryReference, {
                 secret: getInternalAuthSecret(),
                 serverId: serverId as never,
+                gameScope,
             })) as RecentMatchSummary | null,
         60 * 60 * 24
     )

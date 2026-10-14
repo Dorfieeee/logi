@@ -30,3 +30,28 @@ test("prefers a complete record at the same distance", () => {
     ]
     assert.equal(suggestResultSession(tied, "2026-10-04T18:00:00Z")?.id, "full")
 })
+
+test("suggests a game by its end time when the provider start predates the match", () => {
+    const source = {
+        id: "match",
+        startedAt: "2026-10-07T20:00:00Z",
+        endedAt: "2026-10-10T20:00:00Z",
+        complete: true,
+    }
+    assert.equal(
+        suggestResultSession(
+            [source],
+            "2026-10-10T18:00:00Z",
+            "2026-10-10T20:00:00Z"
+        )?.id,
+        "match"
+    )
+    assert.equal(
+        suggestResultSession(
+            [source],
+            "2026-10-12T18:00:00Z",
+            "2026-10-12T20:00:00Z"
+        ),
+        null
+    )
+})

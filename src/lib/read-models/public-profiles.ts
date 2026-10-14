@@ -271,7 +271,8 @@ export async function listPublicMatches(
                 gameEnd: string
                 clan: { id: string; name: string; avatar: string } | null
                 mapName: string
-                score: { axis: number; allied: number }
+                score: { axis: number; allied: number } | null
+                participants?: Array<{ name: string; score: number | null }>
                 outcome?: string
                 category?: string
             }>,

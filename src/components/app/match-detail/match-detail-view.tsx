@@ -25,8 +25,10 @@ import type { ReminderAudienceState } from "@/components/app/match-detail/remind
 import { SubmitMatchResultsButton } from "@/components/app/submit-match-results-button"
 import { MatchDiscordPanel } from "@/components/app/match-detail/match-discord-panel"
 import type { EventDiscordMessages } from "@/lib/read-models/match-detail"
+import { playerMetricKind } from "@/domain/player-stats/game-metrics"
 import type { MatchPhaseStep } from "@/domain/events/match-phase"
 import { ResultReview } from "@/components/app/result-review"
+import { MissingResultNotice } from "./missing-result-notice"
 import { EmptyState } from "@/components/app/empty-state"
 import type { Dictionary } from "@/i18n/dictionaries"
 import type { GameId } from "@/domain/games/game"
@@ -190,6 +192,21 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                                 ))}
                             </div>
                         ) : null}
+                        {canAdmin &&
+                        played &&
+                        !event.eventResult &&
+                        !event.wardogsReportId &&
+                        playerMetricKind(model.gameId) ? (
+                            <MissingResultNotice
+                                review={model.review ?? null}
+                                start={event.gameStart}
+                                end={event.gameEnd}
+                                href={model.tabHref("result")}
+                                dictionary={dictionary}
+                                locale={locale}
+                                timezone={model.timeZone}
+                            />
+                        ) : null}
                         {model.overview}
                     </div>
                 ) : null}
@@ -270,6 +287,7 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                                 dictionary={dictionary}
                                 initialData={model.review}
                                 matchStart={event.gameStart}
+                                matchEnd={event.gameEnd}
                                 locale={locale}
                                 timeZone={model.timeZone}
                                 actorNames={model.reviewerNames}
@@ -287,7 +305,7 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                                     event.competitionFixtureId
                                 )}
                                 playersHref={
-                                    event.matchStatsId
+                                    event.matchStatsId || event.wardogsReportId
                                         ? section === "matches"
                                             ? `${basePath}/match-stats`
                                             : `${basePath}/match`
@@ -301,6 +319,7 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                             />
                         )}
                         {event.matchStatsId ||
+                        event.wardogsReportId ||
                         (canAdmin && event.status === "concluded") ? (
                             <section className="border-border/60 bg-card flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                                 <div>
@@ -308,13 +327,15 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                                         {t.result.stats}
                                     </h2>
                                     <p className="text-muted-foreground text-sm">
-                                        {event.matchStatsId
+                                        {event.matchStatsId ||
+                                        event.wardogsReportId
                                             ? t.result.statsDescription
                                             : dictionary.event.noMatchLinked}
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {event.matchStatsId ? (
+                                    {event.matchStatsId ||
+                                    event.wardogsReportId ? (
                                         <Button
                                             asChild
                                             variant="outline"
@@ -332,7 +353,8 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                                         </Button>
                                     ) : null}
                                     {canAdmin &&
-                                    event.status === "concluded" ? (
+                                    event.status === "concluded" &&
+                                    model.gameId !== "wardogs" ? (
                                         <SubmitMatchResultsButton
                                             serverId={serverId}
                                             eventId={event.id}

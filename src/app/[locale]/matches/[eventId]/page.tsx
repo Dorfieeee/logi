@@ -11,6 +11,8 @@ import {
     PublicPage,
     PublicSiteShell,
 } from "@/components/public/public-site-shell"
+import { getWardogsMatchReport } from "@/lib/read-models/wardogs-match-reports"
+import { WardogsMatchDetails } from "@/components/app/wardogs-match-details"
 import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs"
 import { getPublicPreviewMetadata } from "@/lib/public-preview-metadata"
 import { getPublicMatch } from "@/lib/read-models/public-profiles"
@@ -41,7 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const imageVersion = getPublicImageVersion(
         preview?.imageVersion ?? "current"
     )
-    const image = `/api/og/match/${eventId}?v=${encodeURIComponent(imageVersion)}`
+    const image = `/api/og/match/${eventId}?v=${encodeURIComponent(imageVersion)}&locale=${safeLocale}`
     const imageDimensions = getPublicImageDimensions(imageVersion)
     return {
         title,
@@ -63,8 +65,11 @@ export default async function PublicMatchPage({ params }: Props) {
     const { locale, eventId } = await params
     const resolvedLocale = isLocale(locale) ? locale : "en"
     const dictionary = getDictionary(resolvedLocale)
-    const match = await getPublicMatch(eventId)
-    if (!match) notFound()
+    const [match, report] = await Promise.all([
+        getPublicMatch(eventId),
+        getWardogsMatchReport(eventId),
+    ])
+    if (!match && !report) notFound()
     return (
         <PublicSiteShell locale={resolvedLocale} current="community">
             <PublicPage>
@@ -82,12 +87,20 @@ export default async function PublicMatchPage({ params }: Props) {
                             { label: dictionary.publicProfiles.matches },
                         ]}
                     />
-                    <MatchDetails
-                        match={match}
-                        dictionary={dictionary}
-                        publicPlayerIds={match.linkedPlayerIds}
-                        publicLocale={resolvedLocale}
-                    />
+                    {report ? (
+                        <WardogsMatchDetails
+                            report={report}
+                            dictionary={dictionary}
+                            locale={resolvedLocale}
+                        />
+                    ) : match ? (
+                        <MatchDetails
+                            match={match}
+                            dictionary={dictionary}
+                            publicPlayerIds={match.linkedPlayerIds}
+                            publicLocale={resolvedLocale}
+                        />
+                    ) : null}
                 </div>
             </PublicPage>
             <DynamicMetadataMarker />

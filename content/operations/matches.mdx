@@ -546,3 +546,28 @@ membership, attendance or game ownership.
 Reviewed results are separate from the legacy imported scoreboard and event
 conclusion described above. A confirmed result does not automatically publish
 anything on an external website.
+
+
+## Wardogs match reports
+
+Confirming a Wardogs result with a collected Warcon game saves a reviewed match
+report. The match, public player statistics and Discord result card link to the
+same report. It shows the teams and their assigned factions, final scores,
+faction kills/deaths and money graphs, and searchable player statistics. K/D
+always has two decimal places. Missing money or other provider fields remain
+unknown. Actual score timelines are shown when collected; older imports may
+not include them. Dates use the provider's match end time.
+
+A played match without a recorded result can suggest a nearby completed server
+game. Review its end time, map and scores before confirming it; the suggestion
+never publishes automatically. You can choose another source on the Result tab.
+
+Opted-in rostered players with linked statistics receive one queued personal
+recap when the original Wardogs result is confirmed. If a Wardogs results panel
+is enabled, delivery waits until its result card is successfully posted. The
+DM includes kills, deaths, K/D, money and a performance graphic. Durable sent
+markers prevent replay after an ordinary bot restart. Correcting the result
+does not queue another DM and suppresses any original recap still waiting.
+Historical report recovery does not send retrospective DMs. Delivery uses the
+same recipient and opt-out checks as HLL; a crash between Discord accepting a
+DM and saving its sent marker can still cause a retry, as with HLL.

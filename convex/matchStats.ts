@@ -1,3 +1,4 @@
+import { storeMatchPreview } from "./publicPreviewStore"
 import type { MutationCtx } from "./_generated/server"
 import { internalAuthSecret } from "./discord_shared"
 import type { Doc } from "./_generated/dataModel"
@@ -163,25 +164,15 @@ async function upsertMatchPreview(
 ) {
     const entityId = String(event._id)
     const score = `${raw.result.allied} – ${raw.result.axis}`
-    const existing = await ctx.db
-        .query("publicPreviews")
-        .withIndex("entity", (q) =>
-            q.eq("entityType", "match").eq("entityId", entityId)
-        )
-        .unique()
-    const preview = {
-        entityType: "match" as const,
+    await storeMatchPreview(
+        ctx,
         entityId,
-        title: `${event.name} · ${score}`,
-        description: `${raw.map.pretty_name} · Recorded match result`,
-        imageVersion: now,
-        updatedAt: now,
-        expiresAt: new Date(
-            new Date(now).getTime() + 30 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-    }
-    if (existing) await ctx.db.patch(existing._id, preview)
-    else await ctx.db.insert("publicPreviews", preview)
+        {
+            title: `${event.name} · ${score}`,
+            description: `${raw.map.pretty_name} · Recorded match result`,
+        },
+        now
+    )
 }
 
 async function schedulePerformanceHistoryRefresh(

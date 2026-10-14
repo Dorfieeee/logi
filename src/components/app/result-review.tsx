@@ -45,6 +45,7 @@ type Props = {
     initialData?: ReviewData | null
     /** Match start, used to suggest the server game the result came from. */
     matchStart?: string
+    matchEnd?: string
     locale?: string
     timeZone?: string
     /** Names of the admins and importers in the history, by Discord ID. */
@@ -92,11 +93,12 @@ function editorState(
     data: ReviewData,
     matchStart: string | undefined,
     participantLabel: string,
-    matchTeams: MatchTeamAssignment[] | undefined
+    matchTeams: MatchTeamAssignment[] | undefined,
+    matchEnd?: string
 ) {
     const suggestion =
         !data.current && matchStart
-            ? suggestResultSession(data.sessions, matchStart)
+            ? suggestResultSession(data.sessions, matchStart, matchEnd)
             : null
     return {
         scores: data.current
@@ -147,6 +149,7 @@ function Review({
     dictionary,
     initialData,
     matchStart,
+    matchEnd,
     locale = "en",
     timeZone = "UTC",
     actorNames = {},
@@ -164,7 +167,13 @@ function Review({
     const heading = useId()
     const [initial] = useState(() =>
         initialData
-            ? editorState(initialData, matchStart, t.participant, matchTeams)
+            ? editorState(
+                  initialData,
+                  matchStart,
+                  t.participant,
+                  matchTeams,
+                  matchEnd
+              )
             : null
     )
     const [data, setData] = useState<ReviewData | null>(initialData ?? null)
@@ -190,7 +199,8 @@ function Review({
                     result,
                     matchStart,
                     t.participant,
-                    matchTeams
+                    matchTeams,
+                    matchEnd
                 )
                 setData(result)
                 setScores(next.scores)
@@ -211,7 +221,7 @@ function Review({
                 if (!controller.signal.aborted) setLoading(false)
             })
         return () => controller.abort()
-    }, [endpoint, refresh, t.participant, matchStart, matchTeams])
+    }, [endpoint, refresh, t.participant, matchStart, matchEnd, matchTeams])
 
     const reload = () => {
         setLoading(true)

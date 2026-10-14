@@ -1023,3 +1023,30 @@ test("Naše servery in style B draws the banner on top with the clan badge (P7-1
     )
     assert.deepEqual(names, ["banner-nase-servery-abc.png"])
 })
+
+test("Wardogs recap delivery is triggered only after a successful result publication", async () => {
+    for (const posted of [false, true]) {
+        const delivered: string[] = []
+        const fake = fakes({
+            resultsPage: async () => ({ cursor: null, events: [result(1)] }),
+            publish: async () => (posted ? "323456789012345678" : null),
+            resultRecaps: async (eventId) => {
+                delivered.push(eventId)
+            },
+        })
+        await runPanel(
+            panel({
+                kind: "results",
+                gameId: "wardogs",
+                connectionId: undefined,
+                servers: [],
+                createdAt: now,
+                requestedAt: now,
+            }),
+            pass,
+            fake.ports,
+            createPanelRunMemory()
+        )
+        assert.deepEqual(delivered, posted ? ["events:1"] : [])
+    }
+})

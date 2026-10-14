@@ -54,6 +54,7 @@ import {
 } from "./discordPanelGraphicsTable"
 import { storedMatchTemplateValidator } from "./matchTemplateValidators"
 import { resultPublicPayload, resultRevision } from "./resultValidators"
+import { wardogsMatchReport } from "./wardogsMatchReportValidators"
 import { tacticalPlanValidator } from "./tacticalPlanValidator"
 import { defineSchema, defineTable } from "convex/server"
 import { apiKeyReadAccess } from "./apiKeyValidators"
@@ -1009,6 +1010,7 @@ export default defineSchema({
         reviewedResult: v.optional(resultPublicPayload),
         reviewedResultGameId: v.optional(v.string()),
         matchStatsId: v.optional(v.id("matchStats")),
+        wardogsReportId: v.optional(v.id("wardogsMatchReports")),
         competitionFixtureId: v.optional(v.id("competitionFixtures")),
         attendanceReminderLog: v.optional(v.array(attendanceReminder)),
         // Reserved before scheduled signup DMs, so a restart cannot repeat a run.
@@ -1358,6 +1360,7 @@ export default defineSchema({
         .index("guildId_userId", ["guildId", "userId"])
         .index("guildId_updatedAt", ["guildId", "updatedAt"]),
     matchRecaps: defineTable({
+        resultVersion: v.optional(v.number()),
         eventId: v.id("events"),
         userId: v.string(),
         // New deliveries bind the data identity separately from the Discord recipient.
@@ -1370,6 +1373,7 @@ export default defineSchema({
                 kills: v.number(),
                 deaths: v.number(),
                 kd: v.number(),
+                cashDelta: v.optional(v.union(v.number(), v.null())),
             })
         ),
         createdAt: v.string(),
@@ -1713,6 +1717,16 @@ export default defineSchema({
     })
         .index("guildId", ["guildId"])
         .index("guildId_userId", ["guildId", "userId"]),
+    wardogsMatchReports: defineTable({
+        guildId: v.string(),
+        eventId: v.id("events"),
+        gameId: v.literal("wardogs"),
+        report: wardogsMatchReport,
+        createdAt: v.string(),
+        updatedAt: v.string(),
+    })
+        .index("eventId", ["eventId"])
+        .index("guildId", ["guildId"]),
     matchStats: defineTable({
         guildId: v.string(),
         gameId: v.optional(gameId),

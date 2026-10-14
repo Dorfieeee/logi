@@ -1,9 +1,11 @@
 import { wardogsPlayerMetrics } from "../src/domain/player-stats/collected-metrics"
 import type { ResultRevision } from "../src/domain/match-results/result-revision"
 import { canonicalJson } from "../src/domain/game-data/canonical-json"
+import { storeWardogsMatchReport } from "./wardogsMatchReportStore"
 import { getUserByIdentifier, getUserStableId } from "./identity"
 import type { MutationCtx } from "./_generated/server"
 import { internalAuthSecret } from "./discord_shared"
+import { queueEventRecaps } from "./matchRecapStore"
 import type { Doc } from "./_generated/dataModel"
 import { internal } from "./_generated/api"
 
@@ -12,7 +14,8 @@ export async function saveCollectedPlayerStats(
     ctx: MutationCtx,
     event: Doc<"events">,
     revision: ResultRevision,
-    previous: ResultRevision | null = null
+    previous: ResultRevision | null = null,
+    options: { queueRecaps?: boolean; refreshPerformance?: boolean } = {}
 ) {
     if (event.gameId !== "wardogs" || revision.status === "provisional")
         return { players: 0, matchedPlayers: 0, changed: false }
@@ -60,6 +63,7 @@ export async function saveCollectedPlayerStats(
             .filter((p) => p.platform === "steam")
             .map((p) => p.platformId) ?? []),
     ])
+    const profileIds = new Map<string, string>()
     let changed = false
     let matchedPlayers = 0
     for (const platformId of ids) {
@@ -94,7 +98,10 @@ export async function saveCollectedPlayerStats(
             (candidates.length === 1
                 ? getUserStableId(candidates[0]!)
                 : undefined)
-        if (userId) matchedPlayers++
+        if (userId) {
+            matchedPlayers++
+            profileIds.set(`steam:${platformId}`, userId)
+        }
         const deaths = player.deaths
         const match = {
             gameId: "wardogs",
@@ -141,7 +148,15 @@ export async function saveCollectedPlayerStats(
         else await ctx.db.insert("playerStats", { id, ...values })
         changed = true
     }
-    if (changed)
+    const reportChanged = await storeWardogsMatchReport(
+        ctx,
+        event,
+        revision,
+        sessions,
+        profileIds
+    )
+    if (options.queueRecaps !== false) await queueEventRecaps(ctx, event._id)
+    if (changed || reportChanged || options.refreshPerformance)
         await ctx.scheduler.runAfter(
             0,
             internal.performanceHistory.refreshInBackground,

@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/tooltip"
 import { PerformanceHistoryChart } from "@/components/app/performance-history-chart"
 import type { PerformanceSnapshot } from "@/lib/read-models/performance-history"
+import { gameLabel, resolveGameScope, type GameId } from "@/domain/games/game"
 import type { RecentMatchSummary } from "@/lib/read-models/server-dashboard"
+import { playerStatProfile } from "@/domain/player-stats/game-metrics"
 import { StatCard } from "@/components/app/stat-card"
 import type { Dictionary } from "@/i18n/dictionaries"
 import { Badge } from "@/components/ui/badge"
@@ -50,6 +52,7 @@ export function ClanStatsSection({
     playerHref,
     dictionary,
     locale = "en",
+    gameId,
 }: {
     totals: ClanStatTotals
     performance: PerformanceSnapshot[]
@@ -58,6 +61,7 @@ export function ClanStatsSection({
     playerHref: (userId: string) => string
     dictionary: Dictionary
     locale?: string
+    gameId?: GameId
 }) {
     const text = dictionary.clan
     const outcomes = {
@@ -66,6 +70,20 @@ export function ClanStatsSection({
         draw: text.draw,
     }
     const topPlayers = recent?.topPlayers ?? []
+    const matchesByGame = new Map<string, PerformanceSnapshot[]>()
+    for (const match of performance) {
+        const key = resolveGameScope(match.gameId)
+        if (!playerStatProfile(key)) continue
+        const matches = matchesByGame.get(key) ?? []
+        matches.push(match)
+        matchesByGame.set(key, matches)
+    }
+    // A selected supported game keeps its empty-state visible. With All games,
+    // only show games that actually have recorded statistics.
+    const statisticGames =
+        gameId && playerStatProfile(gameId)
+            ? [gameId]
+            : [...matchesByGame.keys()]
     return (
         <section aria-labelledby="overview-stats" className="space-y-4 pt-2">
             <h2
@@ -102,31 +120,62 @@ export function ClanStatsSection({
                     icon={ClipboardList}
                 />
             </div>
-            <div className="grid gap-4 xl:grid-cols-2">
-                <PerformanceHistoryChart
-                    title={text.performanceTrend}
-                    matches={performance}
-                    dictionary={dictionary}
-                    kind="effectiveness"
-                    locale={locale}
-                />
-                <PerformanceHistoryChart
-                    title={text.kd}
-                    matches={performance}
-                    dictionary={dictionary}
-                    kind="combat"
-                    locale={locale}
-                />
-                <div className="xl:col-span-2">
-                    <PerformanceHistoryChart
-                        title={text.points}
-                        matches={performance}
-                        dictionary={dictionary}
-                        kind="points"
-                        locale={locale}
-                    />
-                </div>
-            </div>
+            {statisticGames.map((statGame) => {
+                const profile = playerStatProfile(statGame)
+                if (!profile) return null
+                const matches = matchesByGame.get(statGame) ?? []
+                const wardogs = profile.kind === "wardogs"
+                return (
+                    <section
+                        key={statGame}
+                        aria-label={gameLabel(statGame)}
+                        className="space-y-3"
+                    >
+                        {statisticGames.length > 1 ? (
+                            <h3 className="text-sm font-semibold">
+                                {text.statsForGame.replace(
+                                    "{game}",
+                                    gameLabel(statGame)
+                                )}
+                            </h3>
+                        ) : null}
+                        <div className="grid gap-4 xl:grid-cols-2">
+                            <PerformanceHistoryChart
+                                title={
+                                    wardogs
+                                        ? dictionary.gameHistory.cash
+                                        : text.performanceTrend
+                                }
+                                matches={matches}
+                                dictionary={dictionary}
+                                kind={wardogs ? "cash" : "effectiveness"}
+                                gameId={statGame}
+                                locale={locale}
+                            />
+                            <PerformanceHistoryChart
+                                title={text.kd}
+                                matches={matches}
+                                dictionary={dictionary}
+                                kind="combat"
+                                gameId={statGame}
+                                locale={locale}
+                            />
+                            {!wardogs ? (
+                                <div className="xl:col-span-2">
+                                    <PerformanceHistoryChart
+                                        title={text.points}
+                                        matches={matches}
+                                        dictionary={dictionary}
+                                        kind="points"
+                                        gameId={statGame}
+                                        locale={locale}
+                                    />
+                                </div>
+                            ) : null}
+                        </div>
+                    </section>
+                )
+            })}
             <section
                 aria-labelledby="overview-recent-games"
                 className="bg-card space-y-5 rounded-2xl border p-5 sm:p-6"
@@ -184,8 +233,11 @@ export function ClanStatsSection({
                                                 {outcomes[match.outcome]}
                                             </span>
                                             <span className="font-semibold tabular-nums">
-                                                {match.score.sideA} –{" "}
-                                                {match.score.sideB}
+                                                {match.scores
+                                                    .map(
+                                                        (score) => score ?? "—"
+                                                    )
+                                                    .join(" – ")}
                                             </span>
                                         </span>
                                     </Link>

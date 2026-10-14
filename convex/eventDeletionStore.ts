@@ -77,6 +77,10 @@ export async function deleteEventInTransaction(
             .query("matchStats")
             .withIndex("eventId", (q) => q.eq("eventId", eventId))
             .collect(),
+        ctx.db
+            .query("wardogsMatchReports")
+            .withIndex("eventId", (q) => q.eq("eventId", eventId))
+            .collect(),
     ])
     const rosterIds = new Set(children[0].map((row) => String(row._id)))
     const attendanceRequests = await ctx.db

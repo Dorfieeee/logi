@@ -228,6 +228,7 @@ export type PanelRunPorts = {
         url: string
         description: string
     }): Promise<{ name: string; bytes: Uint8Array; description: string } | null>
+    resultRecaps?(eventId: string): Promise<void>
     resultsPage(
         panelId: string,
         cursor: string | null
@@ -1059,14 +1060,18 @@ async function runResults(
                     binding.hash === publicationHash(message) &&
                     binding.lastSuccessAt !== null &&
                     pass.now - binding.lastSuccessAt < PUBLICATION_RECHECK_MS
-                )
+                ) {
+                    if (game === "wardogs") await ports.resultRecaps?.(event.id)
                     return
-                await ports.publish({
+                }
+                const published = await ports.publish({
                     key,
                     revision: panel.revision,
                     channelId,
                     message,
                 })
+                if (published && game === "wardogs")
+                    await ports.resultRecaps?.(event.id)
             },
         }
     )

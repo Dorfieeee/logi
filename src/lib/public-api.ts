@@ -293,11 +293,16 @@ export async function getClanApiPerformanceHistory(
     })
 }
 export async function getClanApiMatchByEvent(key: string, eventId: string) {
-    return await fetchQuery(clanMatchByEventReference, {
+    const result = await fetchQuery(clanMatchByEventReference, {
         secret: getInternalAuthSecret(),
         keyHash: hashApiKey(key),
         eventId: eventId as never,
     })
+    if (result) return result
+    return fetchQuery(
+        makeFunctionReference<"query">("wardogsMatchReports:getForKey"),
+        { secret: getInternalAuthSecret(), keyHash: hashApiKey(key), eventId }
+    )
 }
 export async function getClanApiUser(key: string, userId: string) {
     return await fetchQuery(clanUserReference, {
