@@ -128,6 +128,8 @@ export function assignmentAfterDecision(
 type CategoryRoles = {
     recruitRoleIds: readonly string[]
     finalRoleIds: readonly string[]
+    includeClanRoleForRecruit?: boolean
+    includeClanRoleForFinal?: boolean
 }
 
 export type DecisionRolePolicy = {
@@ -150,7 +152,12 @@ export function rolesForStatus(
 ): string[] {
     if (!policy.roleSync || !status || status === "pending") return []
     return unique([
-        ...(policy.clanRoleId ? [policy.clanRoleId] : []),
+        ...(policy.clanRoleId &&
+        (status === "recruit"
+            ? policy.category.includeClanRoleForRecruit !== false
+            : policy.category.includeClanRoleForFinal !== false)
+            ? [policy.clanRoleId]
+            : []),
         ...(status === "recruit"
             ? policy.category.recruitRoleIds
             : policy.category.finalRoleIds),
@@ -178,15 +185,29 @@ export function rolesAfterDecision(
     outcome: ApplicationOutcome
 ): string[] {
     if (!policy.roleSync) return []
-    const clan = policy.clanRoleId ? [policy.clanRoleId] : []
     switch (outcome) {
         case "member":
-            return unique([...clan, ...policy.category.finalRoleIds])
+            return unique([
+                ...(policy.clanRoleId &&
+                policy.category.includeClanRoleForFinal !== false
+                    ? [policy.clanRoleId]
+                    : []),
+                ...policy.category.finalRoleIds,
+            ])
         case "recruit":
-            return unique([...clan, ...policy.category.recruitRoleIds])
+            return unique([
+                ...(policy.clanRoleId &&
+                policy.category.includeClanRoleForRecruit !== false
+                    ? [policy.clanRoleId]
+                    : []),
+                ...policy.category.recruitRoleIds,
+            ])
         case "mercenary":
             return unique([
-                ...clan,
+                ...(policy.clanRoleId &&
+                policy.mercenaryCategory?.includeClanRoleForFinal !== false
+                    ? [policy.clanRoleId]
+                    : []),
                 ...(policy.mercenaryCategory?.finalRoleIds ?? []),
             ])
         case "pending":

@@ -352,6 +352,9 @@ async function runDecision(
                 category: {
                     recruitRoleIds: category?.recruitRoleIds ?? [],
                     finalRoleIds: category?.finalRoleIds ?? [],
+                    includeClanRoleForRecruit:
+                        category?.includeClanRoleForRecruit,
+                    includeClanRoleForFinal: category?.includeClanRoleForFinal,
                 },
                 mercenaryCategory: mercenary,
             },

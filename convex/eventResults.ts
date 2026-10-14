@@ -354,6 +354,7 @@ export const get = query({
                 externalId: row.externalId,
                 map: row.session.map,
                 startedAt: row.session.startedAt,
+                endedAt: row.session.endedAt,
                 complete: row.session.complete,
                 participants: row.session.participants,
             })),

@@ -1433,28 +1433,68 @@ function CategoryEditor({
                     {needsRecruitRole(category) ? (
                         <li className="grid gap-2 px-4 py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center">
                             <span className="text-sm">{t.statusRecruit}</span>
-                            <RoleChips
-                                value={category.recruitRoleIds}
-                                onChange={(value) =>
-                                    onChange({ recruitRoleIds: value })
-                                }
-                                roles={roles}
-                                leading={clanRoleChip}
-                                labels={roleLabels(t.statusRecruit)}
-                            />
+                            <div className="space-y-3">
+                                <SwitchRow
+                                    id={`${id}-clan-recruit`}
+                                    title={t.includeClanRoleTitle}
+                                    description={t.includeClanRoleRecruitHelp}
+                                    checked={
+                                        category.includeClanRoleForRecruit ??
+                                        true
+                                    }
+                                    onChange={(checked) =>
+                                        onChange({
+                                            includeClanRoleForRecruit: checked,
+                                        })
+                                    }
+                                />
+                                <RoleChips
+                                    value={category.recruitRoleIds}
+                                    onChange={(value) =>
+                                        onChange({ recruitRoleIds: value })
+                                    }
+                                    roles={roles}
+                                    leading={
+                                        category.includeClanRoleForRecruit !==
+                                        false
+                                            ? clanRoleChip
+                                            : null
+                                    }
+                                    labels={roleLabels(t.statusRecruit)}
+                                />
+                            </div>
                         </li>
                     ) : null}
                     <li className="grid gap-2 px-4 py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center">
                         <span className="text-sm">{finalLabel}</span>
-                        <RoleChips
-                            value={category.finalRoleIds}
-                            onChange={(value) =>
-                                onChange({ finalRoleIds: value })
-                            }
-                            roles={roles}
-                            leading={clanRoleChip}
-                            labels={roleLabels(finalLabel)}
-                        />
+                        <div className="space-y-3">
+                            <SwitchRow
+                                id={`${id}-clan-final`}
+                                title={t.includeClanRoleTitle}
+                                description={t.includeClanRoleFinalHelp}
+                                checked={
+                                    category.includeClanRoleForFinal ?? true
+                                }
+                                onChange={(checked) =>
+                                    onChange({
+                                        includeClanRoleForFinal: checked,
+                                    })
+                                }
+                            />
+                            <RoleChips
+                                value={category.finalRoleIds}
+                                onChange={(value) =>
+                                    onChange({ finalRoleIds: value })
+                                }
+                                roles={roles}
+                                leading={
+                                    category.includeClanRoleForFinal !== false
+                                        ? clanRoleChip
+                                        : null
+                                }
+                                labels={roleLabels(finalLabel)}
+                            />
+                        </div>
                     </li>
                 </ol>
                 <div className="grid gap-2 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center">

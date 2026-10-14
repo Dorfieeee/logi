@@ -47,6 +47,7 @@ test("who a scheduled sign-up reminder reached is recorded for the match page (L
         ],
         assignments: [
             member("100000000000000001"),
+            member("100000000000000001"),
             member("100000000000000002"),
             member("100000000000000003"),
         ],
@@ -69,6 +70,7 @@ test("who a scheduled sign-up reminder reached is recorded for the match page (L
             recorded.push(outcome)
         },
         now: () => Date.parse("2026-10-09T08:00:00.000Z"),
+        claim: async () => true,
     })
     // The member who already answered gets nothing.
     assert.deepEqual(sent, ["100000000000000001"])
@@ -82,6 +84,22 @@ test("who a scheduled sign-up reminder reached is recorded for the match page (L
             failedUserIds: ["100000000000000002"],
         },
     ])
+    await processSignupReminders(client, payload, new Set(["event-1"]), {
+        claim: async () => false,
+        record: async () => {
+            throw new Error("A suppressed run must not be recorded")
+        },
+    })
+    assert.deepEqual(sent, ["100000000000000001"])
+    await assert.rejects(
+        processSignupReminders(client, payload, new Set(["event-1"]), {
+            claim: async () => {
+                throw new Error("Backend unavailable")
+            },
+        }),
+        /Backend unavailable/
+    )
+    assert.deepEqual(sent, ["100000000000000001"])
 })
 
 test("signup reminders include legacy memberships for Hell Let Loose events", () => {

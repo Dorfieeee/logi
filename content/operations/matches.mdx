@@ -483,11 +483,16 @@ Open the match's **Result** tab. The score board puts your clan's side first
 the team names and logos, the two scores and **Win**, **Loss** or **Draw**.
 Before a source is selected it starts from the match's saved team slots instead
 of generic participants. A Wardogs match uses all three saved slots; source
-factions are matched to their saved team first, then their slot order is used
-as a fallback. Team names and logos are immutable snapshots from the catalogue,
+factions are matched to the saved team on that side. A faction without a
+matching team never borrows another team’s logo by position. Your faction uses
+your clan name when no team snapshot matches; each row shows the team name
+above its editable faction label. Team names and logos are immutable snapshots from the catalogue,
 so a linked clan's team keeps the information captured for this match.
 **Where the result comes from** names the
-collected HLL server game the scores came from. Before anything is saved, Logi
+collected server game the scores came from. Both the selected source and the
+picker show the provider’s match end date and time in the workspace timezone.
+A missing end time is shown as unknown; a start or collection time is never
+substituted for it. Before anything is saved, Logi
 suggests the game that started closest to the match start (within three hours)
 and fills in its scores; **Other game** picks a different game, an existing
 imported result, or manual entry. Selecting a source does not approve it.

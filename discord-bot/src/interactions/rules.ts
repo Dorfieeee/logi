@@ -16,7 +16,11 @@ export function resolveMembershipRoleIds(
         membershipSettings?: {
             categories: Pick<
                 MembershipCategory,
-                "id" | "recruitRoleIds" | "finalRoleIds"
+                | "id"
+                | "recruitRoleIds"
+                | "finalRoleIds"
+                | "includeClanRoleForRecruit"
+                | "includeClanRoleForFinal"
             >[]
         }
     },
@@ -38,7 +42,11 @@ export function resolveMembershipRoleIds(
               (item) => item.id === membershipCategoryId
           )
         : undefined
-    if (config.clanRoleId) {
+    const includesClanRole =
+        status === "recruit"
+            ? (category?.includeClanRoleForRecruit ?? true)
+            : (category?.includeClanRoleForFinal ?? true)
+    if (config.clanRoleId && includesClanRole) {
         roleIds.add(config.clanRoleId)
     }
     if (status === "recruit") {

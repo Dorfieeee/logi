@@ -2910,10 +2910,15 @@ export const csMessages = {
         statusPending: "Čeká na rozhodnutí",
         statusRecruit: "Rekrut",
         noRoles: "bez rolí",
+        includeClanRoleTitle: "Přidat klanovou roli",
+        includeClanRoleRecruitHelp:
+            "Přidá klanovou roli, když je tato kategorie rekrut.",
+        includeClanRoleFinalHelp:
+            "Přidá klanovou roli po schválení této kategorie, včetně žoldáků.",
         handledBy: "Kdo žádosti vyřizuje",
         handledByAdmins: "a správci Logi",
         clanRoleNote:
-            "{role} je klanová role z Role a přístup. Platí pro všechny kategorie.",
+            "{role} je klanová role z Role a přístup. Níže ji nastavíte zvlášť pro každou kategorii a stav.",
         clanRoleMissingNote:
             "Klanová role zatím není nastavená. Vyberte ji v Role a přístup; platí pro všechny kategorie.",
         clanRoleLink: "Otevřít Role a přístup",

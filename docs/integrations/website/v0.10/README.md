@@ -74,6 +74,9 @@ workspace and the existing dashboard data-administrator policy. The route derive
 guild, event, game and actor from its trusted context and rechecks access; the
 Convex handler checks them again. POST also requires the canonical same-origin
 `Origin` (`SITE_URL`). Every response is `Cache-Control: no-store`.
+GET source candidates include nullable provider `startedAt` and `endedAt`
+timestamps. The dashboard labels both candidates and saved session links by
+`endedAt` in the workspace timezone, showing unknown when no end is recorded.
 
 This uses Logi's existing data-management administrator policy, including its
 stored administrator IDs and access overrides. It is **not** I3's fresh Discord

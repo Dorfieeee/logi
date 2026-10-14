@@ -114,6 +114,36 @@ test("an applicant waits with the recruit role only, without the clan role", () 
         "recruit",
     ])
 })
+test("a category can exclude the clan role for recruits and mercenaries", () => {
+    const withoutClanRole = structuredClone(config)
+    Object.assign(withoutClanRole.membershipSettings.categories[0]!, {
+        includeClanRoleForRecruit: false,
+    })
+    Object.assign(
+        withoutClanRole.gameOverrides.wardogs.membershipSettings.categories[0]!,
+        { includeClanRoleForFinal: false }
+    )
+
+    assert.deepEqual(
+        desiredMembershipRoles(
+            managedRolePolicy(withoutClanRole, "hell_let_loose"),
+            {
+                type: "member",
+                status: "recruit",
+                membershipCategoryId: "members",
+            }
+        ),
+        ["recruit"]
+    )
+    assert.deepEqual(
+        desiredMembershipRoles(managedRolePolicy(withoutClanRole, "wardogs"), {
+            type: "mercenary",
+            status: "active",
+            membershipCategoryId: "wdg",
+        }),
+        ["wdg-member"]
+    )
+})
 test("roles can be shared between policies and games", () => {
     assert.deepEqual(managedRolePolicy(config, "wardogs").roleIds, [
         "clan",

@@ -3011,10 +3011,15 @@ export const deMessages = {
         statusPending: "Wartet auf Entscheidung",
         statusRecruit: "Rekrut",
         noRoles: "keine Rollen",
+        includeClanRoleTitle: "Clan-Rolle geben",
+        includeClanRoleRecruitHelp:
+            "Gibt die Clan-Rolle, solange diese Kategorie Rekrut ist.",
+        includeClanRoleFinalHelp:
+            "Gibt die Clan-Rolle nach der Aufnahme dieser Kategorie, auch Söldnern.",
         handledBy: "Wer Anfragen bearbeitet",
         handledByAdmins: "und Logi-Administratoren",
         clanRoleNote:
-            "{role} ist die Clan-Rolle aus Rollen und Zugriff. Sie gilt für jede Kategorie.",
+            "{role} ist die Clan-Rolle aus Rollen und Zugriff. Unten wird sie für jede Kategorie und jeden Status getrennt eingestellt.",
         clanRoleMissingNote:
             "Die Clan-Rolle ist noch nicht gesetzt. Wähle sie unter Rollen und Zugriff; sie gilt für jede Kategorie.",
         clanRoleLink: "Rollen und Zugriff öffnen",

@@ -1,6 +1,7 @@
 import type { EventStatus } from "./types"
 
 const HISTORICAL_EVENT_AGE_MS = 7 * 24 * 60 * 60 * 1000
+export const SIGNUP_REMINDER_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 /** Hours before the meeting when unconfirmed roster players get a DM. */
 export const ATTENDANCE_REMINDER_OFFSETS = [24, 18, 12, 6] as const
@@ -48,7 +49,8 @@ export function getSignupReminderDueAt(
     registrationEnd: string,
     now: Date,
     scheduleOverdueImmediately = false,
-    announcedAt?: string
+    announcedAt?: string,
+    lastReminderAt?: string
 ): string | null {
     const createdAtMs = new Date(createdAt).getTime()
     const registrationEndMs = new Date(registrationEnd).getTime()
@@ -64,9 +66,20 @@ export function getSignupReminderDueAt(
         Math.max(
             createdAtMs,
             Number.isFinite(announcedAtMs) ? announcedAtMs : createdAtMs
-        ) +
-        24 * 60 * 60 * 1000
+        ) + SIGNUP_REMINDER_INTERVAL_MS
     if (firstDueAtMs >= registrationEndMs) return null
+
+    const lastReminderMs = lastReminderAt ? Date.parse(lastReminderAt) : NaN
+    if (Number.isFinite(lastReminderMs)) {
+        const dueAtMs = Math.max(
+            firstDueAtMs,
+            lastReminderMs + SIGNUP_REMINDER_INTERVAL_MS,
+            now.getTime()
+        )
+        return dueAtMs < registrationEndMs
+            ? new Date(dueAtMs).toISOString()
+            : null
+    }
 
     const dueAtMs =
         firstDueAtMs > now.getTime() || scheduleOverdueImmediately

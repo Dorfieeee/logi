@@ -10,6 +10,8 @@ type Category = {
     gameId?: GameId
     recruitRoleIds: string[]
     finalRoleIds: string[]
+    includeClanRoleForRecruit?: boolean
+    includeClanRoleForFinal?: boolean
     supportRoleIds: string[]
     autoAssignRecruitOnApply?: boolean
 }
@@ -109,8 +111,12 @@ export function desiredMembershipRoles(
     )
     if (options.applicant && assignment.status === "recruit")
         return unique(category?.recruitRoleIds ?? [])
+    const includesClanRole =
+        assignment.status === "recruit"
+            ? (category?.includeClanRoleForRecruit ?? true)
+            : (category?.includeClanRoleForFinal ?? true)
     return unique([
-        ...(policy.clanRoleId ? [policy.clanRoleId] : []),
+        ...(policy.clanRoleId && includesClanRole ? [policy.clanRoleId] : []),
         ...(assignment.status === "recruit"
             ? (category?.recruitRoleIds ?? [])
             : (category?.finalRoleIds ?? [])),

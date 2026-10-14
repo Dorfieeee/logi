@@ -79,6 +79,8 @@ export const membershipCategoryValidator = v.object({
     supportRoleIds: v.array(v.string()),
     recruitRoleIds: v.array(v.string()),
     finalRoleIds: v.array(v.string()),
+    includeClanRoleForRecruit: v.optional(v.boolean()),
+    includeClanRoleForFinal: v.optional(v.boolean()),
     modalQuestions: v.array(ticketModalQuestionValidator),
     assignmentType: v.union(
         v.literal("member"),

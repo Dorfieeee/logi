@@ -398,6 +398,13 @@ test("session picker lists the latest ended games, whatever was recollected last
             },
         })
     const read = await invoke(results.get, ctx, base)
+    assert.equal(read.sessions[0].endedAt, "2026-09-29T09:30:00.000Z")
+    assert.equal(
+        read.sessions.find(
+            (session: { id: string }) => session.id === "gameSessions:c"
+        ).endedAt,
+        null
+    )
     assert.deepEqual(
         read.sessions.map((session: { id: string }) => session.id),
         [

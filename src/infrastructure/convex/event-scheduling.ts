@@ -7,6 +7,7 @@ import {
 import { announcementRefreshTimes } from "@/domain/events/announcement-state"
 import type { MutationCtx } from "../../../convex/_generated/server"
 import type { Id } from "../../../convex/_generated/dataModel"
+import { lastSignupReminderAt } from "./signup-reminder-state"
 
 const EVENT_CONCLUSION_RESERVE_MS = 15 * 60 * 1000
 
@@ -31,6 +32,11 @@ export async function refreshEventSchedule(
     await Promise.all(existingJobs.map((job) => ctx.db.delete(job._id)))
     // A draft is never announced, so it has no deadlines until it is published.
     if (event.isDraft === true) return
+    const lastReminderAt = await lastSignupReminderAt(
+        ctx,
+        event,
+        nowDate.getTime()
+    )
     const startAtMs = Math.max(
         new Date(event.registrationEnd).getTime(),
         new Date(event.meetingStart).getTime() - 24 * 60 * 60 * 1000
@@ -71,7 +77,8 @@ export async function refreshEventSchedule(
                 event.registrationEnd,
                 nowDate,
                 false,
-                event.registrationStart
+                event.registrationStart,
+                lastReminderAt
             )
             return event.kind === "match" &&
                 resolveSignupReminderStatuses(event.signupReminderStatuses)

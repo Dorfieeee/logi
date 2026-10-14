@@ -115,6 +115,8 @@ export type ApplicationCategory = {
     supportRoleIds?: string[]
     recruitRoleIds?: string[]
     finalRoleIds?: string[]
+    includeClanRoleForRecruit?: boolean
+    includeClanRoleForFinal?: boolean
     autoAssignRecruitOnApply?: boolean
 }
 

@@ -81,6 +81,16 @@ whether a public match page exists). The outcome comes from
 `src/domain/discord-messages/match-result.ts` and is left out when the clan's
 side or a score is unknown; **Match details** appears only with a public page.
 
+Scheduled signup reminders reserve each match's run in Convex before sending
+DMs (`eventReminders:claimSignupRun`). The reservation survives restarts and
+overlapping bot processes and blocks another run for 24 hours; recent legacy
+delivery outcomes also seed the cooldown during upgrades. Startup backfill and
+event edits respect that same timestamp. Recipients are deduplicated by Discord
+ID. If the bot stops partway through a run, that run is not replayed: players
+not reached wait until the next scheduled run, avoiding duplicate DMs after an
+uncertain Discord send. Failed reservation calls send no DMs. Manual reminders
+retain their separate one-hour policy.
+
 ## Team request decision DMs
 
 Every minute the bot claims due decision notifications from
