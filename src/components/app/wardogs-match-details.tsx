@@ -105,6 +105,17 @@ export function WardogsMatchDetails({
     ]
         .map(([name, kills]) => ({ name, kills }))
         .sort((a, b) => b.kills - a.kills)
+    const scoringTimeline = (points: readonly number[][]) => {
+        const firstScore = points.findIndex((point) =>
+            point.slice(1).some((score) => score >= 1)
+        )
+        if (firstScore < 0) return []
+        const start = points[firstScore]![0]!
+        return points.slice(firstScore).map((point) => ({
+            seconds: point[0]! - start,
+            point,
+        }))
+    }
     return (
         <div className="space-y-6">
             <Card>
@@ -189,12 +200,14 @@ export function WardogsMatchDetails({
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {round.timeline.length ? (
+                        {scoringTimeline(round.timeline).length ? (
                             <div className="h-72" aria-label={t.scoreTimeline}>
                                 <ResponsiveContainer>
                                     <LineChart
-                                        data={round.timeline.map((point) => ({
-                                            minute: point[0]! / 60,
+                                        data={scoringTimeline(
+                                            round.timeline
+                                        ).map(({ seconds, point }) => ({
+                                            minute: seconds / 60,
                                             ...Object.fromEntries(
                                                 round.factions.map((_, i) => [
                                                     `f${i}`,
