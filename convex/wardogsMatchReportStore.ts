@@ -21,7 +21,7 @@ export async function storeWardogsMatchReport(
         if (existing) await ctx.db.delete(existing._id)
         if (event.wardogsReportId)
             await ctx.db.patch(event._id, { wardogsReportId: undefined })
-        return
+        return Boolean(existing || event.wardogsReportId)
     }
     const guild = await getGuildByDiscordId(ctx, event.guildId)
     let report = buildWardogsMatchReport({
@@ -54,7 +54,7 @@ export async function storeWardogsMatchReport(
                 : side
         })
         if (sides.every((side, index) => side === existing.report.sides[index]))
-            return
+            return false
         report = { ...existing.report, sides }
     }
     const fields = { report, updatedAt: revision.createdAt }
@@ -81,6 +81,7 @@ export async function storeWardogsMatchReport(
         },
         revision.reviewedAt ?? revision.createdAt
     )
+    return true
 }
 export async function readWardogsMatchReport(
     ctx: Pick<QueryCtx, "db">,

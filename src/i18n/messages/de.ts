@@ -6130,6 +6130,7 @@ export const deMessages = {
         matchesPlayed: "Matches gespielt",
         noPlayerStats: "Keine Spielerstatistiken für diese Matches importiert.",
         performanceTrend: "Clan-Leistungstrend",
+        statsForGame: "{game}-Statistiken",
         playerPerformanceTrend: "Leistungstrend",
         performanceLastMatches: "Letzte {count} erfasste Matches",
         performanceComparedWithPrevious:

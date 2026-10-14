@@ -7,10 +7,44 @@ import {
     getUserDiscordId,
     getUserStableId,
 } from "./identity"
+import { resultFaction } from "../src/domain/match-results/result-sides"
+import { matchesGameScope } from "../src/domain/games/game"
 import { internalAuthSecret } from "./discord_shared"
 
+function reviewedOutcome(event: {
+    side?: string
+    reviewedResult?: {
+        participants: Array<{ id: string; label: string; score: number | null }>
+    }
+}) {
+    const faction = resultFaction(event.side)
+    const scores = event.reviewedResult?.participants ?? []
+    const ours = scores.find(
+        (participant) =>
+            faction &&
+            (resultFaction(participant.id) === faction ||
+                resultFaction(participant.label) === faction)
+    )?.score
+    const others = scores
+        .filter((participant) => participant.score !== null)
+        .filter(
+            (participant) =>
+                !faction ||
+                (resultFaction(participant.id) !== faction &&
+                    resultFaction(participant.label) !== faction)
+        )
+        .map((participant) => participant.score!)
+    if (ours === null || ours === undefined || !others.length) return "draw"
+    const opponent = Math.max(...others)
+    return ours > opponent ? "victory" : ours < opponent ? "defeat" : "draw"
+}
+
 export const getRecentMatchSummaryInternal = query({
-    args: { secret: v.string(), serverId: v.id("guilds") },
+    args: {
+        secret: v.string(),
+        serverId: v.id("guilds"),
+        gameScope: v.optional(v.union(v.literal("all"), v.string())),
+    },
     handler: async (ctx, args) => {
         if (args.secret !== internalAuthSecret())
             throw new Error("Unauthorized.")
@@ -19,7 +53,7 @@ export const getRecentMatchSummaryInternal = query({
         if (!server) return null
 
         const guildId = getGuildDiscordId(server)
-        const recentMatches = (
+        const recentEvents = (
             await ctx.db
                 .query("events")
                 .withIndex("guildId", (q) => q.eq("guildId", guildId))
@@ -28,8 +62,12 @@ export const getRecentMatchSummaryInternal = query({
             .filter(
                 (event) =>
                     event.kind !== "training" &&
-                    event.matchStatsId &&
-                    event.eventResult
+                    ((event.matchStatsId && event.eventResult) ||
+                        (event.gameId === "wardogs" &&
+                            event.wardogsReportId &&
+                            event.reviewedResult &&
+                            event.reviewedResult.status !== "provisional")) &&
+                    matchesGameScope(event.gameId, args.gameScope)
             )
             .sort(
                 (left, right) =>
@@ -41,13 +79,27 @@ export const getRecentMatchSummaryInternal = query({
                     ).getTime()
             )
             .slice(0, 10)
-            .map((event) => ({
+        const eventsById = new Map(
+            recentEvents.map((event) => [String(event._id), event])
+        )
+        const recentMatches = recentEvents.map((event) => {
+            const reviewed = event.reviewedResult
+            const scores = event.eventResult
+                ? [event.eventResult.score.sideA, event.eventResult.score.sideB]
+                : (reviewed?.participants.map(
+                      (participant) => participant.score
+                  ) ?? [])
+            return {
                 id: String(event._id),
                 name: event.name,
-                endedAt: event.eventResult?.endedAt ?? event.gameEnd,
-                outcome: event.eventResult!.outcome,
-                score: event.eventResult!.score,
-            }))
+                endedAt:
+                    event.eventResult?.endedAt ??
+                    reviewed?.reviewedAt ??
+                    event.gameEnd,
+                outcome: event.eventResult?.outcome ?? reviewedOutcome(event),
+                scores,
+            }
+        })
 
         const wins = recentMatches.filter(
             (match) => match.outcome === "victory"
@@ -56,7 +108,7 @@ export const getRecentMatchSummaryInternal = query({
             (match) => match.outcome === "defeat"
         ).length
         const decided = wins + losses
-        const [statDocs, rosters, matchStats] = await Promise.all([
+        const [statDocs, rosters, matchStats, assignments] = await Promise.all([
             ctx.db.query("playerStats").collect(),
             Promise.all(
                 recentMatches.map((match) =>
@@ -78,6 +130,10 @@ export const getRecentMatchSummaryInternal = query({
                         .unique()
                 )
             ),
+            ctx.db
+                .query("userAssignments")
+                .withIndex("serverId", (q) => q.eq("serverId", guildId))
+                .collect(),
         ])
         const userIdByPlatformPlayerId = new Map(
             statDocs
@@ -103,6 +159,28 @@ export const getRecentMatchSummaryInternal = query({
                 total.kills += player.kills
                 total.deaths += player.deaths
                 topPlayerTotals.set(playerId, total)
+            }
+        }
+        const rosteredUserIds = new Set(
+            assignments.map((assignment) => assignment.userId)
+        )
+        for (const match of recentMatches) {
+            const event = eventsById.get(match.id)
+            if (!event || event.gameId !== "wardogs") continue
+            for (const doc of statDocs) {
+                if (!doc.userId || !rosteredUserIds.has(doc.userId)) continue
+                const player = doc.matches[event._id]
+                if (!player) continue
+                const total = topPlayerTotals.get(doc.userId) ?? {
+                    name: doc.latestName ?? "Player",
+                    matches: 0,
+                    kills: 0,
+                    deaths: 0,
+                }
+                total.matches += 1
+                total.kills += player.kills
+                total.deaths += player.deaths
+                topPlayerTotals.set(doc.userId, total)
             }
         }
         const topPlayers = await Promise.all(

@@ -5950,6 +5950,7 @@ export const csMessages = {
         matchesPlayed: "odehraných zápasů",
         noPlayerStats: "Pro tyto zápasy nebyly importovány statistiky hráčů.",
         performanceTrend: "Trend výkonu klanu",
+        statsForGame: "Statistiky hry {game}",
         playerPerformanceTrend: "Trend výkonu",
         performanceLastMatches: "Posledních {count} zaznamenaných zápasů",
         performanceComparedWithPrevious:

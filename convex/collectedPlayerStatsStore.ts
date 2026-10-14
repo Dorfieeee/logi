@@ -15,7 +15,7 @@ export async function saveCollectedPlayerStats(
     event: Doc<"events">,
     revision: ResultRevision,
     previous: ResultRevision | null = null,
-    options: { queueRecaps?: boolean } = {}
+    options: { queueRecaps?: boolean; refreshPerformance?: boolean } = {}
 ) {
     if (event.gameId !== "wardogs" || revision.status === "provisional")
         return { players: 0, matchedPlayers: 0, changed: false }
@@ -148,9 +148,15 @@ export async function saveCollectedPlayerStats(
         else await ctx.db.insert("playerStats", { id, ...values })
         changed = true
     }
-    await storeWardogsMatchReport(ctx, event, revision, sessions, profileIds)
+    const reportChanged = await storeWardogsMatchReport(
+        ctx,
+        event,
+        revision,
+        sessions,
+        profileIds
+    )
     if (options.queueRecaps !== false) await queueEventRecaps(ctx, event._id)
-    if (changed)
+    if (changed || reportChanged || options.refreshPerformance)
         await ctx.scheduler.runAfter(
             0,
             internal.performanceHistory.refreshInBackground,

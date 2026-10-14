@@ -5976,6 +5976,7 @@ export const enMessages = {
         matchesPlayed: "matches played",
         noPlayerStats: "No player statistics were imported for these matches.",
         performanceTrend: "Clan performance trend",
+        statsForGame: "{game} statistics",
         playerPerformanceTrend: "Performance trend",
         performanceLastMatches: "Last {count} recorded matches",
         performanceComparedWithPrevious:

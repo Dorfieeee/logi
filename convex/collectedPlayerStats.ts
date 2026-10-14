@@ -27,7 +27,7 @@ export const backfillPage = mutation({
                     event,
                     revision,
                     null,
-                    { queueRecaps: false }
+                    { queueRecaps: false, refreshPerformance: true }
                 )
                 matchedPlayers += result.matchedPlayers
                 players += result.players
