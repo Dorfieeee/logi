@@ -1,3 +1,4 @@
+import { warconKillEvent } from "./gameDataValidators"
 import { v } from "convex/values"
 const number = v.union(v.number(), v.null())
 const text = v.union(v.string(), v.null())
@@ -42,4 +43,5 @@ export const wardogsMatchReport = v.object({
             seconds: number,
         })
     ),
+    killFeed: v.optional(v.array(warconKillEvent)),
 })

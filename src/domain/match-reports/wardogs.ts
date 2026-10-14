@@ -1,7 +1,7 @@
+import type { ProviderKillEvent, ProviderSession } from "../game-data/contracts"
 import type { ResultRevision } from "../match-results/result-revision"
 import type { MatchTeamAssignment } from "../teams/match-teams"
 import { resultFaction } from "../match-results/result-sides"
-import type { ProviderSession } from "../game-data/contracts"
 
 export type WardogsMatchReport = {
     schemaVersion: 1
@@ -38,6 +38,7 @@ export type WardogsMatchReport = {
         money: number | null
         seconds: number | null
     }[]
+    killFeed?: ProviderKillEvent[]
 }
 const sum = (left: number | null, right: number | null | undefined) =>
     left === null || right == null ? null : left + right
@@ -64,6 +65,7 @@ export function buildWardogsMatchReport(input: {
     revision: ResultRevision
     sessions: readonly ProviderSession[]
     profileIds: ReadonlyMap<string, string>
+    killFeed?: readonly ProviderKillEvent[]
 }): WardogsMatchReport {
     const rows = new Map<string, WardogsMatchReport["players"][number]>()
     for (const session of input.sessions)
@@ -150,5 +152,6 @@ export function buildWardogsMatchReport(input: {
         players: [...rows.values()].sort(
             (left, right) => (right.kills ?? -1) - (left.kills ?? -1)
         ),
+        killFeed: input.killFeed ? [...input.killFeed] : undefined,
     }
 }

@@ -81,6 +81,30 @@ export function WardogsMatchDetails({
             : dictionary.common.notAvailable,
         String(key),
     ]
+    const killFeed = report.killFeed ?? []
+    const minute = (seconds: number) =>
+        `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`
+    const killActivity = [
+        ...new Map(
+            killFeed.map((kill) => [Math.floor(kill.eventTime / 60), 0])
+        ).keys(),
+    ]
+        .sort((a, b) => a - b)
+        .map((minute) => ({
+            minute,
+            kills: killFeed.filter(
+                (kill) => Math.floor(kill.eventTime / 60) === minute
+            ).length,
+        }))
+    const killCauses = [
+        ...killFeed.reduce((causes, kill) => {
+            const cause = kill.cause ?? dictionary.common.notAvailable
+            causes.set(cause, (causes.get(cause) ?? 0) + 1)
+            return causes
+        }, new Map<string, number>()),
+    ]
+        .map(([name, kills]) => ({ name, kills }))
+        .sort((a, b) => b.kills - a.kills)
     return (
         <div className="space-y-6">
             <Card>
@@ -184,14 +208,14 @@ export function WardogsMatchDetails({
                                             dataKey="minute"
                                             name={t.minutes}
                                             tickFormatter={(n) =>
-                                                number.format(Number(n))
+                                                minute(Number(n) * 60)
                                             }
                                         />
                                         <YAxis />
                                         <Tooltip
                                             formatter={tooltip}
                                             labelFormatter={(n) =>
-                                                `${number.format(Number(n))} ${t.minutes}`
+                                                minute(Number(n) * 60)
                                             }
                                         />
                                         <Legend />
@@ -204,6 +228,7 @@ export function WardogsMatchDetails({
                                                     colors[i % colors.length]
                                                 }
                                                 dot={false}
+                                                type="stepAfter"
                                                 strokeWidth={2}
                                             />
                                         ))}
@@ -277,6 +302,134 @@ export function WardogsMatchDetails({
                     </CardContent>
                 </Card>
             </div>
+            {killFeed.length ? (
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t.killActivity}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-64">
+                                <ResponsiveContainer>
+                                    <BarChart data={killActivity}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis
+                                            dataKey="minute"
+                                            tickFormatter={(value) =>
+                                                `${value}m`
+                                            }
+                                        />
+                                        <YAxis allowDecimals={false} />
+                                        <Tooltip
+                                            formatter={tooltip}
+                                            labelFormatter={(value) =>
+                                                `${value}m`
+                                            }
+                                        />
+                                        <Bar
+                                            dataKey="kills"
+                                            name={dictionary.gameHistory.kills}
+                                            fill="#ec4899"
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t.killCauses}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-64">
+                                <ResponsiveContainer>
+                                    <BarChart
+                                        data={killCauses.slice(0, 12)}
+                                        layout="vertical"
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis
+                                            type="number"
+                                            allowDecimals={false}
+                                        />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="name"
+                                            width={100}
+                                        />
+                                        <Tooltip formatter={tooltip} />
+                                        <Bar
+                                            dataKey="kills"
+                                            name={dictionary.gameHistory.kills}
+                                            fill="#3b82f6"
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            ) : report.killFeed ? (
+                <p className="text-muted-foreground text-sm">{t.noFeed}</p>
+            ) : null}
+            {killFeed.length ? (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{t.killFeed}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="max-h-[32rem] overflow-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead>
+                                <tr>
+                                    {[
+                                        t.time,
+                                        t.killer,
+                                        t.victim,
+                                        t.cause,
+                                        t.distance,
+                                        t.headshot,
+                                    ].map((label) => (
+                                        <th
+                                            key={label}
+                                            className="border-b px-3 py-2"
+                                        >
+                                            {label}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {killFeed.map((kill) => (
+                                    <tr key={kill.eventId}>
+                                        <td className="border-b px-3 py-2 tabular-nums">
+                                            {minute(kill.eventTime)}
+                                        </td>
+                                        <td className="border-b px-3 py-2">
+                                            {kill.killer?.name ??
+                                                dictionary.common.notAvailable}
+                                        </td>
+                                        <td className="border-b px-3 py-2">
+                                            {kill.victim.name}
+                                        </td>
+                                        <td className="border-b px-3 py-2">
+                                            {kill.cause ??
+                                                dictionary.common.notAvailable}
+                                        </td>
+                                        <td className="border-b px-3 py-2 tabular-nums">
+                                            {kill.distanceM === null
+                                                ? dictionary.common.notAvailable
+                                                : number.format(kill.distanceM)}
+                                        </td>
+                                        <td className="border-b px-3 py-2">
+                                            {kill.headshot ? "✓" : ""}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </CardContent>
+                </Card>
+            ) : null}
             <Card>
                 <CardHeader>
                     <CardTitle>{t.players}</CardTitle>

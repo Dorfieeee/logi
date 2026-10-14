@@ -231,9 +231,16 @@ export default async function ServerUserDetailPage({
                             searchPlaceholder={
                                 dictionary.userManagement.matchHistorySearch
                             }
-                            getHref={(match) =>
-                                `/${safeLocale}/dashboard/servers/${serverId}/matches/${match.eventId}`
-                            }
+                            getHref={(match) => {
+                                const event = context.events.find(
+                                    (item) => item.id === match.eventId
+                                )
+                                const base = `/${safeLocale}/dashboard/servers/${serverId}/matches/${match.eventId}`
+                                return event?.gameId === "wardogs" &&
+                                    event.wardogsReportId
+                                    ? `${base}/match-stats`
+                                    : base
+                            }}
                             columns={[
                                 {
                                     key: "event",

@@ -2,6 +2,7 @@
 
 import {
     warconProvider,
+    readWarconKillFeed,
     readWarconSession,
     readWarconSessionPage,
 } from "../src/infrastructure/game-data/warcon"
@@ -92,24 +93,30 @@ async function collectHistoryStep(ctx: ActionCtx): Promise<boolean> {
         now: Date.now,
     })
     try {
-        const readSession =
-            claim.connection.provider === "wardogs_warcon"
-                ? readWarconSession
-                : readHllSession
+        const readSession = async (id: string) => {
+            if (claim.connection.provider !== "wardogs_warcon")
+                return {
+                    session: await readHllSession(claim.connection, id, http),
+                }
+            const session = await readWarconSession(claim.connection, id, http)
+            return {
+                session,
+                killEvents: session.warcon?.hasFeed
+                    ? await readWarconKillFeed(claim.connection, id, http)
+                    : [],
+            }
+        }
         const readPage =
             claim.connection.provider === "wardogs_warcon"
                 ? readWarconSessionPage
                 : readHllSessionPage
         if (claim.revisitId) {
-            const session = await readSession(
-                claim.connection,
-                claim.revisitId,
-                http
-            )
+            const read = await readSession(claim.revisitId)
             await ctx.runMutation(internal.gameDataHistory.commit, {
                 ...token,
                 result: {
-                    session,
+                    session: read.session,
+                    killEvents: read.killEvents,
                     progress: claim.progress,
                     completed: false,
                     revisit: true,
@@ -126,8 +133,7 @@ async function collectHistoryStep(ctx: ActionCtx): Promise<boolean> {
                             generation: claim.generation,
                             externalIds: ids,
                         }),
-                    readSession: (id) =>
-                        readSession(claim.connection, id, http),
+                    readSession,
                     commit: (result) =>
                         ctx.runMutation(internal.gameDataHistory.commit, {
                             ...token,

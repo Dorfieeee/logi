@@ -101,8 +101,17 @@ export function MatchDetailView(model: MatchDetailViewModel) {
         section,
     } = model
     const t = dictionary.matchDetail
+    const reportHref =
+        event.wardogsReportId && event.gameId === "wardogs"
+            ? section === "matches"
+                ? `${basePath}/match-stats`
+                : `${basePath}/match`
+            : undefined
     const actions: MatchDetailAction[] = canAdmin
         ? [
+              ...(reportHref
+                  ? [{ label: t.result.openStats, href: reportHref }]
+                  : []),
               ...(model.discordHref
                   ? [
                         {
@@ -128,6 +137,9 @@ export function MatchDetailView(model: MatchDetailViewModel) {
           ]
         : model.discordHref
           ? [
+                ...(reportHref
+                    ? [{ label: t.result.openStats, href: reportHref }]
+                    : []),
                 {
                     label: t.openInDiscord,
                     href: model.discordHref,
@@ -135,7 +147,9 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                     phoneOnly: true,
                 },
             ]
-          : []
+          : reportHref
+            ? [{ label: t.result.openStats, href: reportHref }]
+            : []
 
     return (
         <div className="flex flex-col gap-5 pb-6">

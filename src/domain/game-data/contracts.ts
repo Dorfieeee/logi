@@ -216,6 +216,23 @@ export const providerSessionSchema = z.strictObject({
 })
 export type ProviderSession = z.infer<typeof providerSessionSchema>
 
+/** A completed-provider combat event. Player platform IDs deliberately stay out
+ * of this public-safe projection; identities are represented by observed names. */
+export type ProviderKillEvent = {
+    eventId: string
+    ts: string
+    map: string
+    eventTime: number
+    killer: { name: string; faction: string | null } | null
+    victim: { name: string; faction: string | null }
+    cause: string | null
+    distanceM: number | null
+    headshot: boolean
+    suicide: boolean
+    teamKill: boolean
+    tags: string[]
+}
+
 export class ProviderError extends Error {
     constructor(
         readonly category: ErrorCategory,

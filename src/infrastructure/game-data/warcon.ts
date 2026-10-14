@@ -4,6 +4,7 @@ import {
     type DataSource,
     type GameDataProvider,
     type ProviderHttp,
+    type ProviderKillEvent,
 } from "../../domain/game-data/contracts"
 import {
     warconReadSchema,
@@ -281,4 +282,61 @@ export async function readWarconSession(
             },
         })),
     })
+}
+
+/** Read every retained feed event for one completed game with Warcon's stable cursor. */
+export async function readWarconKillFeed(
+    source: DataSource,
+    matchId: string,
+    http: ProviderHttp
+): Promise<ProviderKillEvent[]> {
+    const events: ProviderKillEvent[] = []
+    const seen = new Set<string>()
+    let before: string | undefined
+    let beforeTime: number | undefined
+    for (;;) {
+        const result = await readWarcon(
+            source,
+            {
+                view: "kills",
+                match: matchId,
+                limit: 200,
+                ...(before ? { before, beforeTime } : {}),
+            },
+            http,
+            Date.now
+        )
+        if (result.view !== "kills" || !result.data.configured) return []
+        const page = result.data.kills
+        for (const kill of page) {
+            if (seen.has(kill.eventId)) continue
+            seen.add(kill.eventId)
+            events.push({
+                eventId: kill.eventId,
+                ts: kill.ts,
+                map: kill.map,
+                eventTime: kill.eventTime,
+                killer: kill.killer
+                    ? { name: kill.killer.name, faction: kill.killer.faction }
+                    : null,
+                victim: {
+                    name: kill.victim.name,
+                    faction: kill.victim.faction,
+                },
+                cause: kill.cause,
+                distanceM: kill.distanceM,
+                headshot: kill.headshot,
+                suicide: kill.suicide,
+                teamKill: kill.teamKill,
+                tags: kill.tags,
+            })
+        }
+        if (page.length < 200 || events.length >= (result.data.total ?? 0))
+            return events
+        const last = page.at(-1)
+        if (!last || (last.ts === before && last.eventTime === beforeTime))
+            throw new ProviderError("invalid_response")
+        before = last.ts
+        beforeTime = last.eventTime
+    }
 }

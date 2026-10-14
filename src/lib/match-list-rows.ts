@@ -254,6 +254,12 @@ export function buildMatchListRows(input: BuildInput) {
     function rowHref(event: EventRecord, phase: MatchPhase) {
         if (phase.kind === "draft")
             return `${base}/matches/create?draftId=${encodeURIComponent(event.id)}`
+        // A reviewed Wardogs result has its own report. Once it exists, the
+        // played-match list should take people straight to that report rather
+        // than making them find the secondary "match details" action on the
+        // event screen.
+        if (event.kind === "match" && event.wardogsReportId)
+            return `${base}/matches/${event.id}/match-stats`
         if (!canAdmin || event.kind === "training") return detailHref(event)
         // A manager lands on the part of the match that needs them.
         if (phase.kind === "rosterMissing" || phase.kind === "rosterDraft")

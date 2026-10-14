@@ -24,6 +24,26 @@ export async function storeWardogsMatchReport(
         return Boolean(existing || event.wardogsReportId)
     }
     const guild = await getGuildByDiscordId(ctx, event.guildId)
+    const killFeed = (
+        await Promise.all(
+            revision.sessionLinks.map(async (link) => {
+                const sessionId = ctx.db.normalizeId(
+                    "gameSessions",
+                    link.sessionId
+                )
+                if (!sessionId) return []
+                const rows = await ctx.db
+                    .query("warconKillEvents")
+                    .withIndex("sessionId_sourceDigest", (q) =>
+                        q
+                            .eq("sessionId", sessionId)
+                            .eq("sourceDigest", link.sourceDigest)
+                    )
+                    .collect()
+                return rows.map((row) => row.event)
+            })
+        )
+    ).flat()
     let report = buildWardogsMatchReport({
         event: {
             id: event._id,
@@ -37,6 +57,7 @@ export async function storeWardogsMatchReport(
         revision,
         sessions,
         profileIds,
+        killFeed,
     })
     if (existing?.report.version === report.version) {
         // Repair the former faction-only own-team label without rewriting any source facts.
@@ -53,9 +74,15 @@ export async function storeWardogsMatchReport(
                   }
                 : side
         })
-        if (sides.every((side, index) => side === existing.report.sides[index]))
+        if (
+            sides.every(
+                (side, index) => side === existing.report.sides[index]
+            ) &&
+            JSON.stringify(existing.report.killFeed ?? []) ===
+                JSON.stringify(report.killFeed ?? [])
+        )
             return false
-        report = { ...existing.report, sides }
+        report = { ...report, sides }
     }
     const fields = { report, updatedAt: revision.createdAt }
     const id = existing

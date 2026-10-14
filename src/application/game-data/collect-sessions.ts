@@ -1,5 +1,6 @@
 import {
     ProviderError,
+    type ProviderKillEvent,
     type ProviderSession,
 } from "../../domain/game-data/contracts"
 export type HistoryProgress = {
@@ -9,6 +10,7 @@ export type HistoryProgress = {
 }
 export type HistoryCommit = {
     session: ProviderSession | null
+    killEvents?: ProviderKillEvent[]
     progress: HistoryProgress
     completed: boolean
 }
@@ -16,7 +18,12 @@ type Ports = {
     readPage(page: number): Promise<{ ids: string[]; nextPage: number | null }>
     /** Which of `ids` are already stored complete for the current source generation. */
     storedComplete(ids: string[]): Promise<string[]>
-    readSession(id: string): Promise<ProviderSession>
+    readSession(
+        id: string
+    ): Promise<
+        | ProviderSession
+        | { session: ProviderSession; killEvents?: ProviderKillEvent[] }
+    >
     commit(value: HistoryCommit): Promise<boolean>
 }
 const start = (): HistoryProgress => ({
@@ -28,7 +35,8 @@ const start = (): HistoryProgress => ({
  * remaining history still arrives; transient provider failures keep retrying it. */
 async function readOrSkip(id: string, ports: Ports) {
     try {
-        return await ports.readSession(id)
+        const value = await ports.readSession(id)
+        return "session" in value ? value : { session: value }
     } catch (error) {
         if (
             error instanceof ProviderError &&
@@ -77,7 +85,7 @@ export async function collectSessions(
         }
     }
     const [id, ...remaining] = [...new Set(page.ids)]
-    const session = id ? await readOrSkip(id, ports) : null
+    const read = id ? await readOrSkip(id, ports) : null
     const completed = remaining.length === 0 && page.nextPage === null
     const next = completed
         ? start()
@@ -88,7 +96,16 @@ export async function collectSessions(
                 nextPage: page.nextPage,
             }
           : { page: page.nextPage!, pendingIds: [], nextPage: null }
-    if (!(await ports.commit({ session, progress: next, completed })))
+    if (
+        !(await ports.commit({
+            session: read?.session ?? null,
+            ...(read?.killEvents === undefined
+                ? {}
+                : { killEvents: read.killEvents }),
+            progress: next,
+            completed,
+        }))
+    )
         return "stale_fence"
     return completed ? "completed" : "continued"
 }
