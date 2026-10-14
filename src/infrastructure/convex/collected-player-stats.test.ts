@@ -356,3 +356,238 @@ test("public profile clan badges combine active games regardless of the selected
         },
     ])
 })
+
+test("Wardogs reports are immutable snapshots with scoped reads and disappear after source removal", async () => {
+    const { ctx, event, confirmed } = fixture()
+    await ctx.db.patch(event._id, {
+        reviewedResult: { version: confirmed.version, status: "confirmed" },
+    })
+    await saveCollectedPlayerStats(
+        ctx as unknown as MutationCtx,
+        event,
+        confirmed
+    )
+    const reports = await import("../../../convex/wardogsMatchReports")
+    const report = await invoke(reports.get, ctx, {
+        secret,
+        eventId: event._id,
+    })
+    assert.equal(report.players[0].money, -50)
+    assert.equal(JSON.stringify(report).includes("steam1"), false)
+    assert.equal(
+        await invoke(reports.get, ctx, {
+            secret,
+            eventId: event._id,
+            guildId: "other",
+        }),
+        null
+    )
+    ctx.db.seed("apiKeys", {
+        _id: "apiKeys:report",
+        keyHash: "report",
+        guildId: "guild",
+        readAccess: { resources: ["matches"], gameIds: ["wardogs"] },
+    })
+    assert.equal(
+        (
+            await invoke(reports.getForKey, ctx, {
+                secret,
+                eventId: event._id,
+                keyHash: "report",
+            })
+        ).version,
+        2
+    )
+    await ctx.db.patch("apiKeys:report", { guildId: "other" })
+    assert.equal(
+        await invoke(reports.getForKey, ctx, {
+            secret,
+            eventId: event._id,
+            keyHash: "report",
+        }),
+        null
+    )
+    await ctx.db.patch("gameSessions:a", {
+        session: { ...ctx.db.tables.gameSessions[0].session, players: [] },
+    })
+    assert.equal(
+        (await invoke(reports.get, ctx, { secret, eventId: event._id })).players
+            .length,
+        1,
+        "reads the captured report, not a changed source"
+    )
+    await saveCollectedPlayerStats(
+        ctx as unknown as MutationCtx,
+        event,
+        {
+            ...confirmed,
+            version: 3,
+            status: "corrected",
+            sessionLinks: [],
+            players: [],
+        },
+        confirmed
+    )
+    assert.equal(
+        await invoke(reports.get, ctx, { secret, eventId: event._id }),
+        null
+    )
+})
+
+test("Wardogs recaps queue once for rostered linked players and wait for a published results card", async () => {
+    const { ctx, event, confirmed } = fixture()
+    await ctx.db.patch(event._id, {
+        reviewedResult: {
+            version: confirmed.version,
+            status: "confirmed",
+            reviewedAt: confirmed.reviewedAt,
+        },
+    })
+    await ctx.db.patch("users:a", { discordId: "111111111111111111" })
+    ctx.db.seed("rosters", {
+        _id: "rosters:a",
+        eventId: event._id,
+        squads: [{ players: [{ id: "user" }] }],
+    })
+    ctx.db.seed("discordPublicPanels", {
+        _id: "discordPublicPanels:a",
+        guildId: "guild",
+        gameId: "wardogs",
+        kind: "results",
+        enabled: true,
+        channelId: "channel",
+    })
+    await saveCollectedPlayerStats(
+        ctx as unknown as MutationCtx,
+        event,
+        confirmed
+    )
+    assert.equal(ctx.db.tables.matchRecaps.length, 1)
+    const recaps = await import("../../../convex/matchRecaps")
+    const args = { secret, eventId: event._id, deliveryVersion: 2 }
+    assert.deepEqual(await invoke(recaps.listPendingForEvent, ctx, args), [])
+    ctx.db.seed("discordPublications", {
+        _id: "discordPublications:a",
+        guildId: "guild",
+        key: `panel:discordPublicPanels:a:result:${event._id}`,
+        channelId: "channel",
+        messageId: "posted",
+        error: null,
+        lastSuccessAt: Date.parse(confirmed.reviewedAt!) + 1,
+    })
+    assert.equal(
+        (await invoke(recaps.listPendingForEvent, ctx, args))[0].cashDelta,
+        -50
+    )
+    await saveCollectedPlayerStats(
+        ctx as unknown as MutationCtx,
+        event,
+        confirmed
+    )
+    assert.equal(ctx.db.tables.matchRecaps.length, 1)
+    await ctx.db.patch("discordPublications:a", { error: "send_failed" })
+    assert.deepEqual(await invoke(recaps.listPendingForEvent, ctx, args), [])
+})
+
+test("Wardogs corrections suppress queued delivery and never queue another recap", async () => {
+    const { ctx, event, confirmed } = fixture()
+    await ctx.db.patch(event._id, {
+        reviewedResult: {
+            version: confirmed.version,
+            status: "confirmed",
+            reviewedAt: confirmed.reviewedAt,
+        },
+    })
+    await ctx.db.patch("users:a", { discordId: "111111111111111111" })
+    ctx.db.seed("rosters", {
+        _id: "rosters:a",
+        eventId: event._id,
+        squads: [{ players: [{ id: "user" }] }],
+    })
+    await saveCollectedPlayerStats(
+        ctx as unknown as MutationCtx,
+        event,
+        confirmed
+    )
+    const recaps = await import("../../../convex/matchRecaps")
+    const args = { secret, eventId: event._id, deliveryVersion: 2 }
+    assert.equal(
+        (await invoke(recaps.listPendingForEvent, ctx, args)).length,
+        1
+    )
+    const recap = ctx.db.tables.matchRecaps[0]
+    await ctx.db.patch(event._id, {
+        reviewedResult: {
+            version: confirmed.version + 1,
+            status: "corrected",
+            reviewedAt: confirmed.reviewedAt,
+        },
+    })
+    assert.deepEqual(await invoke(recaps.listPendingForEvent, ctx, args), [])
+    assert.equal(
+        await invoke(recaps.prepareDelivery, ctx, {
+            secret,
+            eventId: event._id,
+            recapId: recap._id,
+            discordUserId: recap.discordUserId,
+        }),
+        null
+    )
+    await invoke(recaps.queueForPublishedResult, ctx, {
+        secret,
+        eventId: event._id,
+    })
+    assert.equal(ctx.db.tables.matchRecaps.length, 1)
+    ctx.db.tables.matchRecaps.length = 0
+    await invoke(recaps.queueForPublishedResult, ctx, {
+        secret,
+        eventId: event._id,
+    })
+    assert.equal(
+        ctx.db.tables.matchRecaps.length,
+        0,
+        "correction cannot create a first recap either"
+    )
+})
+
+test("Wardogs sent markers survive worker replays without another delivery", async () => {
+    const { ctx, event, confirmed } = fixture()
+    await ctx.db.patch(event._id, {
+        reviewedResult: {
+            version: confirmed.version,
+            status: "confirmed",
+            reviewedAt: confirmed.reviewedAt,
+        },
+    })
+    await ctx.db.patch("users:a", { discordId: "111111111111111111" })
+    ctx.db.seed("rosters", {
+        _id: "rosters:a",
+        eventId: event._id,
+        squads: [{ players: [{ id: "user" }] }],
+    })
+    await saveCollectedPlayerStats(
+        ctx as unknown as MutationCtx,
+        event,
+        confirmed
+    )
+    const recaps = await import("../../../convex/matchRecaps")
+    const recap = ctx.db.tables.matchRecaps[0]
+    await invoke(recaps.markSent, ctx, {
+        secret,
+        recapId: recap._id,
+        discordUserId: recap.discordUserId,
+    })
+    await invoke(recaps.queueForPublishedResult, ctx, {
+        secret,
+        eventId: event._id,
+    })
+    assert.equal(ctx.db.tables.matchRecaps.length, 1)
+    assert.deepEqual(
+        await invoke(recaps.listPendingForEvent, ctx, {
+            secret,
+            eventId: event._id,
+            deliveryVersion: 2,
+        }),
+        []
+    )
+})

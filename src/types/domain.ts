@@ -388,6 +388,7 @@ export type EventRecord = {
     status: EventStatus
     statusUpdatedAt: Timestamp
     concludedAt?: Timestamp
+    wardogsReportId?: string
     matchStatsId?: string
     competitionFixtureId?: string
     matchId?: string

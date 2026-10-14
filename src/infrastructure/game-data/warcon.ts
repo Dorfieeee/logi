@@ -16,6 +16,7 @@ import {
     type WarconQuery,
 } from "../../domain/game-data/warcon-query"
 import { classifyWarconOutcome } from "../../domain/game-data/warcon-history-facts"
+import { sampleScoreTimeline } from "../../domain/match-reports/wardogs"
 import { createHash } from "node:crypto"
 import { z } from "zod"
 
@@ -251,6 +252,7 @@ export async function readWarconSession(
                 value.match.finalScores
             ),
             hasFeed: value.hasFeed,
+            scoreTimeline: sampleScoreTimeline(value.timeline),
             mode: value.match.experiences,
             lighting: value.match.lighting,
             factions: value.factions.map((f) => ({

@@ -174,6 +174,10 @@ test("durable Warcon history retains explicit outcomes, names, factions and feed
         winner: "Bravo",
         outcome: "decided",
         hasFeed: false,
+        scoreTimeline: [
+            [0, 0, 0],
+            [60, 0, 100],
+        ],
         mode: "KingOfTheHill",
         lighting: "Day",
         factions: detail.factions,

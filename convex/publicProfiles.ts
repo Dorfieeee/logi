@@ -545,66 +545,103 @@ export const listMatches = query({
     handler: async (ctx, args) => {
         assertInternalSecret(args.secret)
         // Game scope is checked against the linked event, so it cannot be
-        // expressed by a matchStats index. Still page matchStats first: loading
-        // the complete history for a selected game exceeds the query timeout.
+        // expressed by one report index. Page events first so both legacy HLL
+        // matches and reviewed Wardogs reports share a bounded match feed.
         // Arbitrary collection filters retain their existing projection-first
         // semantics because they can target computed public fields.
         const requiresProjectionFiltering = Boolean(args.filters?.length)
         const databasePage = requiresProjectionFiltering
             ? null
             : await ctx.db
-                  .query("matchStats")
+                  .query("events")
+                  .withIndex("gameEnd")
                   .order("desc")
                   .paginate(args.paginationOpts)
-        const matches =
+        const events =
             databasePage?.page ??
-            (await ctx.db.query("matchStats").order("desc").collect())
-        const guilds = new Map<
-            string,
-            Awaited<ReturnType<typeof getGuildByDiscordId>>
-        >()
+            (await ctx.db
+                .query("events")
+                .withIndex("gameEnd")
+                .order("desc")
+                .collect())
         const publicMatches = (
             await Promise.all(
-                matches.map(async (match) => {
-                    const event = await ctx.db.get(match.eventId)
+                events.map(async (event) => {
                     if (
-                        !event ||
                         event.kind === "training" ||
-                        event.matchStatsId !== match._id ||
                         !matchesGameScope(
                             event.gameId,
                             args.game as GameSelection | undefined
                         )
                     )
                         return null
-                    let guild = guilds.get(match.guildId)
-                    if (guild === undefined) {
-                        guild = await getGuildByDiscordId(ctx, match.guildId)
-                        guilds.set(match.guildId, guild)
+                    const guild = await getGuildByDiscordId(ctx, event.guildId)
+                    const clan = guild
+                        ? {
+                              id: getGuildDiscordId(guild),
+                              name: guild.name,
+                              avatar: guild.avatar,
+                          }
+                        : null
+                    const category =
+                        guild?.eventCategories?.find(
+                            (item) => item.id === event.matchType
+                        )?.label ?? event.matchType
+                    if (
+                        event.gameId === "wardogs" &&
+                        event.wardogsReportId &&
+                        event.reviewedResult?.status !== "provisional"
+                    ) {
+                        const report = await ctx.db.get(event.wardogsReportId)
+                        if (
+                            !report ||
+                            report.guildId !== event.guildId ||
+                            report.eventId !== event._id ||
+                            report.report.version !==
+                                event.reviewedResult?.version
+                        )
+                            return null
+                        return {
+                            eventId: String(event._id),
+                            gameId: "wardogs",
+                            name: event.name,
+                            gameEnd: report.report.endedAt ?? event.gameEnd,
+                            clan,
+                            mapName: report.report.rounds
+                                .map((round) => round.map)
+                                .filter(Boolean)
+                                .join(" / "),
+                            score: null,
+                            participants: report.report.sides.map((side) => ({
+                                name: side.name,
+                                score: side.score,
+                            })),
+                            category,
+                        }
                     }
-                    const category = guild?.eventCategories?.find(
-                        (item) => item.id === event.matchType
+                    if (!event.matchStatsId) return null
+                    const match = await ctx.db.get(event.matchStatsId)
+                    if (
+                        !match ||
+                        match.eventId !== event._id ||
+                        match.guildId !== event.guildId
                     )
+                        return null
                     return {
                         eventId: String(event._id),
                         gameId: resolveGameScope(event.gameId),
                         name: event.name,
                         gameEnd: event.gameEnd,
-                        clan: guild
-                            ? {
-                                  id: getGuildDiscordId(guild),
-                                  name: guild.name,
-                                  avatar: guild.avatar,
-                              }
-                            : null,
+                        clan,
                         mapName: match.raw.map.pretty_name,
                         score: match.raw.result,
                         outcome: event.eventResult?.outcome,
-                        category: category?.label ?? event.matchType,
+                        category,
                     }
                 })
             )
-        ).filter((match): match is NonNullable<typeof match> => Boolean(match))
+        ).filter((match): match is NonNullable<typeof match> => match !== null)
+
         if (databasePage) return { ...databasePage, page: publicMatches }
         const offset = args.paginationOpts.cursor
             ? Number(args.paginationOpts.cursor)

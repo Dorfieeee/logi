@@ -4,6 +4,7 @@ import {
     type Guild,
     type MessageCreateOptions,
 } from "discord.js"
+import { processMatchRecaps } from "../sync/match-recaps"
 import { makeFunctionReference } from "convex/server"
 
 import {
@@ -312,6 +313,13 @@ export function startPublicPanelWorker(
                 base: "banner",
             })
             return file ? { ...file, description } : null
+        },
+        resultRecaps: async (eventId) => {
+            try {
+                await processMatchRecaps(client, eventId)
+            } catch {
+                logWarn("match-recaps", "Recap delivery deferred", { eventId })
+            }
         },
         resultsPage: (panelId, cursor) =>
             query<{ cursor: string | null; events: ResultEvent[] } | null>(

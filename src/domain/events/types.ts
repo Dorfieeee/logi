@@ -91,6 +91,7 @@ export type EventLike = {
     absenceNotices?: EventNotice[]
     eventResult?: EventResult
     matchStatsId?: unknown
+    wardogsReportId?: unknown
     createdAt?: string
     updatedAt?: string
     thumbnailUrl?: string

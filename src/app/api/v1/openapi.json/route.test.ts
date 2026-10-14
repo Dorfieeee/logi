@@ -732,3 +732,28 @@ test("player and clan history contracts define game-specific Wardogs money witho
         /Unknown cash is null/
     )
 })
+
+test("Wardogs reviewed reports document the same public and scoped match shape", async () => {
+    const document = await (await GET()).json()
+    const schema = document.components.schemas.WardogsMatchReport
+    assert.equal(schema.properties.gameId.const, "wardogs")
+    assert.ok(schema.properties.players.items.properties.money)
+    assert.equal(
+        schema.properties.players.items.properties.platformId,
+        undefined
+    )
+    assert.match(
+        document.paths["/public/matches/{eventId}"].get.description,
+        /WardogsMatchReport/
+    )
+    const detail = document.paths["/clan/matches/{eventId}"].get
+    assert.match(detail.description, /matching workspace/)
+    assert.ok(
+        detail.responses["200"].content[
+            "application/json"
+        ].schema.properties.data.oneOf.some(
+            (entry: { $ref: string }) =>
+                entry.$ref === "#/components/schemas/WardogsMatchReport"
+        )
+    )
+})

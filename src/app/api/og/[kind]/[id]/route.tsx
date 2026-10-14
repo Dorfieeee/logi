@@ -1,3 +1,5 @@
+import { getWardogsMatchReport } from "@/lib/read-models/wardogs-match-reports"
+import { WardogsMatchImage } from "@/components/app/wardogs-match-image"
 import sharp, { type OverlayOptions } from "sharp"
 import { ImageResponse } from "next/og"
 import fs from "node:fs/promises"
@@ -1204,6 +1206,17 @@ export async function GET(request: Request, { params }: Props) {
                     thumbnail={match.thumbnailUrl ?? null}
                 />
             )
+        else {
+            const report = await getWardogsMatchReport(id)
+            if (report)
+                element = (
+                    <WardogsMatchImage
+                        report={report}
+                        dictionary={getDictionary(locale)}
+                        locale={locale}
+                    />
+                )
+        }
     } else if (kind === "stratmap") {
         const stratmap = await getPublicStratmapDetail(id)
         if (stratmap) {

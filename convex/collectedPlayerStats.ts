@@ -25,7 +25,9 @@ export const backfillPage = mutation({
                 const result = await saveCollectedPlayerStats(
                     ctx,
                     event,
-                    revision
+                    revision,
+                    null,
+                    { queueRecaps: false }
                 )
                 matchedPlayers += result.matchedPlayers
                 players += result.players

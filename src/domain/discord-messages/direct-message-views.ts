@@ -583,10 +583,17 @@ export function rosterChangeDmView(input: {
 // --- Match recap (L2-41..51) ---------------------------------------------
 
 export type RecapStats = {
+    cashDelta?: number | null
     kills: number
     deaths: number
     kd: number
-    previous?: { matches: number; kills: number; deaths: number; kd: number }
+    previous?: {
+        matches: number
+        kills: number
+        deaths: number
+        kd: number
+        cashDelta?: number | null
+    }
 }
 
 /** A number in the clan locale ("2,40" in Czech). */
@@ -680,6 +687,11 @@ export function matchRecapView(input: {
         `${r.kills} **${stats.kills}**`,
         `${r.deaths} **${stats.deaths}**`,
         `${r.kd} **${formatDecimal(stats.kd, locale, 2)}**`,
+        ...(input.gameId === "wardogs"
+            ? [
+                  `${r.money} **${stats.cashDelta == null ? "—" : formatDecimal(stats.cashDelta, locale, 0)}**`,
+              ]
+            : []),
     ].join(" · ")
     const comparison =
         input.enabled && stats.previous?.matches
@@ -688,7 +700,10 @@ export function matchRecapView(input: {
                   kills: formatDecimal(stats.previous.kills, locale, 1),
                   deaths: formatDecimal(stats.previous.deaths, locale, 1),
                   kd: formatDecimal(stats.previous.kd, locale, 2),
-              })
+              }) +
+              (input.gameId === "wardogs" && stats.previous.cashDelta != null
+                  ? ` · ${r.money} ${formatDecimal(stats.previous.cashDelta, locale, 0)}`
+                  : "")
             : undefined
     const sourceLine =
         input.enabled && input.source

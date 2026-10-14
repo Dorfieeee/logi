@@ -1,4 +1,24 @@
 export const deMessages = {
+    wardogsMatchDetails: {
+        ourTeam: "Dein Team",
+        players: "Spieler",
+        scoreTimeline: "Punktestand im Spielverlauf",
+        noTimeline:
+            "Für dieses Spiel wurde kein Punkteverlauf erfasst. Spielerstatistiken sind unten verfügbar.",
+        factionCombat: "Kills und Tode nach Fraktion",
+        factionMoney: "Geld nach Fraktion",
+        minutes: "Minuten",
+        search: "Spieler suchen",
+        allFactions: "Alle Fraktionen",
+        noPlayers: "Keine Spieler entsprechen diesen Filtern.",
+        missingTitle: "Für dieses Match fehlt das Ergebnis",
+        missingBody:
+            "Wähle ein erfasstes Serverspiel und prüfe die Punkte vor der Bestätigung.",
+        suggestion: "Könnte das euer Match sein?",
+        openReport: "Matchdetails anzeigen",
+        reviewResult: "Ergebnis prüfen",
+        otherSource: "Nicht dieses Spiel? Wähle eine andere Quelle.",
+    },
     gameHistory: {
         title: "Warcon-Spielhistorie",
         description:

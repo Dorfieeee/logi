@@ -5,6 +5,10 @@ export const warconHistoryMetadataSchema = z.strictObject({
     winner: z.string().min(1).max(200).nullable(),
     outcome: z.enum(["decided", "draw", "no_result", "unknown"]),
     hasFeed: z.boolean(),
+    scoreTimeline: z
+        .array(z.array(z.number().finite()).min(1).max(17))
+        .max(500)
+        .optional(),
     mode: z.string().max(200).nullable(),
     lighting: z.string().max(200).nullable(),
     factions: z

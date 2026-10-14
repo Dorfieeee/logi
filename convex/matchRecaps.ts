@@ -5,6 +5,7 @@ import { v } from "convex/values"
 import { calculateMatchRecapBaseline } from "../src/domain/match-results/match-recap-baseline"
 import { canReceiveMatchRecap } from "../src/domain/match-results/match-recap-notifications"
 import { internalAuthSecret } from "./discord_shared"
+import { queueEventRecaps } from "./matchRecapStore"
 import { getUserByIdentifier } from "./identity"
 
 function assertSecret(secret: string) {
@@ -35,6 +36,43 @@ async function pendingDelivery(
     recap: Doc<"matchRecaps">,
     event: Doc<"events">
 ) {
+    if (event.gameId === "wardogs") {
+        if (
+            !event.wardogsReportId ||
+            !event.reviewedResult ||
+            event.reviewedResult.status !== "confirmed" ||
+            recap.resultVersion !== event.reviewedResult.version ||
+            !Number.isFinite(Date.parse(event.reviewedResult.reviewedAt ?? ""))
+        )
+            return null
+        const panels = await ctx.db
+            .query("discordPublicPanels")
+            .withIndex("guildId", (q) => q.eq("guildId", event.guildId))
+            .collect()
+        const panel = panels.find(
+            (panel) =>
+                panel.kind === "results" &&
+                panel.gameId === "wardogs" &&
+                panel.enabled
+        )
+        if (panel) {
+            const key = `panel:${panel._id}:result:${event._id}`
+            const publication = await ctx.db
+                .query("discordPublications")
+                .withIndex("guild_key", (q) =>
+                    q.eq("guildId", event.guildId).eq("key", key)
+                )
+                .unique()
+            if (
+                !publication?.messageId ||
+                publication.channelId !== panel.channelId ||
+                publication.error ||
+                (publication.lastSuccessAt ?? 0) <
+                    Date.parse(event.reviewedResult.reviewedAt ?? "")
+            )
+                return null
+        }
+    }
     const discordUserId = await currentRecipient(ctx, recap)
     if (!discordUserId) return null
     const stats = await ctx.db
@@ -54,6 +92,9 @@ async function pendingDelivery(
         kills: current.kills,
         deaths: current.deaths,
         kd: current.killDeathRatio,
+        ...(event.gameId === "wardogs"
+            ? { cashDelta: current.cashDelta ?? null }
+            : {}),
         previousTen: recap.previousTen,
     }
 }
@@ -76,69 +117,7 @@ export const queueForPublishedResult = mutation({
     },
     handler: async (ctx, args) => {
         assertSecret(args.secret)
-        const [event, roster, stats] = await Promise.all([
-            ctx.db.get(args.eventId),
-            ctx.db
-                .query("rosters")
-                .withIndex("eventId", (q) => q.eq("eventId", args.eventId))
-                .unique(),
-            ctx.db.query("playerStats").collect(),
-        ])
-        if (!event?.eventResult || !roster) return { queued: 0 }
-        const rostered = new Set(
-            roster.squads.flatMap((s) =>
-                s.players.flatMap((p) => (p.id ? [p.id] : []))
-            )
-        )
-        const linked = new Set(
-            stats.flatMap((stat) =>
-                stat.userId &&
-                rostered.has(stat.userId) &&
-                Object.prototype.hasOwnProperty.call(
-                    stat.matches,
-                    String(args.eventId)
-                )
-                    ? [stat.userId]
-                    : []
-            )
-        )
-        let queued = 0
-        const baselineByUserId = new Map(
-            args.baselines.map((item) => [item.userId, item])
-        )
-        for (const userId of linked) {
-            const user = await getUserByIdentifier(ctx, userId)
-            if (
-                !user?.discordId ||
-                !/^\d{17,20}$/.test(user.discordId) ||
-                !canReceiveMatchRecap(user.matchRecapNotificationsEnabled)
-            )
-                continue
-            const existing = await ctx.db
-                .query("matchRecaps")
-                .withIndex("eventId_userId", (q) =>
-                    q.eq("eventId", args.eventId).eq("userId", userId)
-                )
-                .unique()
-            if (existing) continue
-            const baseline = baselineByUserId.get(userId)
-            await ctx.db.insert("matchRecaps", {
-                eventId: args.eventId,
-                userId,
-                userRecordId: user._id,
-                discordUserId: user.discordId,
-                status: "pending",
-                previousTen: baseline && {
-                    matches: baseline.matches,
-                    kills: baseline.kills,
-                    deaths: baseline.deaths,
-                    kd: baseline.kd,
-                },
-                createdAt: new Date().toISOString(),
-            })
-            queued++
-        }
-        return { queued }
+        return queueEventRecaps(ctx, args.eventId, args.baselines)
     },
 })
 
@@ -225,6 +204,9 @@ export const recapCard = query({
             kills: current.kills,
             deaths: current.deaths,
             kd: current.killDeathRatio,
+            ...(event.gameId === "wardogs"
+                ? { cashDelta: current.cashDelta ?? null }
+                : {}),
             previousTen: recap.previousTen,
         }
     },

@@ -302,8 +302,19 @@ export default async function CommunityPage({ params, searchParams }: Props) {
                                                 <CardContent className="flex items-end justify-between gap-4">
                                                     <div>
                                                         <p className="text-2xl font-semibold tabular-nums">
-                                                            {match.score.allied}{" "}
-                                                            – {match.score.axis}
+                                                            {match.score
+                                                                ? `${match.score.allied} – ${match.score.axis}`
+                                                                : match.participants
+                                                                      ?.map(
+                                                                          (
+                                                                              side
+                                                                          ) =>
+                                                                              side.score ??
+                                                                              "—"
+                                                                      )
+                                                                      .join(
+                                                                          " : "
+                                                                      )}
                                                         </p>
                                                         <p className="text-muted-foreground text-sm">
                                                             {match.mapName}

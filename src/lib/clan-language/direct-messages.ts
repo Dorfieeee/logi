@@ -94,6 +94,7 @@ const directMessages: Record<ClanLanguage, DirectMessages> = {
             kills: "Zabití",
             deaths: "Úmrtí",
             kd: "K/D",
+            money: "Peníze",
             comparison:
                 "Průměr z {matches} předchozích zápasů: {kills} zabití · {deaths} úmrtí · K/D {kd}",
             source: "Data ze serveru {server} ({provider}), jen tento zápas.",
@@ -201,6 +202,7 @@ const directMessages: Record<ClanLanguage, DirectMessages> = {
             kills: "Kills",
             deaths: "Deaths",
             kd: "K/D",
+            money: "Money",
             comparison:
                 "Average of {matches} previous matches: {kills} kills · {deaths} deaths · K/D {kd}",
             source: "Data from the server {server} ({provider}), this match only.",
@@ -311,6 +313,7 @@ const directMessages: Record<ClanLanguage, DirectMessages> = {
             kills: "Kills",
             deaths: "Tode",
             kd: "K/D",
+            money: "Geld",
             comparison:
                 "Durchschnitt aus {matches} vorherigen Matches: {kills} Kills · {deaths} Tode · K/D {kd}",
             source: "Daten vom Server {server} ({provider}), nur dieses Match.",

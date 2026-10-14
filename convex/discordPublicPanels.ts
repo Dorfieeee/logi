@@ -247,7 +247,10 @@ async function resultCard(
             guildDiscordId,
             // The public match page exists only for matches with linked stats.
             publicMatch: Boolean(
-                stats && event.matchStatsId && event.matchStatsId === stats._id
+                (stats &&
+                    event.matchStatsId &&
+                    event.matchStatsId === stats._id) ||
+                event.wardogsReportId
             ),
         }),
         playedAt: event.gameStart ?? null,

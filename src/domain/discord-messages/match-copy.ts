@@ -230,6 +230,7 @@ export type DirectMessageCopy = {
         kills: string
         deaths: string
         kd: string
+        money: string
         /** "Průměr z {matches} předchozích zápasů: {kills} zabití · {deaths} úmrtí · K/D {kd}". */
         comparison: string
         /** "Data ze serveru {server} ({provider}), jen tento zápas." */

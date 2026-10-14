@@ -16,6 +16,7 @@ import { playerMatchSnapshot } from "@/lib/player-stat-presentation"
 import { PublicStat } from "@/components/public/public-stat"
 import { getDictionary } from "@/i18n/dictionaries"
 import { getLocalizedCanonical } from "@/lib/seo"
+import { Button } from "@/components/ui/button"
 import { isLocale } from "@/i18n/config"
 
 type Props = {
@@ -78,6 +79,11 @@ export default async function PublicPlayerMatchPage({ params }: Props) {
                             { label: match.name },
                         ]}
                     />
+                    <Button asChild variant="outline">
+                        <Link href={`/${resolvedLocale}/matches/${eventId}`}>
+                            {dictionary.wardogsMatchDetails.openReport}
+                        </Link>
+                    </Button>
                     <Card className="border-border/60 rounded-2xl">
                         <CardHeader>
                             <CardTitle>{match.name}</CardTitle>

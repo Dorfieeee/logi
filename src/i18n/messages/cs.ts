@@ -1,4 +1,24 @@
 export const csMessages = {
+    wardogsMatchDetails: {
+        ourTeam: "Tvůj tým",
+        players: "Hráči",
+        scoreTimeline: "Průběh skóre zápasu",
+        noTimeline:
+            "Pro tuto hru nebyl zaznamenán průběh skóre. Statistiky hráčů jsou stále dostupné níže.",
+        factionCombat: "Zabití a úmrtí podle frakce",
+        factionMoney: "Peníze podle frakce",
+        minutes: "Minuty",
+        search: "Najít hráče",
+        allFactions: "Všechny frakce",
+        noPlayers: "Těmto filtrům neodpovídá žádný hráč.",
+        missingTitle: "Tomuto zápasu chybí výsledek",
+        missingBody:
+            "Vyber hru ze serveru a před potvrzením zkontroluj její skóre.",
+        suggestion: "Mohl by to být váš zápas?",
+        openReport: "Zobrazit podrobnosti zápasu",
+        reviewResult: "Zkontrolovat výsledek",
+        otherSource: "Není to tato hra? Vyber jiný zdroj.",
+    },
     gameHistory: {
         title: "Historie her Warconu",
         description:

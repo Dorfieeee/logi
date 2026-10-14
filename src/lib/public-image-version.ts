@@ -1,7 +1,7 @@
 // Bump this whenever the public OG renderer or an asset it embeds changes.
 // Image URLs are deliberately immutable, so a deployment alone must never
 // reuse an old URL for newly-rendered pixels.
-export const publicImageRenderRevision = "2026-09-08.1"
+export const publicImageRenderRevision = "2026-10-14.1"
 
 export type PublicImageDimensions = {
     width: number

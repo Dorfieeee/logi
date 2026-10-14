@@ -1,3 +1,7 @@
+import { getWardogsMatchReport } from "@/lib/read-models/wardogs-match-reports"
+import { WardogsMatchImage } from "@/components/app/wardogs-match-image"
+import { getDictionary } from "@/i18n/dictionaries"
+import { isLocale } from "@/i18n/config"
 import { ImageResponse } from "next/og"
 
 import {
@@ -43,7 +47,7 @@ function buildTimeline(
 }
 
 export async function GET(
-    _request: Request,
+    request: Request,
     { params }: { params: Promise<{ playerId: string; eventId: string }> }
 ) {
     const { playerId, eventId } = await params
@@ -54,6 +58,32 @@ export async function GET(
     const player = playerMatch?.player
     const match = playerMatch?.match
     if (!player || !match) return new Response("Not found", { status: 404 })
+    if (match.gameId === "wardogs") {
+        const report = await getWardogsMatchReport(eventId)
+        if (
+            !report ||
+            !report.players.some((row) => row.profileId === player.id)
+        )
+            return new Response("Not found", { status: 404 })
+        const requestedLocale = new URL(request.url).searchParams.get("locale")
+        const locale =
+            requestedLocale && isLocale(requestedLocale)
+                ? requestedLocale
+                : "en"
+        return new ImageResponse(
+            <WardogsMatchImage
+                report={report}
+                playerId={player.id}
+                dictionary={getDictionary(locale)}
+                locale={locale}
+            />,
+            {
+                width: 1200,
+                height: 630,
+                headers: { "Cache-Control": "no-store, max-age=0" },
+            }
+        )
+    }
     const rawPlayer = publicMatch?.raw.player_stats.find(
         (entry) => publicMatch.linkedPlayerIds[entry.player_id] === player.id
     )
