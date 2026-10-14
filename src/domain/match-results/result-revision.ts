@@ -128,6 +128,7 @@ export const resultReviewSchema = z
                         externalId: z.string(),
                         map: z.string().nullable(),
                         startedAt: z.iso.datetime().nullable(),
+                        endedAt: z.iso.datetime().nullable(),
                         complete: z.boolean(),
                         participants: z.array(scoreSchema).max(16),
                     })

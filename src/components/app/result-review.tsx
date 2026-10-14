@@ -28,6 +28,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { suggestResultSession } from "@/domain/match-results/session-pick"
 import type { MatchTeamAssignment } from "@/domain/teams/match-teams"
+import { resultTeamFor } from "@/lib/result-team-presentation"
 import type { Dictionary } from "@/i18n/dictionaries"
 import type { GameId } from "@/domain/games/game"
 import { Button } from "@/components/ui/button"
@@ -157,6 +158,7 @@ function Review({
     playersHref,
     competitionLinked = false,
 }: Props) {
+    ourSide = matchTeams?.find((team) => team.slot === "a")?.side ?? ourSide
     const t = dictionary.resultReview
     const m = dictionary.matchDetail.result
     const heading = useId()
@@ -223,15 +225,6 @@ function Review({
             weekday: "short",
             day: "numeric",
             month: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        }).format(new Date(value))
-    }
-
-    function formatClock(value: string | null | undefined) {
-        if (!value) return ""
-        return new Intl.DateTimeFormat(locale, {
-            timeZone,
             hour: "2-digit",
             minute: "2-digit",
         }).format(new Date(value))
@@ -338,15 +331,12 @@ function Review({
             const link = current.sessionLinks[0]!
             return m.sourceSession
                 .replace("{map}", link.map ?? m.unknownMap)
-                .replace(
-                    "{time}",
-                    `${formatTime(link.startedAt)}${link.endedAt ? `–${formatClock(link.endedAt)}` : ""}`
-                )
+                .replace("{time}", formatTime(link.endedAt))
         }
         if (selectedSession)
             return m.sourceSession
                 .replace("{map}", selectedSession.map ?? m.unknownMap)
-                .replace("{time}", formatTime(selectedSession.startedAt))
+                .replace("{time}", formatTime(selectedSession.endedAt))
         return m.sourceManual
     }
 
@@ -404,18 +394,7 @@ function Review({
     )
     function teamFor(id: string, label: string, index: number, ours: boolean) {
         const faction = resultFaction(id) ?? resultFaction(label)
-        const team =
-            (faction &&
-                orderedTeams.find(
-                    (assignment) => resultFaction(assignment.side) === faction
-                )) ||
-            orderedTeams.find(
-                (assignment) =>
-                    assignment.snapshot.name.trim().toLowerCase() ===
-                    label.trim().toLowerCase()
-            ) ||
-            orderedTeams[index] ||
-            undefined
+        const team = resultTeamFor({ id, label, index, teams: orderedTeams })
         const name =
             team?.snapshot.name ??
             (ours && clanName
@@ -637,12 +616,16 @@ function Review({
                                 </div>
                             ) : (
                                 <div className="bg-muted/50 flex flex-wrap items-end gap-3 rounded-2xl p-4">
-                                    {scores.map((row, index) => {
+                                    {sides.ordered.map((side) => {
+                                        const index = side.index
+                                        const row = scores[index]!
                                         const team = teamFor(
                                             row.id,
                                             row.label,
                                             index,
-                                            sides.oursIndex === index
+                                            sides.oursIndex !== null &&
+                                                sides.ordered[0]?.index ===
+                                                    index
                                         )
                                         return (
                                             <div
@@ -664,6 +647,9 @@ function Review({
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <label className="flex flex-col gap-1">
+                                                    <span className="max-w-40 truncate text-sm font-semibold">
+                                                        {team.name}
+                                                    </span>
                                                     <Input
                                                         aria-label={m.nameLabel.replace(
                                                             "{index}",
@@ -801,7 +787,7 @@ function Review({
                                                     )
                                                     .replace(
                                                         "{time}",
-                                                        formatTime(s.startedAt)
+                                                        formatTime(s.endedAt)
                                                     )}{" "}
                                                 ·{" "}
                                                 {s.complete
