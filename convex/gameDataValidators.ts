@@ -67,6 +67,26 @@ export const gameDataHistoryProgress = v.object({
     pendingIds: v.array(v.string()),
     nextPage: v.union(v.number(), v.null()),
 })
+export const warconKillEvent = v.object({
+    eventId: v.string(),
+    ts: v.string(),
+    map: v.string(),
+    eventTime: v.number(),
+    killer: v.union(
+        v.object({ name: v.string(), faction: v.union(v.string(), v.null()) }),
+        v.null()
+    ),
+    victim: v.object({
+        name: v.string(),
+        faction: v.union(v.string(), v.null()),
+    }),
+    cause: v.union(v.string(), v.null()),
+    distanceM: v.union(v.number(), v.null()),
+    headshot: v.boolean(),
+    suicide: v.boolean(),
+    teamKill: v.boolean(),
+    tags: v.array(v.string()),
+})
 export const gameDataSession = v.object({
     externalId: v.string(),
     startedAt: v.union(v.string(), v.null()),

@@ -205,6 +205,23 @@ test("members never get drafts, tasks or review states", () => {
     assert.equal(def?.href, "/cs/dashboard/servers/server/matches/def")
 })
 
+test("a reviewed Wardogs result opens its report from the match list", () => {
+    const wardogs = event({
+        id: "wardogs-result",
+        gameId: "wardogs",
+        wardogsReportId: "wardogsMatchReports:result",
+        ...played,
+    })
+    assert.equal(
+        build(true, [wardogs]).rows[0]?.href,
+        "/cs/dashboard/servers/server/matches/wardogs-result/match-stats"
+    )
+    assert.equal(
+        build(false, [wardogs]).rows[0]?.href,
+        "/cs/dashboard/servers/server/matches/wardogs-result/match-stats"
+    )
+})
+
 test("rows show the board's date, details, counts and phases", () => {
     const { rows } = build(true)
     const byId = new Map(rows.map((row) => [row.id, row]))

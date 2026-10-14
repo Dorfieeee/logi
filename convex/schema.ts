@@ -6,6 +6,7 @@ import {
     gameDataObservation,
     gameDataHistoryProgress,
     gameDataSession,
+    warconKillEvent,
 } from "./gameDataValidators"
 import {
     applicationAccountsValidator,
@@ -1727,6 +1728,14 @@ export default defineSchema({
     })
         .index("eventId", ["eventId"])
         .index("guildId", ["guildId"]),
+    warconKillEvents: defineTable({
+        guildId: v.string(),
+        sessionId: v.id("gameSessions"),
+        sourceDigest: v.string(),
+        event: warconKillEvent,
+    })
+        .index("sessionId", ["sessionId"])
+        .index("sessionId_sourceDigest", ["sessionId", "sourceDigest"]),
     matchStats: defineTable({
         guildId: v.string(),
         gameId: v.optional(gameId),

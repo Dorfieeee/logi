@@ -9,6 +9,7 @@ import {
     gameDataError,
     gameDataSession,
     gameDataHistoryProgress,
+    warconKillEvent,
 } from "./gameDataValidators"
 import type { HistoryProgress } from "../src/application/game-data/collect-sessions"
 import type { ResolvedSource } from "../src/domain/game-data/credentials"
@@ -172,6 +173,7 @@ export const commit = internalMutation({
         ...runArgs,
         result: v.object({
             session: v.union(gameDataSession, v.null()),
+            killEvents: v.optional(v.array(warconKillEvent)),
             progress: gameDataHistoryProgress,
             completed: v.boolean(),
             revisit: v.optional(v.boolean()),
@@ -214,6 +216,15 @@ export const commit = internalMutation({
             // entry per visit. Only an unfinished session records its visit
             // (at most once a minute): `fetchedAt` orders the revisits of
             // unfinished sessions. A complete, unchanged one is not written.
+            const sessionId =
+                existing?._id ??
+                (await ctx.db.insert("gameSessions", {
+                    ...record,
+                    connectionId: row.connectionId,
+                    guildId: connection.guildId,
+                    gameId: connection.gameId,
+                    externalId: session.externalId,
+                }))
             if (existing) {
                 if (sessionRecordChanged(existing, record))
                     await ctx.db.patch(existing._id, record)
@@ -223,14 +234,21 @@ export const commit = internalMutation({
                 )
                     await ctx.db.patch(existing._id, { fetchedAt: now })
             } else {
-                await ctx.db.insert("gameSessions", {
-                    ...record,
-                    connectionId: row.connectionId,
-                    guildId: connection.guildId,
-                    gameId: connection.gameId,
-                    externalId: session.externalId,
-                })
                 count++
+            }
+            if (args.result.killEvents !== undefined) {
+                const old = await ctx.db
+                    .query("warconKillEvents")
+                    .withIndex("sessionId", (q) => q.eq("sessionId", sessionId))
+                    .collect()
+                for (const event of old) await ctx.db.delete(event._id)
+                for (const event of args.result.killEvents)
+                    await ctx.db.insert("warconKillEvents", {
+                        guildId: connection.guildId,
+                        sessionId,
+                        sourceDigest: session.sourceDigest,
+                        event,
+                    })
             }
         }
         await ctx.db.patch(row._id, {
