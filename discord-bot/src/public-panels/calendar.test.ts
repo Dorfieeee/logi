@@ -88,7 +88,11 @@ test("the calendar panel highlights the next event and links the Logi calendar",
     )
     assert.deepEqual(view.validation, { ok: true, issues: [] })
     assert.match(view.text, /KALENDÁŘ · VLCI/)
-    assert.match(view.text, /\*\*Další:\*\* \[Vlci vs Rogue · Přátelák\]/)
+    assert.match(
+        view.text,
+        /\*\*Další\*\*\n\*\*Vlci vs Rogue · Přátelák · <#123456789012345678>\*\*/
+    )
+    assert.doesNotMatch(view.text, /https:\/\/discord\.com\/channels/)
     assert.match(view.text, /Trénink/)
     assert.doesNotMatch(view.text, /Skrytý koncept/)
     const open = view.buttons[0]

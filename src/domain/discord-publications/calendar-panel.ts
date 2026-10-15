@@ -11,7 +11,8 @@ import { shortDate } from "./result-panel"
  * The calendar panel (L3-12..18, L3-B07): "Nejbližší akce" with the next
  * match highlighted, compact rows "date · time · type · linked title", a
  * link to the Logi calendar and "Časy v tvém pásmu" in the footer. A type is
- * a word, not a coloured square; a title links to the Discord announcement.
+ * a word, not a coloured square; announcements show their native Discord
+ * channel mention rather than a raw message URL.
  */
 export type CalendarEntry = {
     id: string
@@ -62,12 +63,15 @@ export function calendarPanelEntries(
 }
 
 const unix = (value: string) => Math.floor(Date.parse(value) / 1000)
-const linked = (title: string, url: string | null) => {
-    const text = escapeMarkdownText(title)
-    return url && /^https:\/\/discord\.com\/channels\//.test(url)
-        ? `[${text}](${url})`
-        : text
+const channelMention = (url: string | null) => {
+    const match = url?.match(
+        /^https:\/\/(?:ptb\.|canary\.)?discord\.com\/channels\/\d+\/(\d+)(?:\/\d+)?(?:[?#].*)?$/
+    )
+    return match ? `<#${match[1]}>` : null
 }
+
+const eventTitle = (title: string, url: string | null) =>
+    [escapeMarkdownText(title), channelMention(url)].filter(Boolean).join(" · ")
 
 export type CalendarPanelInput = {
     copy: CalendarPanelCopy
@@ -108,7 +112,7 @@ function row(entry: CalendarEntry, input: CalendarPanelInput) {
         `**${rowDate(entry, input)}**`,
         time,
         entry.typeWord ? escapeMarkdownText(entry.typeWord) : null,
-        linked(entry.title, entry.url),
+        eventTitle(entry.title, entry.url),
     ]
         .filter(Boolean)
         .join(" · ")
@@ -139,18 +143,23 @@ export function calendarPanelView(input: CalendarPanelInput): MessageView {
             .filter(Boolean)
             .join(" · ")
         content.push({
-            kind: "text",
-            markdown: `**${copy.next}** ${linked(
-                [
-                    next.title,
-                    next.typeWord?.trim() !== next.title.trim()
-                        ? next.typeWord
-                        : null,
-                ]
-                    .filter(Boolean)
-                    .join(" · "),
-                next.url
-            )}\n${when}`,
+            kind: "fields",
+            items: [
+                {
+                    title: copy.next.replace(/:$/, ""),
+                    text: `**${eventTitle(
+                        [
+                            next.title,
+                            next.typeWord?.trim() !== next.title.trim()
+                                ? next.typeWord
+                                : null,
+                        ]
+                            .filter(Boolean)
+                            .join(" · "),
+                        next.url
+                    )}**\n${when}`,
+                },
+            ],
         })
     }
     if (rest.length)
