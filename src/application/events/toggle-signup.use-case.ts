@@ -19,6 +19,7 @@ export class ToggleSignupUseCase {
         eventId: string
         userId: string
         group: string | null
+        profile?: { name: string; avatar: string }
     }) {
         const event = await this.events.getById(input.eventId)
         // A draft has not been announced, so nobody can sign up for it yet.
@@ -107,6 +108,13 @@ export class ToggleSignupUseCase {
             membershipStatus,
             requestedGroup: fullGroup,
         })
+
+        if (input.profile) {
+            await this.events.ensureDiscordProfile?.({
+                userId: input.userId,
+                ...input.profile,
+            })
+        }
 
         await this.events.saveSignupState(input.eventId, {
             participants: next.participants,

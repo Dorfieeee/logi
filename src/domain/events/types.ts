@@ -107,6 +107,8 @@ export type EventLike = {
     stratmapIds?: string[]
     signupGroupIds?: string[]
     allowedSignupStatuses?: SignupMembershipStatus[]
+    /** Lets Discord users without a workspace assignment sign up for a match. */
+    allowNonMembersSignup?: boolean
     useGeneralSignup?: boolean
     signupReminderStatuses?: Array<"recruit" | "member" | "reserve_member">
     pingClan?: boolean

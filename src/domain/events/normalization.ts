@@ -41,6 +41,8 @@ export function normalizeEventRecord<T extends EventLike>(
             event.kind === "training"
                 ? undefined
                 : normalizeOptionalArray(event.allowedSignupStatuses),
+        allowNonMembersSignup:
+            event.kind === "match" && Boolean(event.allowNonMembersSignup),
         useGeneralSignup:
             event.kind === "match" ? Boolean(event.useGeneralSignup) : false,
         signupReminderStatuses:

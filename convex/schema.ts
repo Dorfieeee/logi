@@ -934,6 +934,7 @@ export default defineSchema({
                 )
             )
         ),
+        allowNonMembersSignup: v.optional(v.boolean()),
         useGeneralSignup: v.optional(v.boolean()),
         signupReminderStatuses: v.optional(
             v.array(

@@ -2876,6 +2876,27 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                             {t.signups.noGroups}
                                         </p>
                                     )}
+                                    <div className="flex min-h-11 items-center justify-between gap-3 px-3.5 py-1.5 text-sm">
+                                        <Label
+                                            htmlFor="nm-non-members"
+                                            className="text-sm font-normal"
+                                        >
+                                            {t.signups.nonMembers}
+                                        </Label>
+                                        <Switch
+                                            id="nm-non-members"
+                                            checked={
+                                                values.allowNonMembersSignup
+                                            }
+                                            onCheckedChange={(
+                                                allowNonMembersSignup
+                                            ) =>
+                                                update({
+                                                    allowNonMembersSignup,
+                                                })
+                                            }
+                                        />
+                                    </div>
                                     {isEdit ? (
                                         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                                             <Label

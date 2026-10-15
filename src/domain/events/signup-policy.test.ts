@@ -97,6 +97,25 @@ test("toggleSignup allows training signups during starting before registration e
     assert.deepEqual(result.signUps, [{ userId: "user-1", group: "INF" }])
 })
 
+test("toggleSignup allows an unassigned Discord user when the match opts in", () => {
+    const result = toggleSignup({
+        participants: [],
+        event: {
+            kind: "match",
+            registrationEnd: "2026-01-01T12:00:00.000Z",
+            status: "registration",
+            allowNonMembersSignup: true,
+        },
+        userId: "guest-1",
+        group: null,
+        now: new Date("2026-01-01T09:00:00.000Z"),
+        membershipStatus: null,
+    })
+
+    assert.equal(result.participants[0]?.status, "attending")
+    assert.equal(result.participants[0]?.group, null)
+})
+
 test("toggleSignup switches an attending player to a different group and preserves completion", () => {
     const result = toggleSignup({
         participants: [

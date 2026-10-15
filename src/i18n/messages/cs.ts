@@ -4959,6 +4959,7 @@ export const csMessages = {
             noGroups:
                 "Tato hra nemá skupiny pro přihlášky; hráči se přihlásí bez volby skupiny.",
             general: "Přihlášení bez volby skupiny",
+            nonMembers: "Povolit přihlášení nečlenům",
             generalOn: "povoleno",
             reminder: "Připomínka přihlášky",
             reminderOff: "vypnuto",

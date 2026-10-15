@@ -93,6 +93,9 @@ export const generatedOpenApiSchemas = {
                     ]
                 }
             },
+            "allowNonMembersSignup": {
+                "type": "boolean"
+            },
             "useGeneralSignup": {
                 "type": "boolean"
             },
@@ -766,6 +769,7 @@ export const generatedOpenApiSchemas = {
             "allowedSignupStatuses": [
                 "recruit"
             ],
+            "allowNonMembersSignup": true,
             "useGeneralSignup": true,
             "signupReminderStatuses": [
                 "recruit"

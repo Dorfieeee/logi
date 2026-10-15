@@ -57,6 +57,7 @@ function seriesInput(source: Doc<"events">) {
         stratmapIds: source.stratmapIds?.map((id) => String(id)),
         signupGroupIds: source.signupGroupIds,
         allowedSignupStatuses: source.allowedSignupStatuses,
+        allowNonMembersSignup: source.allowNonMembersSignup,
         useGeneralSignup: source.useGeneralSignup,
         signupReminderStatuses: source.signupReminderStatuses,
         signupGroupLimits: source.signupGroupLimits,

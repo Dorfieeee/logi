@@ -18,6 +18,7 @@ export function isSignupMembershipAllowed(input: {
     event: {
         kind?: "match" | "training"
         allowedSignupStatuses?: SignupMembershipStatus[]
+        allowNonMembersSignup?: boolean
     }
     membershipStatus?: SignupMembershipStatus | null
 }) {
@@ -25,9 +26,8 @@ export function isSignupMembershipAllowed(input: {
         return true
     }
 
-    if (!input.membershipStatus) {
-        return false
-    }
+    if (!input.membershipStatus)
+        return Boolean(input.event.allowNonMembersSignup)
 
     const allowedStatuses = input.event.allowedSignupStatuses?.length
         ? input.event.allowedSignupStatuses
@@ -40,6 +40,7 @@ export function assertSignupMembershipAllowed(input: {
     event: {
         kind?: "match" | "training"
         allowedSignupStatuses?: SignupMembershipStatus[]
+        allowNonMembersSignup?: boolean
     }
     membershipStatus?: SignupMembershipStatus | null
 }) {
@@ -57,6 +58,7 @@ export function toggleSignup(input: {
         registrationEnd: string
         status?: EventStatus
         allowedSignupStatuses?: SignupMembershipStatus[]
+        allowNonMembersSignup?: boolean
     }
     userId: string
     group: string | null

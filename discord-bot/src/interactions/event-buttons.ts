@@ -548,6 +548,10 @@ export async function handleEventButtonInteraction(
             eventId: eventId as never,
             userId: interaction.user.id,
             group: resolved.group,
+            profile: {
+                name: interaction.user.globalName ?? interaction.user.username,
+                avatar: interaction.user.displayAvatarURL(),
+            },
         })) as {
             appliedSignupLabel: string
             removed: boolean

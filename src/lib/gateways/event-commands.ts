@@ -59,6 +59,7 @@ export async function saveServerEventCommand(input: {
     allowedSignupStatuses?: Array<
         "recruit" | "member" | "reserve_member" | "mercenary"
     >
+    allowNonMembersSignup?: boolean
     useGeneralSignup?: boolean
     signupReminderStatuses?: Array<"recruit" | "member" | "reserve_member">
     recurrence?: {
@@ -118,6 +119,7 @@ export async function saveServerEventCommand(input: {
         rewardRoleIds: input.rewardRoleIds,
         signupGroupIds: input.signupGroupIds,
         allowedSignupStatuses: input.allowedSignupStatuses,
+        allowNonMembersSignup: input.allowNonMembersSignup,
         useGeneralSignup: input.useGeneralSignup,
         signupReminderStatuses: input.signupReminderStatuses,
         recurrence: input.recurrence,
