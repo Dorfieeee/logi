@@ -81,8 +81,9 @@ test("the next event is highlighted with its sign-up deadline; the rest are comp
     assert.match(out.text, /Nejbližší akce/)
     assert.match(
         out.text,
-        /\*\*Další:\*\* \[Vlci vs \\\*Rogue\\\* · Přátelák\]\(https:\/\/discord\.com\/channels\/1\/2\/3\)/
+        /\*\*Další\*\*\n\*\*Vlci vs \\\*Rogue\\\* · Přátelák · <#2>\*\*/
     )
+    assert.doesNotMatch(out.text, /https:\/\/discord\.com\/channels/)
     assert.match(out.text, /přihlášky do /)
     assert.match(out.text, /<t:\d+:t>–<t:\d+:t> · Trénink · Akce b/)
     assert.match(out.text, /celý den · Akce c/)
@@ -93,7 +94,7 @@ test("the next event is highlighted with its sign-up deadline; the rest are comp
     )
 })
 
-test("an empty plan says so; links other than Discord messages stay plain text", () => {
+test("an empty plan says so; only Discord message URLs become channel mentions", () => {
     assert.match(view([]).text, /Momentálně nejsou naplánované/)
     const out = view([entry("x", 5, { url: "https://evil.example/x" })])
     assert.doesNotMatch(out.text, /evil\.example/)
@@ -103,7 +104,9 @@ test("at most ten rows besides the highlight", () => {
     const out = view(
         Array.from({ length: 20 }, (_, i) => entry(String(i), i + 1))
     )
-    const rows = out.text.split("\n").filter((line) => line.startsWith("**"))
-    assert.ok(rows.length <= CALENDAR_PANEL_ROWS + 1)
+    const rows = out.text
+        .split("\n")
+        .filter((line) => /^\*\*.+\*\* · <t:\d+:t>/.test(line))
+    assert.ok(rows.length <= CALENDAR_PANEL_ROWS)
     assert.deepEqual(out.validation, { ok: true, issues: [] })
 })
