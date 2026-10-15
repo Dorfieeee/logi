@@ -370,6 +370,7 @@ export type EventRecord = {
     stratmapIds: string[]
     signupGroupIds?: string[]
     allowedSignupStatuses?: SignupMembershipStatus[]
+    allowNonMembersSignup?: boolean
     useGeneralSignup?: boolean
     signupReminderStatuses?: Array<"recruit" | "member" | "reserve_member">
     recurrence?: MatchRecurrence

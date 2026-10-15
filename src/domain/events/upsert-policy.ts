@@ -56,6 +56,7 @@ export type EventUpsertInput = {
     stratmapIds?: string[]
     signupGroupIds?: string[]
     allowedSignupStatuses?: SignupMembershipStatus[]
+    allowNonMembersSignup?: boolean
     useGeneralSignup?: boolean
     signupReminderStatuses?: Array<"recruit" | "member" | "reserve_member">
     recurrence?: {
@@ -238,6 +239,8 @@ export function buildEventBasePayload(input: EventUpsertInput) {
                       (status): status is SignupMembershipStatus =>
                           Boolean(status)
                   ),
+        allowNonMembersSignup:
+            kind === "match" && Boolean(input.allowNonMembersSignup),
         useGeneralSignup:
             kind === "match" ? Boolean(input.useGeneralSignup) : false,
         signupReminderStatuses:

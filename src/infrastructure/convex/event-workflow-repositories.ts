@@ -32,6 +32,7 @@ export class ConvexEventWorkflowRepository implements EventWorkflowRepository {
             gameId: event.gameId,
             signupGroupIds: event.signupGroupIds,
             allowedSignupStatuses: event.allowedSignupStatuses,
+            allowNonMembersSignup: event.allowNonMembersSignup,
             useGeneralSignup: event.useGeneralSignup,
             signupGroupLimits: event.signupGroupLimits,
             isDraft: event.isDraft,
@@ -90,6 +91,43 @@ export class ConvexEventWorkflowRepository implements EventWorkflowRepository {
             .unique()
 
         return roster?.reservePlayerIds ?? []
+    }
+
+    async ensureDiscordProfile(input: {
+        userId: string
+        name: string
+        avatar: string
+    }) {
+        if (!/^\d{17,20}$/.test(input.userId)) return
+        const existing = await this.ctx.db
+            .query("users")
+            .withIndex("discordId", (q) => q.eq("discordId", input.userId))
+            .unique()
+        if (existing) return
+        const conflictingId = await this.ctx.db
+            .query("users")
+            .withIndex("id", (q) => q.eq("id", input.userId))
+            .unique()
+        if (conflictingId) return
+        const now = new Date().toISOString()
+        await this.ctx.db.insert("users", {
+            discordId: input.userId,
+            id: input.userId,
+            name: input.name.trim() || input.userId,
+            nicknames: {},
+            avatar:
+                input.avatar ||
+                "https://cdn.discordapp.com/embed/avatars/0.png",
+            managedGuildIds: [],
+            guildId: undefined,
+            mercenaryGuildIds: [],
+            isStreamer: false,
+            score: 0,
+            scores: {},
+            performance: undefined,
+            createdAt: now,
+            updatedAt: now,
+        })
     }
 
     async saveSignupState(

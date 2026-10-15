@@ -4981,6 +4981,7 @@ export const enMessages = {
             noGroups:
                 "This game has no sign-up groups; players sign up without choosing one.",
             general: "Sign-up without choosing a group",
+            nonMembers: "Allow non-members to sign up",
             generalOn: "allowed",
             reminder: "Sign-up reminder",
             reminderOff: "off",

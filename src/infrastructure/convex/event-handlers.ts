@@ -91,9 +91,19 @@ export async function handleUpsertEvent(input: {
 export async function handleToggleSignup(input: {
     secret: string
     expectedSecret: string
-    args: { eventId: string; userId: string; group: string | null }
+    args: {
+        eventId: string
+        userId: string
+        group: string | null
+        profile?: { name: string; avatar: string }
+    }
     createUseCase: () => ExecuteUseCase<
-        { eventId: string; userId: string; group: string | null },
+        {
+            eventId: string
+            userId: string
+            group: string | null
+            profile?: { name: string; avatar: string }
+        },
         unknown
     >
 }) {

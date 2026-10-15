@@ -361,6 +361,7 @@ export type EventRecord = {
     allowedSignupStatuses?: Array<
         "recruit" | "member" | "reserve_member" | "mercenary"
     >
+    allowNonMembersSignup?: boolean
     useGeneralSignup?: boolean
     signupReminderStatuses?: Array<"recruit" | "member" | "reserve_member">
     attendeeRoleId?: string

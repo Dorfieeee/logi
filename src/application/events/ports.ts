@@ -16,6 +16,7 @@ export type EventWorkflowRecord = {
     allowedSignupStatuses?: Array<
         "recruit" | "member" | "reserve_member" | "mercenary"
     >
+    allowNonMembersSignup?: boolean
     useGeneralSignup?: boolean
     /** Unpublished drafts accept no sign-ups. */
     isDraft?: boolean
@@ -47,6 +48,11 @@ export interface EventWorkflowRepository {
     } | null>
     getGroupNameById(groupId: string): Promise<string | null>
     getReservePlayerIds(eventId: string): Promise<string[]>
+    ensureDiscordProfile?(input: {
+        userId: string
+        name: string
+        avatar: string
+    }): Promise<void>
     saveSignupState(
         eventId: string,
         input: {

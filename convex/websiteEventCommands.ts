@@ -397,6 +397,8 @@ export const execute = mutation({
                                 signupGroupIds: current?.signupGroupIds,
                                 allowedSignupStatuses:
                                     current?.allowedSignupStatuses,
+                                allowNonMembersSignup:
+                                    current?.allowNonMembersSignup,
                                 useGeneralSignup:
                                     current?.useGeneralSignup ?? true,
                                 signupReminderStatuses:

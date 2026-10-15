@@ -5105,6 +5105,7 @@ export const deMessages = {
             noGroups:
                 "Dieses Spiel hat keine Anmeldegruppen; Spieler melden sich ohne Gruppe an.",
             general: "Anmeldung ohne Gruppenwahl",
+            nonMembers: "Anmeldung für Nichtmitglieder erlauben",
             generalOn: "erlaubt",
             reminder: "Anmeldeerinnerung",
             reminderOff: "aus",

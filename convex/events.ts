@@ -116,6 +116,7 @@ export const upsert = mutation({
                 )
             )
         ),
+        allowNonMembersSignup: v.optional(v.boolean()),
         useGeneralSignup: v.optional(v.boolean()),
         signupReminderStatuses: v.optional(
             v.array(
@@ -197,6 +198,7 @@ export const upsert = mutation({
                     : undefined,
                 stratmapIds: args.stratmapIds?.map((value) => String(value)),
                 allowedSignupStatuses: args.allowedSignupStatuses,
+                allowNonMembersSignup: args.allowNonMembersSignup,
                 squadPresetId:
                     args.squadPresetId === null
                         ? ""
@@ -354,6 +356,7 @@ export const toggleSignUp = mutation({
         eventId: v.id("events"),
         userId: v.string(),
         group: v.union(v.string(), v.null()),
+        profile: v.optional(v.object({ name: v.string(), avatar: v.string() })),
     },
     handler: async (ctx, args) => {
         return await handleToggleSignup({
@@ -363,6 +366,7 @@ export const toggleSignUp = mutation({
                 eventId: String(args.eventId),
                 userId: args.userId,
                 group: args.group,
+                profile: args.profile,
             },
             createUseCase: () =>
                 new ToggleSignupUseCase(
