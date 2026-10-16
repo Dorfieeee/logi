@@ -1,4 +1,5 @@
 import { PublicSiteShell } from "@/components/public/public-site-shell"
+import { getLatestLogiCommsWindowsDownload } from "@/lib/logicomms"
 import { LandingPage } from "@/components/landing/landing-page"
 import { defaultLocale, isLocale } from "@/i18n/config"
 import { getDictionary } from "@/i18n/dictionaries"
@@ -24,7 +25,10 @@ export default async function LocaleHomePage({
     const { locale } = await params
     const resolvedLocale = isLocale(locale) ? locale : defaultLocale
     const dictionary = getDictionary(resolvedLocale)
-    const user = await getCurrentPlayer()
+    const [user, logicommsDownloadUrl] = await Promise.all([
+        getCurrentPlayer(),
+        getLatestLogiCommsWindowsDownload(),
+    ])
     const dashboardHref = user?.defaultWorkspaceRecordId
         ? `/${resolvedLocale}/dashboard/servers/${user.defaultWorkspaceRecordId}`
         : undefined
@@ -37,6 +41,7 @@ export default async function LocaleHomePage({
                 signedIn={Boolean(user)}
                 userName={user?.name}
                 dashboardHref={dashboardHref}
+                logicommsDownloadUrl={logicommsDownloadUrl}
             />
         </PublicSiteShell>
     )
