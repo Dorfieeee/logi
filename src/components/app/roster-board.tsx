@@ -2160,7 +2160,7 @@ export function RosterBoard({
                             <aside
                                 data-testid="roster-reserves-sidebar"
                                 aria-label={dictionary.common.reserves}
-                                className="min-w-0 xl:sticky xl:top-20 xl:order-last"
+                                className="min-w-0 self-start xl:sticky xl:top-20 xl:order-last xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
                             >
                                 <RosterBoardAttendeeLists
                                     assignUserToSlot={assignUserToSlot}

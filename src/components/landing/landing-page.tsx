@@ -9,6 +9,7 @@ import {
     Code2,
     Crosshair,
     Database,
+    Download,
     LayoutDashboard,
     Medal,
     Radio,
@@ -44,6 +45,7 @@ type Props = {
     signedIn: boolean
     userName?: string
     dashboardHref?: string
+    logicommsDownloadUrl: string | null
 }
 const visuals = [
     [LayoutDashboard, "dashboard", "dashboard"],
@@ -99,6 +101,7 @@ export function LandingPage({
     signedIn,
     userName,
     dashboardHref,
+    logicommsDownloadUrl,
 }: Props) {
     const reduce = useReducedMotion(),
         landing = dictionary.home.landing,
@@ -255,6 +258,40 @@ export function LandingPage({
                             onView={setViewerImage}
                         />
                     ))}
+                </div>
+            </section>
+            <section className="relative overflow-hidden border-b border-zinc-200 bg-white px-6 py-28 sm:px-8 lg:px-12 dark:border-white/10 dark:bg-zinc-950">
+                <Beam />
+                <div className="relative mx-auto grid max-w-6xl gap-10 rounded-3xl border border-amber-300/35 bg-amber-50/65 p-8 shadow-sm md:grid-cols-[1fr_auto] md:items-center md:p-12 dark:border-amber-300/20 dark:bg-amber-300/[.06] dark:shadow-none">
+                    <div>
+                        <div className="flex size-12 items-center justify-center rounded-2xl bg-amber-300/20 text-amber-800 dark:text-amber-200">
+                            <Radio className="size-6" />
+                        </div>
+                        <p className="mt-6 text-xs font-bold tracking-[.25em] text-amber-800 uppercase dark:text-amber-200">
+                            {dictionary.home.commsBadge}
+                        </p>
+                        <h2 className="mt-4 max-w-2xl text-4xl font-semibold tracking-[-.055em] text-balance sm:text-5xl">
+                            {dictionary.home.commsTitle}
+                        </h2>
+                        <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-600 sm:text-lg dark:text-white/60">
+                            {dictionary.home.commsDescription}
+                        </p>
+                    </div>
+                    <div className="md:justify-self-end">
+                        {logicommsDownloadUrl ? (
+                            <a
+                                href={logicommsDownloadUrl}
+                                className="inline-flex h-12 items-center gap-2 rounded-xl bg-zinc-950 px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                            >
+                                {dictionary.home.commsDownload}
+                                <Download className="size-4" />
+                            </a>
+                        ) : (
+                            <p className="max-w-xs text-sm leading-6 text-zinc-600 dark:text-white/60">
+                                {dictionary.home.commsUnavailable}
+                            </p>
+                        )}
+                    </div>
                 </div>
             </section>
             <section className="relative border-y border-zinc-200 bg-zinc-100 px-4 py-28 sm:px-6 lg:px-8 dark:border-white/10 dark:bg-[#0d0d0e]">
