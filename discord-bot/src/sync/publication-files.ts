@@ -36,7 +36,7 @@ export function componentAttachments(value: unknown): ExistingAttachment[] {
  * score images; P7-23, P8-30).
  */
 const REUSABLE_FILE =
-    /^(?:logi-panel-[a-z0-9-]+-[a-f0-9]{12}\.(?:webp|jpg)|(?:skore|banner|mapa)-[a-z0-9-]+-[a-f0-9]{1,8}\.(?:png|webp))$/
+    /^(?:published-roster-[a-f0-9]{64}\.png|logi-panel-[a-z0-9-]+-[a-f0-9]{12}\.(?:webp|jpg)|(?:skore|banner|mapa)-[a-z0-9-]+-[a-f0-9]{1,8}\.(?:png|webp))$/
 
 /** Reuse immutable catalog assets already attached to this owned message. */
 export function publicationFiles(
