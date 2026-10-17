@@ -6310,12 +6310,12 @@ export const csMessages = {
         channelFrom: "z",
         channelFromLink: "Kanály a jazyk",
         channelMissing: "kanál není nastavený",
-        mentionLabel: "Označit zařazené hráče",
+        mentionLabel: "Označit roli hráčů události",
         mentionFirstHint: {
-            one: "Ve zprávě bude zmínka {count} hráče ze soupisky.",
-            few: "Ve zprávě budou zmínky všech {count} hráčů ze soupisky.",
-            many: "Ve zprávě budou zmínky všech {count} hráčů ze soupisky.",
-            other: "Ve zprávě budou zmínky všech {count} hráčů ze soupisky.",
+            one: "Role hráčů události dostane jednu zmínku.",
+            few: "Role hráčů události dostane jednu zmínku.",
+            many: "Role hráčů události dostane jednu zmínku.",
+            other: "Role hráčů události dostane jednu zmínku.",
         },
         mentionRepeatHint: "Při opakování zbytečně ruší; DM stačí.",
         laterNote:

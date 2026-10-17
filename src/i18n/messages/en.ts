@@ -6334,12 +6334,12 @@ export const enMessages = {
         channelFrom: "from",
         channelFromLink: "Channels and language",
         channelMissing: "no channel set",
-        mentionLabel: "Mention rostered players",
+        mentionLabel: "Mention the event attendee role",
         mentionFirstHint: {
-            one: "The message will mention the {count} player on the roster.",
-            few: "The message will mention all {count} players on the roster.",
-            many: "The message will mention all {count} players on the roster.",
-            other: "The message will mention all {count} players on the roster.",
+            one: "The event attendee role will be mentioned once.",
+            few: "The event attendee role will be mentioned once.",
+            many: "The event attendee role will be mentioned once.",
+            other: "The event attendee role will be mentioned once.",
         },
         mentionRepeatHint: "Repeating it only disturbs; the DMs are enough.",
         laterNote:

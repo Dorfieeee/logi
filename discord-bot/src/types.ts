@@ -437,7 +437,7 @@ export type Roster = {
     notAttendingPlayerIds?: string[]
     /** The publish dialog's choice of roster message (board D5). */
     discordMessageVariant?: "photo_text" | "photo"
-    /** Whether the first roster post mentions the rostered players. */
+    /** Whether the first roster post mentions the event attendee role. */
     discordMentionPlayers?: boolean
     /** When the roster was last published from the dashboard. */
     publishedAt?: string

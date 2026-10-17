@@ -191,12 +191,12 @@ shows the message as it will look in the roster channel.
 - **Channel:** the event-information channel from **Channels and language**,
   shown read-only. Without a separate channel the match announcement carries
   the roster image instead.
-- **Mention rostered players:** on the first publish the message mentions
-  everyone in a squad slot. Without a separate roster channel the announcement
-  carries the roster, and Discord never pings on an edited message, so the bot
-  mentions the players once in a reply to the announcement. Off by default
-  when publishing again, because the change DMs already reach the people
-  concerned.
+- **Mention event attendees:** on the first publish the message mentions the
+  event's temporary attendee role once, rather than every rostered person.
+  Discord never pings an edited message, and Logi records that first role ping,
+  so recovering a deleted managed card does not ping the event again. It is off
+  by default when publishing again, because the change DMs already reach the
+  people concerned.
 - **Counters:** players in the roster, reserves and not attending.
 
 Publishing again edits the same Discord message; no new one is posted. The

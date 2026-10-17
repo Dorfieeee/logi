@@ -1,6 +1,6 @@
 /**
- * The roster change digest, the change DMs and a repeated mention of the
- * rostered players after a re-publish (boards L1-120..126, L2-35..40, D5).
+ * The roster change digest, change DMs and the first single-channel attendee
+ * role mention (boards L1-120..126, L2-35..40, D5).
  * The dashboard only queues the request; this service watches the queue in
  * Convex, claims one request at a time and sends everything in the shared
  * card, so it goes out once even when the watch fires repeatedly.
@@ -32,16 +32,13 @@ import {
     rosterCardContext,
     rosterCardEvent,
 } from "../events/match-context"
-import {
-    rosterChangesView,
-    rosterMentionIds,
-} from "../../../src/domain/discord-messages/roster-message"
 import { resolveRosterUpdateChannelIds } from "../../../src/domain/rosters/roster-update-channel"
 import {
     matchTitle,
     playerName,
 } from "../../../src/domain/discord-messages/match-text"
 import { rosterChangeDmView } from "../../../src/domain/discord-messages/direct-message-views"
+import { rosterChangesView } from "../../../src/domain/discord-messages/roster-message"
 import { getDirectMessages } from "../../../src/lib/clan-language/direct-messages"
 import { findSquadLeader } from "../../../src/domain/discord-messages/format"
 import { getRosterMessages } from "../../../src/lib/clan-language/rosters"
@@ -87,7 +84,7 @@ export type RosterChangePorts = {
     mention(input: {
         channelId: string
         messageId?: string
-        userIds: string[]
+        roleId: string
     }): Promise<void>
 }
 
@@ -226,18 +223,19 @@ export async function deliverRosterChanges(input: {
 
     const inInfo = Boolean(syncState?.eventInfoMessageId)
     // A first publish in the roster channel pings with its own first post.
-    if (request.mentionPlayers && !(request.firstPublish && inInfo)) {
-        const userIds = rosterMentionIds(roster).slice(0, 100)
+    // Only a first single-channel publish needs a separate Discord message:
+    // edits cannot ping, and a re-publish must never notify the event again.
+    if (request.firstPublish && request.mentionPlayers && !inInfo) {
         const channelId = inInfo
             ? channels.eventInfoChannelId
             : channels.announcementChannelId
-        if (userIds.length && channelId)
+        if (event.attendeeRoleId && channelId)
             await ports.mention({
                 channelId,
                 messageId: inInfo
                     ? syncState?.eventInfoMessageId
                     : syncState?.announcementMessageId,
-                userIds,
+                roleId: event.attendeeRoleId,
             })
     }
     return outcome
@@ -278,12 +276,10 @@ export function discordRosterChangePorts(
             // Edits never ping, so a re-publish mentions in a reply to the roster.
             await channel.send({
                 components: [
-                    new TextDisplayBuilder().setContent(
-                        input.userIds.map((id) => `<@${id}>`).join(" ")
-                    ),
+                    new TextDisplayBuilder().setContent(`<@&${input.roleId}>`),
                 ],
                 flags: MessageFlags.IsComponentsV2,
-                allowedMentions: { users: input.userIds, parse: [] },
+                allowedMentions: { roles: [input.roleId], parse: [] },
                 ...(input.messageId
                     ? {
                           reply: {

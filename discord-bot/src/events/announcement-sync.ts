@@ -38,6 +38,7 @@ export const announcementReferences = {
 
 export type AnnouncementContext = {
     pingedAt: string | null
+    rosterPingedAt: string | null
     layoutVersion: string | null
     result: AnnouncementResult | null
     publicMatch: boolean
@@ -46,13 +47,14 @@ export type AnnouncementContext = {
 
 const EMPTY_CONTEXT: AnnouncementContext = {
     pingedAt: null,
+    rosterPingedAt: null,
     layoutVersion: null,
     result: null,
     publicMatch: false,
     resultsChannelId: null,
 }
 
-async function loadAnnouncementContext(eventId: string) {
+export async function loadAnnouncementContext(eventId: string) {
     try {
         return (
             ((await convex.query(announcementReferences.getContext, {
