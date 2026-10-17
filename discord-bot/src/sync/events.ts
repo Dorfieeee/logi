@@ -1,5 +1,4 @@
 import {
-    AttachmentBuilder,
     ChannelType,
     type Client,
     type Guild,
@@ -30,6 +29,7 @@ import type { BotErrorSource } from "../../../src/domain/discord-messages/bot-er
 import { shouldSyncEvent, shouldWriteMinimalConcludedSyncState } from "./rules"
 import { finishAnnouncementMigration } from "../events/announcement-migration"
 import type { EventRecord, Roster, SyncPayload, SyncState } from "../types"
+import { fetchRosterImageAttachment } from "./roster-image-attachment"
 import { applicationFactionEmoji } from "../runtime/faction-emoji"
 import { syncAnnouncement } from "../events/announcement-sync"
 import { syncSquadVoiceChannels } from "../events/squad-voice"
@@ -73,9 +73,6 @@ async function buildPublishedRosterImageAttachment(
     event: EventRecord,
     roster: Roster
 ) {
-    const attachmentName = `published-roster-${Buffer.from(
-        `${event.id}:${roster.updatedAt}`
-    ).toString("base64url")}.png`
     const publicUrl = new URL(
         buildRosterImageUrl(
             event.id,
@@ -87,28 +84,7 @@ async function buildPublishedRosterImageAttachment(
         `${publicUrl.pathname}${publicUrl.search}`,
         internalOrigin
     )
-    const response = await withTimeout(
-        fetch(imageUrl),
-        45_000,
-        `Roster image attachment for ${event.id}`
-    )
-    if (
-        !response.ok ||
-        !response.headers.get("content-type")?.startsWith("image/png")
-    ) {
-        throw new Error(`Unable to render roster image (${response.status}).`)
-    }
-
-    return {
-        attachment: new AttachmentBuilder(
-            Buffer.from(await response.arrayBuffer()),
-            {
-                name: attachmentName,
-                description: `${event.name} roster`,
-            }
-        ),
-        mediaUrl: `attachment://${attachmentName}`,
-    }
+    return fetchRosterImageAttachment(imageUrl, event.name)
 }
 
 /**
@@ -142,19 +118,9 @@ async function syncRosterMessage(
         )
         return undefined
     }
-    let attachment:
-        | Awaited<ReturnType<typeof buildPublishedRosterImageAttachment>>
-        | undefined
-    try {
-        attachment = await buildPublishedRosterImageAttachment(event, roster)
-    } catch (error) {
-        // The public image URL still renders; the upload is only more reliable.
-        logWarn("event-sync", "Roster image attachment failed", {
-            eventId: event.id,
-            guildId: payload.config.guildId,
-            error,
-        })
-    }
+    // Render before editing: a temporary renderer failure must leave the
+    // working Discord upload intact and the sync pending for a retry.
+    const attachment = await buildPublishedRosterImageAttachment(event, roster)
     const rosterUserIds = [
         ...roster.squads.flatMap((squad) =>
             squad.players.flatMap((player) => (player.id ? [player.id] : []))
@@ -172,12 +138,7 @@ async function syncRosterMessage(
             payload.userDisplayNames
         ),
         image: {
-            url:
-                attachment?.mediaUrl ??
-                buildRosterImageUrl(
-                    event.id,
-                    getRosterImageVersion(event, roster.updatedAt)
-                ),
+            url: attachment.mediaUrl,
             description: event.name,
         },
     })
@@ -193,7 +154,7 @@ async function syncRosterMessage(
             channelId: channel.id,
             message: {
                 ...message,
-                files: attachment ? [attachment.attachment] : [],
+                files: [attachment.attachment],
             },
         })) ?? messageId
     )
@@ -615,12 +576,7 @@ async function syncEvent(
                 roster
             )
         } catch (error) {
-            logWarn("event-sync", "Roster image attachment failed", {
-                eventId: event.id,
-                guildId: payload.config.guildId,
-                status: event.status,
-                error,
-            })
+            throw new EventSyncStepError("roster", error)
         }
     }
     // One announcement card from the announcement to the result (L1-01).
