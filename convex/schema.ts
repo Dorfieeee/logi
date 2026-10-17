@@ -1328,7 +1328,7 @@ export default defineSchema({
         published: v.boolean(),
         // The Discord roster message chosen at publish time (board D5):
         // photo with the text roster or photo only, and whether the first
-        // post mentions the rostered players. Missing reads the clan default.
+        // post mentions the event's attendee role. Missing reads the clan default.
         discordMessageVariant: v.optional(
             v.union(v.literal("photo_text"), v.literal("photo"))
         ),
@@ -1391,6 +1391,10 @@ export default defineSchema({
         eventId: v.id("events"),
         guildId: v.string(),
         pingedAt: v.optional(v.string()),
+        // The published roster pings the temporary attendee role once. This
+        // durable marker prevents a recreated managed roster card from
+        // notifying the match again.
+        rosterPingedAt: v.optional(v.string()),
         layoutVersion: v.optional(v.string()),
         // The one-time redraw of a match whose announcement the old bot had
         // already removed: set once its roster card and forum post were

@@ -183,16 +183,10 @@ test("the digest is one managed message per match in the roster channel, taking 
     assert.equal(rosterChangesKey("event-1"), "event:event-1:roster-changes")
 })
 
-test("a re-publish mention replies to the roster message and pings only rostered players", async () => {
+test("a re-publish never sends another roster ping", async () => {
     const { ports, mentions } = fakePorts()
     await deliverRosterChanges({ payload, request, ports })
-    assert.deepEqual(mentions, [
-        {
-            channelId: "300000000000000001",
-            messageId: "400000000000000001",
-            userIds: [id(1), id(2), id(3)],
-        },
-    ])
+    assert.deepEqual(mentions, [])
 })
 
 test("nothing is sent when the admin turned everything off or the roster is gone", async () => {
@@ -215,7 +209,7 @@ test("nothing is sent when the admin turned everything off or the roster is gone
     assert.deepEqual([dms, digests, mentions], [[], [], []])
 })
 
-test("a first publish without a roster channel mentions the players in a reply to the announcement (D5-08)", async () => {
+test("a first publish without a roster channel mentions the attendee role in a reply to the announcement (D5-08)", async () => {
     // No roster channel: the announcement doubles as the roster card.
     const single = {
         ...payload,
@@ -223,7 +217,13 @@ test("a first publish without a roster channel mentions the players in a reply t
             ...payload.config,
             announcementsChannelId: "300000000000000009",
         },
-        events: [{ ...event, eventInfoChannelId: undefined }],
+        events: [
+            {
+                ...event,
+                attendeeRoleId: "event-attendees",
+                eventInfoChannelId: undefined,
+            },
+        ],
         syncStates: [
             {
                 eventId: "event-1",
@@ -250,7 +250,7 @@ test("a first publish without a roster channel mentions the players in a reply t
         {
             channelId: "300000000000000009",
             messageId: "400000000000000009",
-            userIds: [id(1), id(2), id(3)],
+            roleId: "event-attendees",
         },
     ])
     // Only the mention: no change DMs and no digest on a first publish.

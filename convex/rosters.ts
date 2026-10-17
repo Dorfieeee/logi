@@ -138,10 +138,10 @@ export const upsert = mutation({
                       }
                     : {}),
             })
-            // "Označit zařazené hráče" on a first publish without a roster
+            // The attendee-role mention on a first publish without a roster
             // channel (D5-08): the announcement doubles as the roster card
             // and Discord never pings on its edit, so the bot mentions the
-            // players in a reply to it, once.
+            // temporary role in a reply to it, once.
             if (!wasPublished && args.discordPublish?.mentionPlayers) {
                 const config = await ctx.db
                     .query("discordConfigs")

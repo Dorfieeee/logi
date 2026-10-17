@@ -24,7 +24,7 @@ export const rosterUpdateNotificationSchema = z.strictObject({
     nextRoster: z.unknown().optional(),
     postAnnouncement: z.boolean().optional(),
     notifyPlayers: z.boolean().optional(),
-    /** "Označit zařazené hráče" on a re-publish: the bot pings them again. */
+    /** Retained for request compatibility; re-published rosters never ping. */
     mentionPlayers: z.boolean().optional(),
 })
 
@@ -72,8 +72,8 @@ export type RosterUpdateNotificationPorts = {
 
 /**
  * `POST /api/servers/{serverId}/rosters/{rosterId}/update-notifications`
- * asks the bot for the change digest, the change DMs and a new mention of
- * the rostered players; `GET …?requestId=` reports how the DMs went.
+ * asks the bot for the change digest and change DMs; `GET …?requestId=`
+ * reports how the DMs went. Re-published rosters never ping again.
  * Same-origin clan admins only; the saved roster is read on the server.
  */
 export function rosterUpdateNotificationsHandler(

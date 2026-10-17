@@ -372,11 +372,6 @@ function RosterPublishBody({
                   context: cardContext,
               })
             : undefined
-    const mentioned = draft.squads
-        .flatMap((squad) => squad.players)
-        .filter((player) => player.id)
-        .map((player) => names[player.id!] ?? player.customName ?? "")
-        .filter(Boolean)
     const previewMentions = {
         channels:
             context.meetingChannelId && context.meetingChannelName
@@ -623,19 +618,19 @@ function RosterPublishBody({
                                 )}
                             </>
                         ) : null}
-                        {switchRow(
-                            "roster-publish-mention",
-                            t.mentionLabel,
-                            republish
-                                ? t.mentionRepeatHint
-                                : pluralize(
+                        {!republish
+                            ? switchRow(
+                                  "roster-publish-mention",
+                                  t.mentionLabel,
+                                  pluralize(
                                       locale,
                                       counters.rostered,
                                       t.mentionFirstHint
                                   ),
-                            mentionPlayers,
-                            setMentionPlayers
-                        )}
+                                  mentionPlayers,
+                                  setMentionPlayers
+                              )
+                            : null}
                         {republish ? null : (
                             <p className="text-muted-foreground text-xs">
                                 {t.laterNote}
@@ -683,15 +678,6 @@ function RosterPublishBody({
                         {t.previewTitle.replace("{channel}", channel)}
                     </h3>
                     <div className="flex flex-col gap-3 rounded-xl bg-[#313338] p-3">
-                        {mentionPlayers && !republish && mentioned.length ? (
-                            <p className="truncate text-[13px] text-[#c9cdfb]">
-                                {mentioned
-                                    .slice(0, 4)
-                                    .map((name) => `@${name}`)
-                                    .join(" ")}
-                                {mentioned.length > 4 ? " …" : ""}
-                            </p>
-                        ) : null}
                         <DiscordMessagePreview
                             view={rosterView}
                             language={context.language}

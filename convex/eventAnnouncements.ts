@@ -113,6 +113,7 @@ export const getContext = query({
                 : null
         return {
             pingedAt: row?.pingedAt ?? null,
+            rosterPingedAt: row?.rosterPingedAt ?? null,
             layoutVersion: row?.layoutVersion ?? null,
             result: facts?.result ?? null,
             publicMatch: facts?.publicMatch ?? false,
@@ -131,6 +132,7 @@ export const record = mutation({
         eventId: v.id("events"),
         guildId: v.string(),
         pinged: v.optional(v.boolean()),
+        rosterPinged: v.optional(v.boolean()),
         layoutVersion: v.optional(v.string()),
         migrationVersion: v.optional(v.string()),
     },
@@ -145,6 +147,9 @@ export const record = mutation({
             .unique()
         const patch = {
             ...(args.pinged && !row?.pingedAt ? { pingedAt: now } : {}),
+            ...(args.rosterPinged && !row?.rosterPingedAt
+                ? { rosterPingedAt: now }
+                : {}),
             ...(args.layoutVersion
                 ? { layoutVersion: args.layoutVersion }
                 : {}),
