@@ -1391,9 +1391,7 @@ export default defineSchema({
         eventId: v.id("events"),
         guildId: v.string(),
         pingedAt: v.optional(v.string()),
-        // The published roster pings the temporary attendee role once. This
-        // durable marker prevents a recreated managed roster card from
-        // notifying the match again.
+        /** First published roster role ping; prevents recovery re-pings. */
         rosterPingedAt: v.optional(v.string()),
         layoutVersion: v.optional(v.string()),
         // The one-time redraw of a match whose announcement the old bot had
