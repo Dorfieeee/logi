@@ -112,6 +112,7 @@ export const queueForPublishedResult = mutation({
                 kills: v.number(),
                 deaths: v.number(),
                 kd: v.number(),
+                cashDelta: v.optional(v.union(v.number(), v.null())),
             })
         ),
     },

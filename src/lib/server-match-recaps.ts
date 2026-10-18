@@ -1,26 +1,23 @@
+import type { Id } from "../../convex/_generated/dataModel"
 import { fetchMutation, fetchQuery } from "convex/nextjs"
-import { makeFunctionReference } from "convex/server"
+import { api } from "../../convex/_generated/api"
 
 import { getInternalAuthSecret } from "@/lib/env"
 
-const queueReference = makeFunctionReference<"mutation">(
-    "matchRecaps:queueForPublishedResult"
-)
-const captureBaselinesReference = makeFunctionReference<"query">(
-    "matchRecaps:captureBaselines"
-)
-
 export async function captureMatchRecapBaselines(userIds: string[]) {
-    return await fetchQuery(captureBaselinesReference, {
+    return await fetchQuery(api.matchRecaps.captureBaselines, {
         secret: getInternalAuthSecret(),
         userIds,
     })
 }
 
-export async function queueMatchRecaps(eventId: string, baselines: unknown) {
-    return await fetchMutation(queueReference, {
+export async function queueMatchRecaps(
+    eventId: string,
+    baselines: Awaited<ReturnType<typeof captureMatchRecapBaselines>>
+) {
+    return await fetchMutation(api.matchRecaps.queueForPublishedResult, {
         secret: getInternalAuthSecret(),
-        eventId: eventId as never,
-        baselines: baselines as never,
+        eventId: eventId as Id<"events">,
+        baselines,
     })
 }

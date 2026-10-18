@@ -52,6 +52,52 @@ const list = (ctx: ReturnType<typeof fixture>) =>
         deliveryVersion: 2,
     })
 
+test("recap queue validator accepts optional nullable cash baselines from captureBaselines", () => {
+    const mutation = recaps.queueForPublishedResult
+    assert.ok(
+        "exportArgs" in mutation && typeof mutation.exportArgs === "function"
+    )
+    const args = JSON.parse(mutation.exportArgs())
+    assert.deepEqual(args.value.baselines.fieldType.value.value.cashDelta, {
+        fieldType: {
+            type: "union",
+            value: [{ type: "number" }, { type: "null" }],
+        },
+        optional: true,
+    })
+})
+
+for (const cashDelta of [undefined, null, 125] as const) {
+    test(`captured recap baseline round-trips through the queue with cashDelta ${cashDelta}`, async () => {
+        const ctx = fixture()
+        const current = ctx.db.tables.playerStats[0].matches[eventId]
+        delete ctx.db.tables.playerStats[0].matches[eventId]
+        ctx.db.tables.playerStats[0].matches.previous = {
+            importedAt: "2026-10-17T18:00:00.000Z",
+            kills: 35.8,
+            deaths: 54.7,
+            killDeathRatio: 0.6586666666666667,
+            ...(cashDelta === undefined ? {} : { cashDelta }),
+        }
+        const baselines = await invoke(recaps.captureBaselines, ctx, {
+            secret,
+            userIds: ["imported-player"],
+        })
+        ctx.db.tables.playerStats[0].matches[eventId] = current
+        assert.deepEqual(
+            await invoke(recaps.queueForPublishedResult, ctx, {
+                secret,
+                eventId,
+                baselines,
+            }),
+            { queued: 1 }
+        )
+        const { userId: _userId, ...expected } = baselines[0]
+        assert.deepEqual(ctx.db.tables.matchRecaps[0].previousTen, expected)
+        assert.equal(expected.cashDelta, cashDelta)
+    })
+}
+
 test("recap queue binds imported players to an explicit Discord account and record", async () => {
     const ctx = fixture()
     assert.deepEqual(await queue(ctx), { queued: 1 })
