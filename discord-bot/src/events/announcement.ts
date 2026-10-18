@@ -292,6 +292,8 @@ export type AnnouncementOptions = {
     forumChannelId?: string | null
     /** The roster card's own channel (`#info-akce`), when it has one. */
     rosterChannelId?: string | null
+    /** Closed event-info cards show match facts and the roster, not sign-ups. */
+    hideSignupRoster?: boolean
     /** The roster picture, when this card doubles as the roster (L1-43). */
     rosterImage?: MessageMedia | null
     thumbnail?: MessageMedia | null
@@ -352,12 +354,14 @@ export function buildAnnouncementCard(
         event: card,
         state,
         counts: announcementCountsOf(event, payload.groups),
-        signupRoster: announcementSignupRosterOf(
-            event,
-            payload.groups,
-            payload.userDisplayNames,
-            card.locale
-        ),
+        signupRoster: options.hideSignupRoster
+            ? null
+            : announcementSignupRosterOf(
+                  event,
+                  payload.groups,
+                  payload.userDisplayNames,
+                  card.locale
+              ),
         roster: rosterFacts
             ? {
                   players: rosterFacts.players,

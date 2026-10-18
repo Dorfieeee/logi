@@ -23,7 +23,7 @@ export function buildRosterMessage(input: {
     image: MessageMedia
     /** The temporary attendee role to notify when this roster first appears. */
     attendeeRoleId?: string
-    /** A durable event marker ensures a recovered card is silent. */
+    /** Callers allow the attendee-role ping only on a first publication. */
     pingAttendeeRole?: boolean
     now?: number
 }): MessageCreateOptions {
@@ -70,7 +70,7 @@ export function buildRosterMessage(input: {
             new TextDisplayBuilder().setContent(`<@&${roleId}>`),
             ...message.components,
         ],
-        // Edits never ping and the durable event marker suppresses recovery pings.
+        // Edits never ping; callers suppress this after the first publication.
         allowedMentions: { roles: [roleId], parse: [] },
     }
 }

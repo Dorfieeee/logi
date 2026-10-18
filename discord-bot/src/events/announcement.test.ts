@@ -81,6 +81,25 @@ test("the card never carries the password, the raw map or the raw side (L1-03, L
     assert.match(text, /Potvrzeno 15 z 17/)
 })
 
+test("a closed event-info card keeps match facts and roster media without the sign-up list", () => {
+    const event = withLimits(boardEvent({ status: "closed" }))
+    const { view } = buildAnnouncementCard(
+        boardPayload(event, [boardRoster]),
+        event,
+        {
+            hideSignupRoster: true,
+            rosterImage: {
+                url: "attachment://roster.png",
+                description: "Liga",
+            },
+        }
+    )
+    const text = JSON.stringify(view)
+
+    assert.match(text, /attachment:\/\/roster\.png/)
+    assert.doesNotMatch(text, /Zubr|Krtek|Rex/)
+})
+
 test("counts follow the board: groups, reserves and who is not coming", () => {
     const event = withLimits(
         boardEvent({
