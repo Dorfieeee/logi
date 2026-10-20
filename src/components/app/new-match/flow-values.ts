@@ -717,6 +717,11 @@ export function flowEditPayload(
           ? flowMapCode(values) || undefined
           : event.map
     const teamsChanged =
+        // Older matches can contain only opponent slots. Saving any edit must
+        // repair that incomplete snapshot with the clan's linked slot a.
+        (isMatch &&
+            Boolean(context.ownTeamId) &&
+            !event.matchTeams?.some((team) => team.slot === "a")) ||
         !same(initial.opponent?.teamId, values.opponent?.teamId) ||
         !same(initial.extraTeam?.teamId, values.extraTeam?.teamId) ||
         initial.ownSide !== values.ownSide ||

@@ -297,7 +297,9 @@ test("a legacy match without teams keeps its side and an unknown map", () => {
     assert.equal(untouched.map, "Foy (custom)")
     assert.equal(untouched.cap, "Custom point")
     assert.equal(untouched.name, "Renamed")
-    assert.equal("matchTeams" in untouched, false)
+    assert.deepEqual(untouched.matchTeams, [
+        { teamId: "teams:vlk", slot: "a", side: "Allies" },
+    ])
     const picked = edit(legacy, (current) => ({
         ...current,
         mapId: "foy",
