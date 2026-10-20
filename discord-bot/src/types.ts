@@ -500,6 +500,12 @@ export type SyncPayload = {
         status: "pending" | "recruit" | "active"
         gameId?: EventRecord["gameId"]
     }>
+    /** Active global teams linked to this workspace, used to repair legacy match cards. */
+    linkedTeams?: Array<{
+        gameId: "hell_let_loose" | "wardogs"
+        name: string
+        shortCode: string | null
+    }>
 }
 
 export type GuildCacheSnapshot = {

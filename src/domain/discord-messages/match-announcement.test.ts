@@ -103,7 +103,15 @@ test("the open card reads like the board (L1-11..24)", () => {
     assert.deepEqual(view.header?.chips, [
         { label: "Přátelák", tone: "danger" },
     ])
-    assert.deepEqual(view.header?.thumbnail, base.thumbnail)
+    assert.equal(view.header?.thumbnail, undefined)
+    const time = view.blocks.find(
+        (block) =>
+            block.kind === "fields" &&
+            block.items.some((field) => field.title === "Čas")
+    )
+    assert.equal(time?.kind, "fields")
+    if (time?.kind === "fields")
+        assert.deepEqual(time.items[0]?.thumbnail, base.thumbnail)
     const body = text(view)
     assert.match(body, /`VLK` Spojenci ★ {2}vs {2}`ROG` Osa ✚/)
     assert.match(body, /\*\*Čas\*\*\n<t:1791739800:f> - <t:1791748800:t>/)

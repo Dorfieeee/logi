@@ -8,6 +8,7 @@ import {
     announcementSignupRosterOf,
     announcementThumbnail,
     buildAnnouncementCard,
+    matchCardEventOf,
     rosterFactsOf,
 } from "./announcement"
 import {
@@ -32,6 +33,23 @@ function json(message: ReturnType<typeof announcementMessage>) {
         )
     ) as Array<{ type: number; content?: string; accent_color?: number }>
 }
+
+test("a linked clan team fills missing slot a on legacy match cards", () => {
+    const event = boardEvent({
+        matchTeams: boardEvent().matchTeams?.filter(
+            (team) => team.slot !== "a"
+        ),
+    })
+    const card = matchCardEventOf({
+        config: boardConfig,
+        event,
+        ownTeam: { gameId: "hell_let_loose", name: "Vlci", shortCode: "VLK" },
+    })
+    assert.deepEqual(
+        card.teams.map((team) => team.code),
+        ["VLK", "ROG"]
+    )
+})
 
 test("the first post pings above the card; the card keeps the clan colour (L1-10, L1-02)", () => {
     const event = withLimits(boardEvent())
