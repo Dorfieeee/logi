@@ -65,7 +65,7 @@ const view = (entries: CalendarEntry[]) =>
         })
     )
 
-test("the next event is highlighted with its sign-up deadline; the rest are compact rows", () => {
+test("events are grouped by day with their category marker, title and time", () => {
     const out = view([
         entry("a", 24, {
             title: "Vlci vs *Rogue*",
@@ -76,21 +76,30 @@ test("the next event is highlighted with its sign-up deadline; the rest are comp
             signupUntil: new Date(now + 20 * hour).toISOString(),
         }),
         entry("b", 48),
-        entry("c", 72, { allDay: true, range: false, typeWord: null }),
+        entry("c", 72, {
+            allDay: true,
+            range: false,
+            typeWord: null,
+            event: false,
+            categoryColor: "#5865f2",
+        }),
     ])
     assert.deepEqual(out.validation, { ok: true, issues: [] })
     assert.match(out.text, /KALENDÁŘ · VLCI/)
     assert.match(out.text, /Nejbližší akce/)
+    assert.match(out.text, /\*\*úterý 6\. října 2026\*\*/)
+    assert.match(out.text, /🔴 \*\*Vlci vs \\\*Rogue/)
+    assert.match(out.text, /<t:\d+:t> – <t:\d+:t>/)
+    assert.doesNotMatch(out.text, /<#2>|https:\/\/discord\.com\/channels/)
+    assert.doesNotMatch(out.text, /Další|přihlášky do|Foy · den|Přátelák/)
     assert.match(
         out.text,
-        /\*\*Další\*\* · 🔴 \*\*Přátelák\*\*\n\*\*Vlci vs \\\*Rogue\\\* · <#2>\*\*/
+        /\*\*středa 7\. října 2026\*\*\n⚪ \*\*Akce b\*\* · <t:\d+:t> – <t:\d+:t>/
     )
-    assert.doesNotMatch(out.text, /https:\/\/discord\.com\/channels/)
-    assert.match(out.text, /přihlášky do /)
-    assert.match(out.text, /🗺️ Foy · den/)
-    assert.match(out.text, /\*\*Akce b\*\* · ⚪ \*\*Trénink\*\*/)
-    assert.match(out.text, /📅 \*\*st 7\. 10\.\*\* · <t:\d+:t>–<t:\d+:t>/)
-    assert.match(out.text, /📅 \*\*čt 8\. 10\.\*\* · celý den/)
+    assert.match(
+        out.text,
+        /\*\*čtvrtek 8\. října 2026\*\*\n🔵 \*\*Akce c\*\* · celý den/
+    )
     assert.match(out.text, /Časy v tvém pásmu/)
     assert.deepEqual(
         out.buttons.map((button) => button.label),
@@ -98,19 +107,19 @@ test("the next event is highlighted with its sign-up deadline; the rest are comp
     )
 })
 
-test("an empty plan says so; only Discord message URLs become channel mentions", () => {
+test("an empty plan says so; rows never expose announcement URLs", () => {
     assert.match(view([]).text, /Momentálně nejsou naplánované/)
     const out = view([entry("x", 5, { url: "https://evil.example/x" })])
     assert.doesNotMatch(out.text, /evil\.example/)
 })
 
-test("at most ten rows besides the highlight", () => {
+test("at most ten rows are shown", () => {
     const out = view(
         Array.from({ length: 20 }, (_, i) => entry(String(i), i + 1))
     )
     const rows = out.text
         .split("\n")
-        .filter((line) => /^\*\*.+\*\* · <t:\d+:t>/.test(line))
+        .filter((line) => /^⚪ \*\*.+\*\* · <t:\d+:t>/.test(line))
     assert.ok(rows.length <= CALENDAR_PANEL_ROWS)
     assert.deepEqual(out.validation, { ok: true, issues: [] })
 })

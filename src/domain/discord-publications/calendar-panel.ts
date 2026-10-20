@@ -6,14 +6,12 @@ import {
 } from "../discord-messages/message-view"
 import { categoryChipTone } from "../discord-messages/match-announcement"
 import type { CalendarPanelCopy } from "./panel-copy"
-import { shortDate } from "./result-panel"
 
 /**
- * The calendar panel (L3-12..18, L3-B07): "Nejbližší akce" with the next
- * match highlighted, compact rows "date · time · type · linked title", a
- * link to the Logi calendar and "Časy v tvém pásmu" in the footer. A type is
- * a word, not a coloured square; announcements show their native Discord
- * channel mention rather than a raw message URL.
+ * The calendar panel (L3-12..18, L3-B07): upcoming events grouped by local
+ * day. Each compact row is its category-colour marker, title and local time
+ * range, followed by a link to the Logi calendar and "Časy v tvém pásmu" in
+ * the footer.
  */
 export type CalendarEntry = {
     id: string
@@ -68,15 +66,7 @@ export function calendarPanelEntries(
 }
 
 const unix = (value: string) => Math.floor(Date.parse(value) / 1000)
-const channelMention = (url: string | null) => {
-    const match = url?.match(
-        /^https:\/\/(?:ptb\.|canary\.)?discord\.com\/channels\/\d+\/(\d+)(?:\/\d+)?(?:[?#].*)?$/
-    )
-    return match ? `<#${match[1]}>` : null
-}
-
-const eventTitle = (title: string, url: string | null) =>
-    [escapeMarkdownText(title), channelMention(url)].filter(Boolean).join(" · ")
+const eventTitle = (title: string) => escapeMarkdownText(title)
 
 export type CalendarPanelInput = {
     copy: CalendarPanelCopy
@@ -93,110 +83,96 @@ export type CalendarPanelInput = {
     title?: string | null
 }
 
-function rowDate(entry: CalendarEntry, input: CalendarPanelInput) {
-    const start = shortDate(entry.startAt, input.locale, input.timeZone)
-    if (!entry.allDay) return start
-    // An all-day item ends at the next midnight; show its last day.
-    const end = shortDate(
-        Date.parse(entry.endAt) - 1,
-        input.locale,
-        input.timeZone
-    )
-    return end && end !== start ? `${start} – ${end}` : start
-}
-
-function rowText(entry: CalendarEntry, input: CalendarPanelInput) {
-    const time = entry.allDay
-        ? input.copy.allDay
-        : `<t:${unix(entry.startAt)}:t>${
-              entry.range && Date.parse(entry.endAt) > Date.parse(entry.startAt)
-                  ? `–<t:${unix(entry.endAt)}:t>`
-                  : ""
-          }`
-    return [
-        `📅 **${rowDate(entry, input)}** · ${time}`,
-        entry.mapLabel?.trim()
-            ? `🗺️ ${escapeMarkdownText(entry.mapLabel)}`
-            : null,
-        entry.signupUntil && Date.parse(entry.signupUntil) > input.now
-            ? copySignupUntil(entry, input)
-            : null,
-    ]
-        .filter(Boolean)
-        .join("\n")
-}
-
-const copySignupUntil = (entry: CalendarEntry, input: CalendarPanelInput) =>
-    input.copy.signupUntil(
-        `${shortDate(entry.signupUntil!, input.locale, input.timeZone)} · <t:${unix(entry.signupUntil!)}:t>`
-    )
-
-function eventField(entry: CalendarEntry, input: CalendarPanelInput) {
-    return {
-        title: eventTitle(entry.title, entry.url),
-        ...(entry.typeWord
-            ? {
-                  chip: {
-                      label: escapeMarkdownText(entry.typeWord),
-                      tone: categoryChipTone(entry.categoryColor),
-                  },
-              }
-            : {}),
-        text: rowText(entry, input),
+function dayParts(entry: CalendarEntry, input: CalendarPanelInput) {
+    const date = new Date(entry.startAt)
+    const options: Intl.DateTimeFormatOptions = {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: input.timeZone,
     }
+    try {
+        return new Intl.DateTimeFormat(input.locale, options).formatToParts(
+            date
+        )
+    } catch {
+        return new Intl.DateTimeFormat("en", {
+            ...options,
+            timeZone: "UTC",
+        }).formatToParts(date)
+    }
+}
+
+function dayKey(entry: CalendarEntry, input: CalendarPanelInput) {
+    return dayParts(entry, input)
+        .filter(
+            (part) =>
+                part.type === "year" ||
+                part.type === "month" ||
+                part.type === "day"
+        )
+        .map((part) => part.value)
+        .join("-")
+}
+
+function dayLabel(entry: CalendarEntry, input: CalendarPanelInput) {
+    return dayParts(entry, input)
+        .map((part) => part.value)
+        .join("")
+        .replace(/,$/, "")
+}
+
+function rowTime(entry: CalendarEntry, input: CalendarPanelInput) {
+    if (entry.allDay) return input.copy.allDay
+    const start = `<t:${unix(entry.startAt)}:t>`
+    return entry.range && Date.parse(entry.endAt) > Date.parse(entry.startAt)
+        ? `${start} – <t:${unix(entry.endAt)}:t>`
+        : start
+}
+
+function rowMarker(entry: CalendarEntry) {
+    const markers = {
+        success: "🟢",
+        warning: "🟡",
+        danger: "🔴",
+        neutral: "⚪",
+        info: "🔵",
+    } as const
+    return markers[categoryChipTone(entry.categoryColor)]
+}
+
+function groupedRows(
+    entries: readonly CalendarEntry[],
+    input: CalendarPanelInput
+) {
+    const groups = new Map<
+        string,
+        { label: string; entries: CalendarEntry[] }
+    >()
+    for (const entry of entries.slice(0, CALENDAR_PANEL_ROWS)) {
+        const key = dayKey(entry, input)
+        const group = groups.get(key)
+        if (group) group.entries.push(entry)
+        else
+            groups.set(key, { label: dayLabel(entry, input), entries: [entry] })
+    }
+    return [...groups.values()].map((group) => ({
+        kind: "text" as const,
+        markdown: [
+            `**${escapeMarkdownText(group.label)}**`,
+            ...group.entries.map(
+                (entry) =>
+                    `${rowMarker(entry)} **${eventTitle(entry.title)}** · ${rowTime(entry, input)}`
+            ),
+        ].join("\n"),
+    }))
 }
 
 export function calendarPanelView(input: CalendarPanelInput): MessageView {
     const { copy } = input
     const entries = input.entries
-    // "Další:" is the next match (L3-13); a training only when no match is planned.
-    const next =
-        entries.find((entry) => entry.event && entry.category !== "training") ??
-        entries.find((entry) => entry.event) ??
-        null
-    const rest = entries
-        .filter((entry) => entry !== next)
-        .slice(0, CALENDAR_PANEL_ROWS)
-    const content: MessageBlock[] = []
-    if (next) {
-        const when = [
-            `${shortDate(next.startAt, input.locale, input.timeZone)} · <t:${unix(next.startAt)}:t>`,
-            copy.relative(`<t:${unix(next.startAt)}:R>`),
-            next.signupUntil && Date.parse(next.signupUntil) > input.now
-                ? copy.signupUntil(
-                      `${shortDate(next.signupUntil, input.locale, input.timeZone)} · <t:${unix(next.signupUntil)}:t>`
-                  )
-                : null,
-        ]
-            .filter(Boolean)
-            .join(" · ")
-        content.push({
-            kind: "fields",
-            items: [
-                {
-                    title: copy.next.replace(/:$/, ""),
-                    ...(next.typeWord
-                        ? {
-                              chip: {
-                                  label: escapeMarkdownText(next.typeWord),
-                                  tone: categoryChipTone(next.categoryColor),
-                              },
-                          }
-                        : {}),
-                    text: `**${eventTitle(next.title, next.url)}**\n${when}${
-                        next.mapLabel?.trim()
-                            ? `\n🗺️ ${escapeMarkdownText(next.mapLabel)}`
-                            : ""
-                    }`,
-                },
-            ],
-        })
-    }
-    if (rest.length)
-        content.push({
-            kind: "fields",
-            items: rest.map((entry) => eventField(entry, input)),
-        })
+    const content: MessageBlock[] = groupedRows(entries, input)
     if (!entries.length) content.push({ kind: "text", markdown: copy.empty })
     return panelFrame({
         accentColor: input.accentColor,

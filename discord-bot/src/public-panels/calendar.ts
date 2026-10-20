@@ -55,7 +55,9 @@ export function calendarEntriesFromPayload(
                       copy.match)
             const categoryColor =
                 event.kind === "training"
-                    ? null
+                    ? (categories.find(
+                          (item) => item.id.toLowerCase() === "training"
+                      )?.color ?? null)
                     : (categories.find(
                           (item) =>
                               item.id.toLowerCase() ===
@@ -107,7 +109,7 @@ export function calendarEntriesFromPayload(
         url: null,
         signupUntil: null,
         category: null,
-        categoryColor: null,
+        categoryColor: item.color,
         mapLabel: null,
         event: false,
         range: !item.allDay,

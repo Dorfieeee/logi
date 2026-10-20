@@ -55,7 +55,16 @@ const payload = {
             updatedAt: hours(-2),
         },
     ],
-    calendarItems: [],
+    calendarItems: [
+        {
+            id: "calendarItems:1",
+            title: "Porada klanu",
+            color: "#5865f2",
+            startAt: hours(54),
+            endAt: hours(55),
+            allDay: false,
+        },
+    ],
     syncStates: [
         {
             eventId: "events:1",
@@ -65,13 +74,19 @@ const payload = {
     ],
 } as unknown as Parameters<typeof buildCalendarPanelView>[0]
 
-test("calendar entries come from events, never drafts, with the type as a word", () => {
+test("calendar entries include custom items with their own category colour", () => {
     const entries = calendarEntriesFromPayload(payload, now)
     assert.deepEqual(
-        entries.map((entry) => [entry.id, entry.typeWord, entry.category]),
+        entries.map((entry) => [
+            entry.id,
+            entry.typeWord,
+            entry.category,
+            entry.categoryColor,
+        ]),
         [
-            ["events:1", "Přátelák", "friendly"],
-            ["events:2", "Trénink", "training"],
+            ["events:1", "Přátelák", "friendly", "#ed4245"],
+            ["events:2", "Trénink", "training", null],
+            ["calendarItems:1:0", null, null, "#5865f2"],
         ]
     )
     assert.equal(
@@ -80,7 +95,7 @@ test("calendar entries come from events, never drafts, with the type as a word",
     )
 })
 
-test("the calendar panel highlights the next event and links the Logi calendar", () => {
+test("the calendar panel groups every event type by day and links the Logi calendar", () => {
     const view = renderedView(
         buildCalendarPanelView(payload, {
             now,
@@ -90,11 +105,13 @@ test("the calendar panel highlights the next event and links the Logi calendar",
     )
     assert.deepEqual(view.validation, { ok: true, issues: [] })
     assert.match(view.text, /KALENDÁŘ · VLCI/)
-    assert.match(
+    assert.match(view.text, /\*\*pondělí 5\. října 2026\*\*/)
+    assert.match(view.text, /🔴 \*\*Vlci vs Rogue\*\* · <t:\d+:t>/)
+    assert.match(view.text, /🔵 \*\*Porada klanu\*\* · <t:\d+:t> – <t:\d+:t>/)
+    assert.doesNotMatch(
         view.text,
-        /\*\*Další\*\* · 🔴 \*\*Přátelák\*\*\n\*\*Vlci vs Rogue · <#123456789012345678>\*\*/
+        /<#123456789012345678>|https:\/\/discord\.com\/channels/
     )
-    assert.doesNotMatch(view.text, /https:\/\/discord\.com\/channels/)
     assert.match(view.text, /Trénink/)
     assert.doesNotMatch(view.text, /Skrytý koncept/)
     const open = view.buttons[0]
@@ -149,6 +166,7 @@ test("a competition match names its round: ECL, 3. kolo (L3-14)", () => {
                 updatedAt: hours(-1),
             },
         ],
+        calendarItems: [],
     } as unknown as Parameters<typeof buildCalendarPanelView>[0]
     const entries = calendarEntriesFromPayload(withRound, now)
     assert.deepEqual(
