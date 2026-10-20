@@ -1,4 +1,5 @@
 import { parseSteamId } from "../player-stats/player-stats"
+import { externalPlatformId } from "./external-platform-id"
 import { z } from "zod"
 
 export const externalRegistrationSchema = z
@@ -15,6 +16,15 @@ export const externalRegistrationSchema = z
             )
             .optional(),
         steamName: z.string().trim().min(1).max(100).optional(),
+        platformId: z
+            .string()
+            .trim()
+            .regex(/^(?:\d{17}|[a-fA-F0-9]{32})$/)
+            .refine(
+                (value) => externalPlatformId(value) !== null,
+                "Invalid Steam64 or EOS ID"
+            )
+            .optional(),
         avatar: z
             .union([
                 z.literal(""),
@@ -42,5 +52,17 @@ export const externalRegistrationSchema = z
         createMembership: z.boolean().default(false),
     })
     .strict()
+    .refine(
+        (input) =>
+            !input.steamId ||
+            !input.platformId ||
+            externalPlatformId(input.steamId) ===
+                externalPlatformId(input.platformId),
+        {
+            path: ["platformId"],
+            message:
+                "steamId and platformId must refer to the same account; submit one account per request.",
+        }
+    )
 
 export type ExternalRegistration = z.infer<typeof externalRegistrationSchema>

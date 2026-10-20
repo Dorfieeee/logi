@@ -17,16 +17,26 @@ Existing HLL/Wardogs assignments and statuses remain unchanged.
 
 The integration authenticates the applicant's Discord identity and sends its
 clan's `guildId`, the applicant's `discordId` and `name`, and, when needed, a
-Steam ID64. Existing accounts are reused; an unclaimed Steam ID is appended
-without replacing other linked accounts, the Discord identity, name or avatar.
-An existing user can omit `steamId` if Logi already has a linked Steam ID.
-New users and users without Steam details must provide one. This is self-declared
-account metadata; Steam OpenID verification remains a separate user action.
+player ID. Send `platformId` with a raw Steam ID64 (17 digits) or an EOS ID
+(32 hexadecimal characters, such as `f17568f25c8fb49a2c10c23e444ad07b`). EOS IDs
+are normalized to lowercase. The existing `steamId` field remains supported for
+Steam-only clients; if both fields are supplied they must identify the same
+Steam account. Link one account per request. The optional historical `steamName`
+field can hold the in-game name from either platform, including an HLL Records
+profile; it does not replace an existing user's Discord name or existing name metadata.
 
-If another user already has the Steam ID, registration returns HTTP 409 and
+Existing accounts are reused; an unclaimed player ID is appended
+without replacing other linked accounts, the Discord identity, name or avatar.
+An existing user can omit both ID fields if Logi already has a linked Steam or
+EOS ID (Steam is preferred if both exist). New users and users without either
+supported ID must provide one. This is self-declared account metadata; Steam
+OpenID verification remains a separate user action.
+
+If another user already has the player ID, registration returns HTTP 409 and
 changes nothing. It checks numeric IDs, `steam:` IDs, profile URLs and active
-verified Steam links. It never transfers a Steam account between users. The
-applicant should correct their Steam ID or ask an administrator to resolve the
+verified Steam links, plus raw or `epic:`-prefixed EOS IDs regardless of case.
+It never transfers an account between users. The
+applicant should correct their player ID or ask an administrator to resolve the
 existing link; automatic unlinking through a clan key is deliberately excluded.
 
 The API requires a full-access clan key and `Idempotency-Key`; `guildId` must
