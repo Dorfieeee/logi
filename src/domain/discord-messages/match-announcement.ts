@@ -502,20 +502,23 @@ export function buildAnnouncementView(
 
     const meeting = discordTimestamp(event.meetingStart, "f")
     const end = discordTimestamp(event.gameEnd, "t")
+    const registrationEnd = discordTimestamp(event.registrationEnd, "f")
     const fields = [
         meeting
             ? {
                   title: copy.card.time,
-                  text: end ? `${meeting} - ${end}` : meeting,
+                  text: [
+                      end ? `${meeting} - ${end}` : meeting,
+                      ...(state === "open" && registrationEnd
+                          ? [
+                                `**${copy.card.registrationEnd}**`,
+                                registrationEnd,
+                            ]
+                          : []),
+                  ].join("\n"),
                   ...(input.thumbnail && event.kind === "match"
                       ? { thumbnail: input.thumbnail }
                       : {}),
-              }
-            : null,
-        state === "open"
-            ? {
-                  title: copy.card.registrationEnd,
-                  text: discordTimestamp(event.registrationEnd, "f") ?? "",
               }
             : null,
         state === "open"
