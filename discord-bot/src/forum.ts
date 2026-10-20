@@ -111,13 +111,17 @@ export function findRecoverableEventForum(
         )[0]
 }
 
-/** The match forum's channel name, "vlk-vs-rog-11-10" (L1-127). */
+/**
+ * The forum topic belongs to the event, not its opponents. Keep its durable
+ * name tied to the manager's event name and local match date so every selected
+ * team (including the hosting clan) is represented only in the card itself.
+ */
 export function buildMatchForumName(
     config: Pick<DiscordConfig, "timezone">,
-    event: Pick<EventRecord, "name" | "matchTeams" | "gameStart">
+    event: Pick<EventRecord, "name" | "gameStart">
 ) {
     return matchForumChannelName(
-        matchTitle(event),
+        event.name,
         event.gameStart,
         config.timezone || "UTC"
     )
@@ -258,7 +262,7 @@ function forumEventOf(
 ): ForumEvent {
     return {
         id: event.id,
-        title: matchTitle(event),
+        title: event.name,
         category: eventCategory(event, categories),
         teams: event.matchTeams,
         side: event.side,

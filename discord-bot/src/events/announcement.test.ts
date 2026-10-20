@@ -78,7 +78,7 @@ test("the card never carries the password, the raw map or the raw side (L1-03, L
         json(announcementMessage(view, { config: boardConfig }))
     )
     assert.doesNotMatch(text, /k7-sraz|foy_warfare_day|Allies|VLK Scrim/)
-    assert.match(text, /Potvrzeno 15 z 17/)
+    assert.match(text, /Role účastníků/)
 })
 
 test("a closed event-info card keeps match facts and roster media without the sign-up list", () => {

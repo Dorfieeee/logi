@@ -4,6 +4,7 @@ import {
     type MessageBlock,
     type MessageView,
 } from "../discord-messages/message-view"
+import { categoryChipTone } from "../discord-messages/match-announcement"
 import type { CalendarPanelCopy } from "./panel-copy"
 import { shortDate } from "./result-panel"
 
@@ -28,6 +29,10 @@ export type CalendarEntry = {
     signupUntil: string | null
     /** Event category key for the settings filter; null for manual items. */
     category: string | null
+    /** Dashboard category colour, rendered as the closest Discord chip tone. */
+    categoryColor?: string | null
+    /** Localized map and mode, when this is a game event. */
+    mapLabel?: string | null
     /** A clan event (match or training), not a manual calendar item. */
     event: boolean
     /** Show the end time too ("19:00–21:00"): trainings and timed items. */
@@ -100,7 +105,7 @@ function rowDate(entry: CalendarEntry, input: CalendarPanelInput) {
     return end && end !== start ? `${start} – ${end}` : start
 }
 
-function row(entry: CalendarEntry, input: CalendarPanelInput) {
+function rowText(entry: CalendarEntry, input: CalendarPanelInput) {
     const time = entry.allDay
         ? input.copy.allDay
         : `<t:${unix(entry.startAt)}:t>${
@@ -109,13 +114,36 @@ function row(entry: CalendarEntry, input: CalendarPanelInput) {
                   : ""
           }`
     return [
-        `**${rowDate(entry, input)}**`,
-        time,
-        entry.typeWord ? escapeMarkdownText(entry.typeWord) : null,
-        eventTitle(entry.title, entry.url),
+        `📅 **${rowDate(entry, input)}** · ${time}`,
+        entry.mapLabel?.trim()
+            ? `🗺️ ${escapeMarkdownText(entry.mapLabel)}`
+            : null,
+        entry.signupUntil && Date.parse(entry.signupUntil) > input.now
+            ? copySignupUntil(entry, input)
+            : null,
     ]
         .filter(Boolean)
-        .join(" · ")
+        .join("\n")
+}
+
+const copySignupUntil = (entry: CalendarEntry, input: CalendarPanelInput) =>
+    input.copy.signupUntil(
+        `${shortDate(entry.signupUntil!, input.locale, input.timeZone)} · <t:${unix(entry.signupUntil!)}:t>`
+    )
+
+function eventField(entry: CalendarEntry, input: CalendarPanelInput) {
+    return {
+        title: eventTitle(entry.title, entry.url),
+        ...(entry.typeWord
+            ? {
+                  chip: {
+                      label: escapeMarkdownText(entry.typeWord),
+                      tone: categoryChipTone(entry.categoryColor),
+                  },
+              }
+            : {}),
+        text: rowText(entry, input),
+    }
 }
 
 export function calendarPanelView(input: CalendarPanelInput): MessageView {
@@ -147,25 +175,27 @@ export function calendarPanelView(input: CalendarPanelInput): MessageView {
             items: [
                 {
                     title: copy.next.replace(/:$/, ""),
-                    text: `**${eventTitle(
-                        [
-                            next.title,
-                            next.typeWord?.trim() !== next.title.trim()
-                                ? next.typeWord
-                                : null,
-                        ]
-                            .filter(Boolean)
-                            .join(" · "),
-                        next.url
-                    )}**\n${when}`,
+                    ...(next.typeWord
+                        ? {
+                              chip: {
+                                  label: escapeMarkdownText(next.typeWord),
+                                  tone: categoryChipTone(next.categoryColor),
+                              },
+                          }
+                        : {}),
+                    text: `**${eventTitle(next.title, next.url)}**\n${when}${
+                        next.mapLabel?.trim()
+                            ? `\n🗺️ ${escapeMarkdownText(next.mapLabel)}`
+                            : ""
+                    }`,
                 },
             ],
         })
     }
     if (rest.length)
         content.push({
-            kind: "text",
-            markdown: rest.map((entry) => row(entry, input)).join("\n"),
+            kind: "fields",
+            items: rest.map((entry) => eventField(entry, input)),
         })
     if (!entries.length) content.push({ kind: "text", markdown: copy.empty })
     return panelFrame({

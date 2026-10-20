@@ -34,7 +34,10 @@ export type NewMatchPreviewModel = {
     server?: string | null
     meetingStart: string | null
     gameStart: string | null
+    gameEnd?: string | null
     registrationEnd: string | null
+    signupRestriction?: string | null
+    attendeeRole?: string | null
     groups: Array<{ name: string; max?: number }>
     /** Role names the announcement pings, shown above the card. */
     mentions: string[]
@@ -121,7 +124,10 @@ export function NewMatchPreview({
         server: model.kind === "training" ? (model.server ?? null) : null,
         meetingStart: model.meetingStart ?? "",
         gameStart: model.gameStart ?? "",
+        gameEnd: model.gameEnd ?? null,
         registrationEnd: model.registrationEnd ?? "",
+        signupRestriction: model.signupRestriction,
+        attendeeRole: model.attendeeRole,
         timeZone: model.timeZone,
         locale: messages.locale,
     }

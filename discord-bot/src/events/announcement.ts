@@ -144,10 +144,17 @@ export function matchCardEventOf(input: {
         server: event.kind === "training" ? (event.server ?? null) : null,
         meetingStart: event.meetingStart,
         gameStart: event.gameStart,
+        gameEnd: event.gameEnd,
         registrationEnd: event.registrationEnd,
         timeZone: input.config.timezone,
         locale: messages.locale,
         factionEmoji: input.factionEmoji,
+        signupRestriction: event.requiredRoleIds.length
+            ? event.requiredRoleIds.map((roleId) => `<@&${roleId}>`).join(", ")
+            : null,
+        attendeeRole: event.attendeeRoleId
+            ? `<@&${event.attendeeRoleId}>`
+            : null,
     }
 }
 

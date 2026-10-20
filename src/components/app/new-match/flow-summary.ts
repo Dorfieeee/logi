@@ -301,8 +301,11 @@ export function flowPreviewModel(
         values.signupGroupLimits.find((limit) => limit.groupId === groupId)?.max
     // The bot lists the stored team assignments by slot; without any it shows
     // the clan's own side.
+    // The event belongs to this clan even while its catalogue link is absent
+    // or still loading. Do not let that transient dashboard state erase the
+    // home team from the Discord preview.
     const teams = [
-        ...(context.ownTeam ? [{ code: ownCode, side: values.ownSide }] : []),
+        ...(isMatch ? [{ code: ownCode, side: values.ownSide }] : []),
         ...(opponentCode
             ? [{ code: opponentCode, side: values.opponentSide }]
             : []),
@@ -315,13 +318,7 @@ export function flowPreviewModel(
         timeZone: context.timezone,
         title: name,
         categoryLabel: category?.label ?? null,
-        teams: isMatch
-            ? teams.length
-                ? teams
-                : values.ownSide
-                  ? [{ code: ownCode, side: values.ownSide }]
-                  : []
-            : [],
+        teams,
         map: map ? { name: map.name, time: values.timeOfDay || null } : null,
         // The bot's own map picture (board L1-15), when Logi has one.
         mapImageUrl: values.mapId
@@ -332,7 +329,14 @@ export function flowPreviewModel(
         server: isMatch ? null : values.server || null,
         meetingStart: schedule?.meetingStart ?? null,
         gameStart: schedule?.gameStart ?? null,
+        gameEnd: schedule?.gameEnd ?? null,
         registrationEnd: schedule?.registrationEnd ?? null,
+        signupRestriction: values.requiredRoleIds.length
+            ? values.requiredRoleIds
+                  .map((id) => `@${context.roleName(id) ?? id}`)
+                  .join(", ")
+            : null,
+        attendeeRole: "@Event attendees",
         groups: gameGroups(context.groups, values.gameId)
             .filter((group) => values.signupGroupIds.includes(group.id))
             .map((group) => ({ name: group.name, max: limitOf(group.id) })),

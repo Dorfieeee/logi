@@ -75,6 +75,12 @@ export type MatchAnnouncementCopy = {
         mapAlt: string
         /** "soupiska {event}". */
         rosterAlt: string
+        time: string
+        registrationEnd: string
+        signupsRestrictedTo: string
+        attendeeRole: string
+        anyone: string
+        attendeeRolePending: string
     }
     states: {
         open: string
