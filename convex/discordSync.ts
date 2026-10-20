@@ -256,73 +256,90 @@ export const listSyncPayloads = query({
             )
         )
 
-        return configs.map((config, configIndex) => {
-            const guild = guilds.find(
-                (item) => getGuildDiscordId(item) === config.guildId
-            )
-            const guildGroups = groups
-                .filter((group) => group.guildId === config.guildId)
-                .map(normalizeDoc)
-            const clanEvents = events.filter(
-                (event) => event.guildId === config.guildId
-            )
-            const clanRosters = rosters.filter((roster) =>
-                clanEvents.some((event) => event._id === roster.eventId)
-            )
-            const guildEvents = clanEvents.map((event) =>
-                withCompetitionRound(event, rounds)
-            )
-            const guildCalendarItems = calendarItems
-                .filter((item) => item.guildId === config.guildId)
-                .map(normalizeCalendarItemDoc)
-            const guildTopicPresets = topicPresets
-                .filter((preset) => preset.guildId === config.guildId)
-                .map(normalizeDoc)
-            const guildSyncStates = syncStates
-                .filter((state) => state.guildId === config.guildId)
-                .map(normalizeDoc)
-            const guildRosters = clanRosters.map(normalizeDoc)
-            // The clan's referenced people, each user once whichever of its
-            // identifiers the references carried.
-            const clanUsers = new Map<string, Doc<"users">>()
-            for (const id of referencedUserIds(clanEvents, clanRosters)) {
-                const user = users.get(id)
-                if (user) clanUsers.set(String(user._id), user)
-            }
+        return await Promise.all(
+            configs.map(async (config, configIndex) => {
+                const guild = guilds.find(
+                    (item) => getGuildDiscordId(item) === config.guildId
+                )
+                const guildGroups = groups
+                    .filter((group) => group.guildId === config.guildId)
+                    .map(normalizeDoc)
+                const clanEvents = events.filter(
+                    (event) => event.guildId === config.guildId
+                )
+                const clanRosters = rosters.filter((roster) =>
+                    clanEvents.some((event) => event._id === roster.eventId)
+                )
+                const guildEvents = clanEvents.map((event) =>
+                    withCompetitionRound(event, rounds)
+                )
+                const guildCalendarItems = calendarItems
+                    .filter((item) => item.guildId === config.guildId)
+                    .map(normalizeCalendarItemDoc)
+                const guildTopicPresets = topicPresets
+                    .filter((preset) => preset.guildId === config.guildId)
+                    .map(normalizeDoc)
+                const guildSyncStates = syncStates
+                    .filter((state) => state.guildId === config.guildId)
+                    .map(normalizeDoc)
+                const guildRosters = clanRosters.map(normalizeDoc)
+                // The clan's referenced people, each user once whichever of its
+                // identifiers the references carried.
+                const clanUsers = new Map<string, Doc<"users">>()
+                for (const id of referencedUserIds(clanEvents, clanRosters)) {
+                    const user = users.get(id)
+                    if (user) clanUsers.set(String(user._id), user)
+                }
 
-            const userDisplayNames = userDisplayNamesFor(
-                clanUsers.values(),
-                config.guildId
-            )
+                const userDisplayNames = userDisplayNamesFor(
+                    clanUsers.values(),
+                    config.guildId
+                )
+                const linkedTeams = await ctx.db
+                    .query("teamDirectory")
+                    .withIndex("linkedGuildId", (q) =>
+                        q.eq("linkedGuildId", config.guildId)
+                    )
+                    .take(20)
 
-            return {
-                guild: guild
-                    ? normalizeGuildDoc(guild)
-                    : {
-                          id: config.guildId,
-                          discordId: config.guildId,
-                          name: config.guildId,
-                          avatar: "",
-                          botInside: false,
-                          adminIds: [],
-                          memberIds: [],
-                          mercenaryIds: [],
-                          eventCategories: [],
-                          calendarItems: [],
-                          updatedAt: config.updatedAt,
-                      },
-                config: normalizeConfigDoc(config),
-                groups: guildGroups,
-                userDisplayNames,
-                events: guildEvents,
-                calendarItems: guildCalendarItems,
-                rosters: guildRosters,
-                topicPresets: guildTopicPresets,
-                syncStates: guildSyncStates,
-                assignments:
-                    assignmentsByGuild[configIndex].map(projectAssignment),
-            }
-        })
+                return {
+                    guild: guild
+                        ? normalizeGuildDoc(guild)
+                        : {
+                              id: config.guildId,
+                              discordId: config.guildId,
+                              name: config.guildId,
+                              avatar: "",
+                              botInside: false,
+                              adminIds: [],
+                              memberIds: [],
+                              mercenaryIds: [],
+                              eventCategories: [],
+                              calendarItems: [],
+                              updatedAt: config.updatedAt,
+                          },
+                    config: normalizeConfigDoc(config),
+                    groups: guildGroups,
+                    userDisplayNames,
+                    events: guildEvents,
+                    calendarItems: guildCalendarItems,
+                    rosters: guildRosters,
+                    topicPresets: guildTopicPresets,
+                    syncStates: guildSyncStates,
+                    assignments:
+                        assignmentsByGuild[configIndex].map(projectAssignment),
+                    linkedTeams: linkedTeams
+                        .filter(
+                            (team) => !team.archivedAt && !team.mergedIntoTeamId
+                        )
+                        .map((team) => ({
+                            gameId: team.gameId,
+                            name: team.name,
+                            shortCode: team.shortCode ?? null,
+                        })),
+                }
+            })
+        )
     },
 })
 

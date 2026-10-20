@@ -507,6 +507,9 @@ export function buildAnnouncementView(
             ? {
                   title: copy.card.time,
                   text: end ? `${meeting} - ${end}` : meeting,
+                  ...(input.thumbnail && event.kind === "match"
+                      ? { thumbnail: input.thumbnail }
+                      : {}),
               }
             : null,
         state === "open"
@@ -582,9 +585,6 @@ export function buildAnnouncementView(
         header: {
             title: matchCardTitle(event, copy),
             chips: event.kind === "match" ? categoryChip(event.category) : [],
-            ...(input.thumbnail && event.kind === "match"
-                ? { thumbnail: input.thumbnail }
-                : {}),
         },
         blocks,
         footer: { kind: "managed", notes },

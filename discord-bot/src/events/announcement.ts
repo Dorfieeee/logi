@@ -101,6 +101,12 @@ export function matchCardEventOf(input: {
     /** The match's category when it is already known. */
     category?: { label: string; color?: string | null } | null
     factionEmoji?: PanelFactionEmoji
+    /** Linked workspace team, used only if an older event omitted slot a. */
+    ownTeam?: {
+        gameId: "hell_let_loose" | "wardogs"
+        name: string
+        shortCode: string | null
+    } | null
 }): MatchCardEvent {
     const { event } = input
     const messages = getEventMessages(input.config.defaultLanguage)
@@ -123,7 +129,25 @@ export function matchCardEventOf(input: {
             : null,
         teams:
             event.kind === "match"
-                ? [...(event.matchTeams ?? [])]
+                ? [
+                      ...(event.matchTeams?.some((team) => team.slot === "a")
+                          ? []
+                          : input.ownTeam &&
+                              input.ownTeam.gameId ===
+                                  (event.gameId ?? "hell_let_loose")
+                            ? [
+                                  {
+                                      slot: "a" as const,
+                                      snapshot: {
+                                          name: input.ownTeam.name,
+                                          shortCode: input.ownTeam.shortCode,
+                                      },
+                                      side: event.side ?? null,
+                                  },
+                              ]
+                            : []),
+                      ...(event.matchTeams ?? []),
+                  ]
                       .sort(
                           (left, right) =>
                               (SLOT_ORDER[left.slot] ?? 9) -
@@ -332,7 +356,12 @@ export function announcementStateOf(
 export function buildAnnouncementCard(
     payload: Pick<
         SyncPayload,
-        "config" | "groups" | "guild" | "rosters" | "userDisplayNames"
+        | "config"
+        | "groups"
+        | "guild"
+        | "rosters"
+        | "userDisplayNames"
+        | "linkedTeams"
     >,
     event: EventRecord,
     options: AnnouncementOptions = {}
@@ -344,6 +373,10 @@ export function buildAnnouncementCard(
         event,
         categories: payload.guild.eventCategories,
         factionEmoji: options.factionEmoji,
+        ownTeam:
+            payload.linkedTeams?.find(
+                (team) => team.gameId === (event.gameId ?? "hell_let_loose")
+            ) ?? null,
     })
     const roster = payload.rosters.find(
         (item) => item.eventId === event.id && item.published
