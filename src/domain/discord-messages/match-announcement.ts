@@ -9,7 +9,6 @@
 
 import {
     announcementActions,
-    fullSignupGroups,
     type AnnouncementAction,
     type AnnouncementState,
 } from "@/domain/events/announcement-state"
@@ -24,15 +23,13 @@ import {
     type MessageButton,
     type MessageChip,
     type MessageMedia,
-    type MessageMetaLine,
     type MessageView,
 } from "./message-view"
 import { formatGroupCount, type SignupGroupCount } from "./signup-counts"
 import { attendanceButtonIds, rosterButtonIds } from "./roster-message"
 import type { MatchAnnouncementCopy } from "./match-announcement-copy"
-import { discordTimestamp, fillTemplate, formatCount } from "./format"
+import { discordTimestamp, fillTemplate } from "./format"
 import { categoryChip, sidesRow } from "./match-text"
-import { chipText } from "./message-layout"
 
 export { categoryChipTone } from "./match-text"
 
@@ -53,12 +50,15 @@ export type MatchCardEvent = {
     server?: string | null
     meetingStart: string
     gameStart: string
+    gameEnd?: string | null
     registrationEnd: string
     /** The clan's time zone, for the weekday of a date. */
     timeZone: string
     /** The clan language's Intl locale (`cs-CZ`). */
     locale: string
     factionEmoji?: PanelFactionEmoji
+    signupRestriction?: string | null
+    attendeeRole?: string | null
 }
 
 export type AnnouncementCounts = {
@@ -213,6 +213,7 @@ export function weekdayAt(
     iso: string,
     _copy: MatchAnnouncementCopy
 ) {
+    void _copy
     return discordTimestamp(iso, "f") ?? ""
 }
 
@@ -476,124 +477,6 @@ function announcementButton(
     }
 }
 
-/** The text after the state chip (L1-16, L1-28, L1-33, L1-37, L1-45, L1-50, L1-51, L1-57). */
-function stateDetail(input: AnnouncementViewInput) {
-    const { copy, event, state } = input
-    const card = copy.card
-    switch (state) {
-        case "open": {
-            const deadline = weekdayTime(event, event.registrationEnd)
-            const until = deadline
-                ? fillTemplate(card.until, { time: deadline })
-                : undefined
-            const full = fullSignupGroups(input.counts.groups).map((group) =>
-                escapeMarkdownText(group.name)
-            )
-            return [
-                until,
-                full.length && event.kind === "match"
-                    ? fillTemplate(card.fullGroups, {
-                          groups: joinNames(full, copy),
-                      })
-                    : undefined,
-            ]
-                .filter(Boolean)
-                .join(" · ")
-        }
-        case "closed":
-            return event.kind === "training"
-                ? card.trainingClosedDetail
-                : card.closedDetail
-        case "roster": {
-            const roster = input.roster
-            if (!roster) return undefined
-            const players = formatCount(
-                event.locale,
-                roster.players,
-                card.rosterPlayers
-            )
-            const text = roster.reserves
-                ? fillTemplate(card.rosterAnd, {
-                      players,
-                      reserves: formatCount(
-                          event.locale,
-                          roster.reserves,
-                          card.rosterReserves
-                      ),
-                  })
-                : players
-            return roster.channelId
-                ? fillTemplate(card.rosterIn, {
-                      roster: text,
-                      channel: `<#${roster.channelId}>`,
-                  })
-                : text
-        }
-        case "starting":
-            return input.meetingChannelId
-                ? fillTemplate(card.startingIn, {
-                      channel: `<#${input.meetingChannelId}>`,
-                  })
-                : card.starting
-        case "playing":
-            return fillTemplate(card.playingSince, {
-                time: discordTimestamp(event.gameStart, "t") ?? "",
-            })
-        case "played":
-            return [
-                weekdayTime(event, event.gameStart),
-                event.kind === "match" ? event.mapLabel?.trim() : undefined,
-            ]
-                .filter(Boolean)
-                .join(" · ")
-        case "cancelled":
-            return event.kind === "training"
-                ? card.trainingCancelledDetail
-                : card.cancelledDetail
-    }
-}
-
-/** The meta lines under the title: sides, start, facts (L1-12..14, L1-44, L1-56, L1-63). */
-function metaLines(input: AnnouncementViewInput): MessageMetaLine[] {
-    const { copy, event, state } = input
-    const lines: MessageMetaLine[] = []
-    const sides = matchSidesLine(event, copy)
-    if (sides) lines.push({ text: sides, line: "side" })
-    if (state === "played") return lines
-    const start = weekdayTime(event, event.gameStart)
-    if (start) {
-        const relative = discordTimestamp(event.gameStart, "R")
-        lines.push({
-            line: "start",
-            text:
-                state === "cancelled"
-                    ? `~~${start}~~`
-                    : state === "playing" || !relative
-                      ? `**${start}**`
-                      : `**${start}** · ${relative}`,
-        })
-    }
-    if (state === "cancelled") return lines
-    // From the meeting on, the meeting is no longer news (L1-44).
-    const meeting =
-        state === "starting" || state === "playing"
-            ? undefined
-            : discordTimestamp(event.meetingStart, "t")
-    const facts = [
-        event.kind === "match" ? event.mapLabel?.trim() : undefined,
-        meeting
-            ? fillTemplate(copy.card.meetingAt, { time: meeting })
-            : undefined,
-        event.kind === "training" && event.server?.trim()
-            ? fillTemplate(copy.card.server, {
-                  server: escapeMarkdownText(event.server.trim()),
-              })
-            : undefined,
-    ].filter((fact): fact is string => Boolean(fact))
-    if (facts.length) lines.push({ text: facts.join(" · "), line: "details" })
-    return lines
-}
-
 /**
  * The announcement card in one state (L1-B03), with the state's buttons
  * (L1-B04). Never the server password (L1-03, L1-B07).
@@ -603,36 +486,8 @@ export function buildAnnouncementView(
 ): MessageView {
     const { copy, event, state } = input
     const blocks: MessageBlock[] = []
-    const meta = metaLines(input)
-    if (meta.length) blocks.push({ kind: "meta", lines: meta })
-
-    const detail = stateDetail(input)
-    const status = [
-        [chipText(announcementStateChip(state, copy)), detail]
-            .filter(Boolean)
-            .join(" · "),
-    ]
-    if (state === "open" || state === "closed")
-        status.push(
-            announcementCountsLine(
-                { kind: event.kind, state, counts: input.counts },
-                copy
-            )
-        )
-    if ((state === "starting" || state === "playing") && input.confirmation)
-        status.push(confirmationLine(input.confirmation, copy))
-    else if ((state === "starting" || state === "playing") && !input.roster)
-        status.push(
-            announcementCountsLine(
-                { kind: event.kind, state: "closed", counts: input.counts },
-                copy
-            )
-        )
-    if (state === "played" && input.result) {
-        const line = resultLine(input.result, copy)
-        if (line) status.push(line)
-    }
-    blocks.push({ kind: "text", markdown: status.join("\n") })
+    const sides = matchSidesLine(event, copy)
+    if (sides) blocks.push({ kind: "text", markdown: sides })
 
     if (state === "cancelled") {
         blocks.push({
@@ -645,10 +500,37 @@ export function buildAnnouncementView(
         blocks.push({ kind: "text", markdown: input.notes.trim() })
     }
 
-    if (
-        input.signupRoster &&
-        (state === "open" || state === "closed" || state === "roster")
+    const meeting = discordTimestamp(event.meetingStart, "f")
+    const end = discordTimestamp(event.gameEnd, "t")
+    const fields = [
+        meeting
+            ? {
+                  title: copy.card.time,
+                  text: end ? `${meeting} - ${end}` : meeting,
+              }
+            : null,
+        state === "open"
+            ? {
+                  title: copy.card.registrationEnd,
+                  text: discordTimestamp(event.registrationEnd, "f") ?? "",
+              }
+            : null,
+        state === "open"
+            ? {
+                  title: copy.card.signupsRestrictedTo,
+                  text: event.signupRestriction?.trim() || copy.card.anyone,
+              }
+            : null,
+        {
+            title: copy.card.attendeeRole,
+            text: event.attendeeRole?.trim() || copy.card.attendeeRolePending,
+        },
+    ].filter((field): field is { title: string; text: string } =>
+        Boolean(field)
     )
+    if (fields.length) blocks.push({ kind: "fields", items: fields })
+
+    if (input.signupRoster && state === "open")
         blocks.push(...signupRosterBlocks(input.signupRoster, copy))
 
     if (input.image && state !== "played" && state !== "cancelled")

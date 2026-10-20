@@ -16,39 +16,16 @@ import { forumTopicView } from "../../src/domain/discord-messages/match-forum"
 import { getRosterMessages } from "../../src/lib/clan-language/rosters"
 import type { DiscordConfig, EventRecord } from "./types"
 
-const snapshot = (name: string, shortCode: string) => ({
-    name,
-    shortCode,
-    logoAssetId: null,
-    logoUrl: null,
-    teamRevision: 1,
-    capturedAt: "",
-})
-
-test("the match forum is named after the match title and the day", () => {
+test("the match forum is named after the event name and the day", () => {
     assert.equal(
         buildMatchForumName(
             { timezone: "Europe/Prague" },
             {
                 name: "Liga 4",
                 gameStart: "2026-10-11T18:00:00.000Z",
-                matchTeams: [
-                    {
-                        teamId: "a",
-                        slot: "a",
-                        side: "Allies",
-                        snapshot: snapshot("Vlci", "VLK"),
-                    },
-                    {
-                        teamId: "b",
-                        slot: "b",
-                        side: "Axis",
-                        snapshot: snapshot("Rogue", "ROG"),
-                    },
-                ],
             }
         ),
-        "vlk-vs-rog-11-10"
+        "liga-4-11-10"
     )
 })
 

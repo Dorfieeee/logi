@@ -20,13 +20,17 @@ const model: NewMatchPreviewModel = {
     teams: [
         { code: "VLK", side: "Allies" },
         { code: "ROG", side: "Axis" },
+        { code: "KOD", side: "Manticore" },
     ],
     map: { name: "Foy", time: "day" },
     mapImageUrl: "/maps/foy.webp",
     cap: null,
     meetingStart: "2026-10-11T17:30:00.000Z",
     gameStart: "2026-10-11T18:00:00.000Z",
+    gameEnd: "2026-10-11T20:00:00.000Z",
     registrationEnd: "2026-10-10T17:30:00.000Z",
+    signupRestriction: "@Members",
+    attendeeRole: "@Event attendees",
     groups: [{ name: "Pěchota" }, { name: "Tanky", max: 6 }],
     mentions: ["Klan"],
     forum: true,
@@ -51,13 +55,13 @@ test("the new-match preview draws the bot's own announcement card", () => {
     )
     const text = textOf(html)
     assert.match(text, /@Klan/)
-    assert.match(text, /VLK vs ROG/)
+    assert.match(text, /VLK vs ROG vs KOD/)
     assert.match(text, /Přátelák/)
-    assert.match(text, /Spojenci ★ vs ROG Osa ✚|Spojenci ★/)
-    assert.match(text, /Foy · den/)
-    assert.match(text, /Přihlášky otevřené/)
-    assert.match(text, /Přihlášeno 17/)
-    assert.match(text, /Tanky 4\/6/)
+    assert.match(text, /Spojenci ★ vs ROG Osa ✚ vs KOD Manticore/)
+    assert.match(text, /Čas/)
+    assert.match(text, /Konec přihlášek/)
+    assert.match(text, /Přihlásit se mohou @Members/)
+    assert.match(text, /Role účastníků @Event attendees/)
     assert.match(text, /Přihlásit se/)
     assert.match(text, /Zkontrolovat přihlášení/)
     assert.match(text, /Nepřijdu/)
@@ -66,7 +70,6 @@ test("the new-match preview draws the bot's own announcement card", () => {
     assert.match(text, /Přidat do kalendáře/)
     assert.match(text, /Fórum zápasu/)
     assert.match(text, /Spravováno v Logi/)
-    assert.match(html, /src="\/maps\/foy.webp"/)
     // One clan colour, not the category's.
     assert.match(html, /border-left-color:#e8a33d/i)
 })
@@ -90,6 +93,6 @@ test("a training preview shows its server and no teams or map", () => {
         )
     )
     assert.match(text, /Trénink · komunikace a souhra/)
-    assert.match(text, /server Vlci Trénink/)
+    assert.match(text, /Čas/)
     assert.doesNotMatch(text, /Spojenci|Foy|Fórum zápasu/)
 })

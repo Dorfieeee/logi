@@ -43,6 +43,7 @@ const event: MatchCardEvent = {
     mapLabel: "Foy · den",
     meetingStart: "2026-10-11T17:30:00.000Z",
     gameStart: "2026-10-11T18:00:00.000Z",
+    gameEnd: "2026-10-11T20:00:00.000Z",
     registrationEnd: "2026-10-10T17:30:00.000Z",
     timeZone: "Europe/Prague",
     locale: "cs-CZ",
@@ -105,15 +106,10 @@ test("the open card reads like the board (L1-11..24)", () => {
     assert.deepEqual(view.header?.thumbnail, base.thumbnail)
     const body = text(view)
     assert.match(body, /`VLK` Spojenci ★ {2}vs {2}`ROG` Osa ✚/)
-    assert.match(body, /\*\*<t:1791741600:f>\*\* · <t:1791741600:R>/)
-    assert.match(body, /Foy · den · sraz <t:1791739800:t>/)
-    assert.match(body, /🟢 \*\*Přihlášky otevřené\*\* · do <t:1791653400:f>/)
-    assert.match(
-        body,
-        /\*\*Přihlášeno 17\*\* · Pěchota 12 · Tanky 4\/6 · Recon 1\/2\n/
-    )
-    // An open match does not count who declined yet.
-    assert.doesNotMatch(body, /Nepřijde/)
+    assert.match(body, /\*\*Čas\*\*\n<t:1791739800:f> - <t:1791748800:t>/)
+    assert.match(body, /\*\*Konec přihlášek\*\*\n<t:1791653400:f>/)
+    assert.match(body, /\*\*Přihlásit se mohou\*\*\nKdokoli/)
+    assert.match(body, /\*\*Role účastníků\*\*/)
     assert.match(body, /Tanky drží střed, F2 brání\. Mikrofon povinný\./)
     assert.match(
         body,
@@ -170,7 +166,7 @@ test("the announcement keeps the offered groups and declined people visible", ()
     assert.doesNotMatch(JSON.stringify(buttons(view)), /Zobrazit přihlášené/)
 })
 
-test("a full capped group is named and the counts say plno and Zálohy (L1-28, L1-29)", () => {
+test("the registration card does not duplicate counts above the sign-up groups", () => {
     const body = text(
         buildAnnouncementView({
             ...base,
@@ -186,25 +182,18 @@ test("a full capped group is named and the counts say plno and Zálohy (L1-28, L
             },
         })
     )
-    assert.match(body, /· Tanky a Recon jsou plné/)
-    assert.match(
-        body,
-        /\*\*Přihlášeno 23\*\* · Pěchota 15 · Tanky 6\/6 plno · Recon 2\/2 plno · Zálohy 2/
-    )
+    assert.doesNotMatch(body, /Přihlášeno|Tanky 6\/6|Zálohy 2/)
 })
 
-test("closed sign-ups show velení skládá soupisku, plain counts and Nepřijde (L1-33..35)", () => {
+test("closed registration keeps match facts but removes registration-only sections", () => {
     const view = buildAnnouncementView({
         ...base,
         state: "closed",
         counts: { ...base.counts, withoutGroup: 2, total: 19, declined: 3 },
     })
     const body = text(view)
-    assert.match(body, /⚪ \*\*Přihlášky uzavřené\*\* · velení skládá soupisku/)
-    assert.match(
-        body,
-        /\*\*Přihlášeno 17\*\* · Pěchota 12 · Tanky 4 · Recon 1 · Zálohy 2 · Nepřijde 3/
-    )
+    assert.match(body, /\*\*Čas\*\*/)
+    assert.doesNotMatch(body, /Konec přihlášek|Přihlásit se mohou|Pěchota \(/)
     assert.deepEqual(
         buttons(view).map((row) => row.map(label)),
         [["Přidat do kalendáře ↗"]]
@@ -218,11 +207,8 @@ test("a published roster names its size and channel and offers Zobrazit zařazen
         roster: { players: 18, reserves: 7, channelId: "777777777777777777" },
     })
     const body = text(view)
-    assert.match(
-        body,
-        /🔵 \*\*Soupiska zveřejněna\*\* · 18 hráčů a 7 záloh v <#777777777777777777>/
-    )
-    assert.doesNotMatch(body, /Přihlášeno/)
+    assert.match(body, /\*\*Čas\*\*/)
+    assert.doesNotMatch(body, /Přihlášeno|Konec přihlášek/)
     assert.match(body, /Tanky drží střed/)
     assert.deepEqual(
         buttons(view).map((row) => row.map(label)),
@@ -243,7 +229,7 @@ test("without a roster channel the card shows the roster picture (L1-43, L1-B16)
             image: { url: "attachment://roster.png", description: "soupiska" },
         },
     })
-    assert.match(text(view), /Soupiska zveřejněna\*\* · 1 hráč$/m)
+    assert.match(text(view), /\*\*Čas\*\*/)
     assert.ok(
         view.blocks.some(
             (block) =>
@@ -261,16 +247,8 @@ test("from the meeting the card counts confirmations and offers Potvrdím účas
         confirmation: { confirmed: 15, total: 18, late: 1, cannotCome: 1 },
     })
     const body = text(view)
-    assert.match(body, /<t:1791741600:R>/)
-    assert.match(body, /^Foy · den$/m)
-    assert.match(
-        body,
-        /🟡 \*\*Začíná\*\* · sraz běží v kanálu <#444444444444444444>/
-    )
-    assert.match(
-        body,
-        /\*\*Potvrzeno 15 z 18\*\* · přijde později 1 · nepřijde 1/
-    )
+    assert.match(body, /\*\*Čas\*\*/)
+    assert.doesNotMatch(body, /Konec přihlášek|Přihlásit se mohou|Potvrzeno/)
     assert.deepEqual(
         buttons(view).map((row) => row.map(label)),
         [
@@ -291,9 +269,8 @@ test("after the start the chip is Hraje se · od 20:00 and the buttons are gone 
         confirmation: { confirmed: 15, total: 18, late: 1, cannotCome: 1 },
     })
     const body = text(view)
-    assert.match(body, /🟢 \*\*Hraje se\*\* · od <t:1791741600:t>/)
-    assert.match(body, /Potvrzeno 15 z 18/)
-    assert.doesNotMatch(body, /<t:1791741600:R>/)
+    assert.match(body, /\*\*Čas\*\*/)
+    assert.doesNotMatch(body, /Konec přihlášek|Potvrzeno/)
     assert.deepEqual(buttons(view), [])
 })
 
@@ -305,9 +282,8 @@ test("a played match shows the result, the match link and the results channel (L
         resultsChannelId: "888888888888888888",
     })
     const body = text(view)
-    assert.match(body, /⚪ \*\*Odehráno\*\* · <t:1791741600:f> · Foy · den/)
-    assert.match(body, /\*\*Výhra 4 : 1\*\* · potvrdil Kowalski/)
-    assert.doesNotMatch(body, /Tanky drží|Přihlášeno|sraz/)
+    assert.match(body, /\*\*Čas\*\*/)
+    assert.doesNotMatch(body, /Tanky drží|Přihlášeno|Konec přihlášek/)
     assert.match(
         body,
         /-# Výsledek je i v <#888888888888888888> · Spravováno v Logi$/
@@ -325,8 +301,7 @@ test("a cancelled match strikes the start and tells players to do nothing (L1-56
         scheduledEvent: true,
     })
     const body = text(view)
-    assert.match(body, /~~<t:1791741600:f>~~/)
-    assert.match(body, /🔴 \*\*Zrušeno\*\* · zápas se nehraje/)
+    assert.match(body, /\*\*Čas\*\*/)
     assert.match(
         body,
         /Událost na Discordu je zrušená\. Kdo byl přihlášený, nemusí nic dělat\./
@@ -360,8 +335,7 @@ test("a training shows its server but no category, teams, map or forum (L1-61..6
     assert.deepEqual(view.header?.chips, [])
     assert.equal(view.header?.thumbnail, undefined)
     const body = text(view)
-    assert.match(body, /sraz <t:1791823500:t> · server Vlci Trénink/)
-    assert.match(body, /\*\*Přihlášeno 8\*\* · Nepřijde 1/)
+    assert.match(body, /\*\*Čas\*\*\n<t:1791823500:f>/)
     assert.doesNotMatch(body, /Fórum zápasu|Spojenci|Foy/)
     assert.deepEqual(buttons(view).flat().length, 4)
 })

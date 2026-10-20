@@ -193,3 +193,15 @@ test("the preview shows the current sign-ups against the caps", () => {
         { code: "ROG", side: "Axis" },
     ])
 })
+
+test("the preview keeps the home clan while its linked team is unavailable", () => {
+    const model = flowPreviewModel(flowValuesFromEvent(event, zone), {
+        ...context,
+        ownTeam: null,
+        botLanguage: "cs",
+    })
+    assert.deepEqual(model.teams, [
+        { code: "VLC", side: "Allies" },
+        { code: "ROG", side: "Axis" },
+    ])
+})

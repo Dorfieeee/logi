@@ -8,6 +8,7 @@ import type { MessageView } from "../../../src/domain/discord-messages/message-v
 import { getPanelMessages } from "../../../src/lib/clan-language/panels"
 import { expandCalendarItems } from "../../../src/lib/calendar-items"
 import type { CalendarItem, SyncPayload } from "../types"
+import { eventMapLabel } from "../events/match-context"
 
 /**
  * The calendar panel (L3-12..18) from the guild sync data: clan events and
@@ -52,6 +53,14 @@ export function calendarEntriesFromPayload(
                       )?.label ??
                       event.matchType?.trim() ??
                       copy.match)
+            const categoryColor =
+                event.kind === "training"
+                    ? null
+                    : (categories.find(
+                          (item) =>
+                              item.id.toLowerCase() ===
+                              event.matchType?.toLowerCase()
+                      )?.color ?? null)
             // L3-14: "ECL, 3. kolo" for a competition fixture with a round.
             const round =
                 event.kind !== "training" &&
@@ -73,6 +82,8 @@ export function calendarEntriesFromPayload(
                 url: link(event.id),
                 signupUntil: event.registrationEnd ?? null,
                 category,
+                categoryColor,
+                mapLabel: eventMapLabel(event, payload.config.defaultLanguage),
                 event: true,
                 range: event.kind === "training",
             }
@@ -96,6 +107,8 @@ export function calendarEntriesFromPayload(
         url: null,
         signupUntil: null,
         category: null,
+        categoryColor: null,
+        mapLabel: null,
         event: false,
         range: !item.allDay,
     }))

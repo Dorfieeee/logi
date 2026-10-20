@@ -17,7 +17,9 @@ const payload = {
     guild: {
         id: "guilds:1",
         name: "Vlci",
-        eventCategories: [{ id: "friendly", label: "Přátelák" }],
+        eventCategories: [
+            { id: "friendly", label: "Přátelák", color: "#ed4245" },
+        ],
     },
     events: [
         {
@@ -90,7 +92,7 @@ test("the calendar panel highlights the next event and links the Logi calendar",
     assert.match(view.text, /KALENDÁŘ · VLCI/)
     assert.match(
         view.text,
-        /\*\*Další\*\*\n\*\*Vlci vs Rogue · Přátelák · <#123456789012345678>\*\*/
+        /\*\*Další\*\* · 🔴 \*\*Přátelák\*\*\n\*\*Vlci vs Rogue · <#123456789012345678>\*\*/
     )
     assert.doesNotMatch(view.text, /https:\/\/discord\.com\/channels/)
     assert.match(view.text, /Trénink/)

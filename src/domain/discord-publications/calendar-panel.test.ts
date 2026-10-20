@@ -70,6 +70,8 @@ test("the next event is highlighted with its sign-up deadline; the rest are comp
         entry("a", 24, {
             title: "Vlci vs *Rogue*",
             typeWord: "Přátelák",
+            categoryColor: "#ed4245",
+            mapLabel: "Foy · den",
             url: "https://discord.com/channels/1/2/3",
             signupUntil: new Date(now + 20 * hour).toISOString(),
         }),
@@ -81,12 +83,14 @@ test("the next event is highlighted with its sign-up deadline; the rest are comp
     assert.match(out.text, /Nejbližší akce/)
     assert.match(
         out.text,
-        /\*\*Další\*\*\n\*\*Vlci vs \\\*Rogue\\\* · Přátelák · <#2>\*\*/
+        /\*\*Další\*\* · 🔴 \*\*Přátelák\*\*\n\*\*Vlci vs \\\*Rogue\\\* · <#2>\*\*/
     )
     assert.doesNotMatch(out.text, /https:\/\/discord\.com\/channels/)
     assert.match(out.text, /přihlášky do /)
-    assert.match(out.text, /<t:\d+:t>–<t:\d+:t> · Trénink · Akce b/)
-    assert.match(out.text, /celý den · Akce c/)
+    assert.match(out.text, /🗺️ Foy · den/)
+    assert.match(out.text, /\*\*Akce b\*\* · ⚪ \*\*Trénink\*\*/)
+    assert.match(out.text, /📅 \*\*st 7\. 10\.\*\* · <t:\d+:t>–<t:\d+:t>/)
+    assert.match(out.text, /📅 \*\*čt 8\. 10\.\*\* · celý den/)
     assert.match(out.text, /Časy v tvém pásmu/)
     assert.deepEqual(
         out.buttons.map((button) => button.label),
