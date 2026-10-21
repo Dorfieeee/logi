@@ -210,7 +210,7 @@ test("closed registration keeps match facts but removes registration-only sectio
     )
 })
 
-test("a published roster names its size and channel and offers Zobrazit zařazení (L1-37..42)", () => {
+test("a published roster names its size and offers the three attendance actions", () => {
     const view = buildAnnouncementView({
         ...base,
         state: "roster",
@@ -223,8 +223,16 @@ test("a published roster names its size and channel and offers Zobrazit zařazen
     assert.deepEqual(
         buttons(view).map((row) => row.map(label)),
         [
-            ["Zobrazit zařazení (primary)", "Otevřít soupisku ↗"],
-            ["Přidat do kalendáře ↗"],
+            [
+                "Potvrdím účast (success)",
+                "Přijdu později (secondary)",
+                "Nepřijdu (danger)",
+            ],
+            [
+                "Zobrazit zařazení (secondary)",
+                "Otevřít soupisku ↗",
+                "Přidat do kalendáře ↗",
+            ],
         ]
     )
 })
@@ -263,10 +271,11 @@ test("from the meeting the card counts confirmations and offers Potvrdím účas
         buttons(view).map((row) => row.map(label)),
         [
             [
-                "Potvrdím účast (primary)",
+                "Potvrdím účast (success)",
                 "Přijdu později (secondary)",
-                "Zobrazit zařazení (secondary)",
+                "Nepřijdu (danger)",
             ],
+            ["Zobrazit zařazení (secondary)"],
         ]
     )
 })

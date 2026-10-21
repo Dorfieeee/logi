@@ -394,6 +394,8 @@ export function announcementCustomId(
             return attendanceButtonIds.confirm(eventId)
         case "late":
             return attendanceButtonIds.late(eventId)
+        case "attendanceDecline":
+            return attendanceButtonIds.decline(eventId)
     }
 }
 
@@ -448,6 +450,7 @@ function announcementButton(
                 style: "success",
             }
         case "decline":
+        case "attendanceDecline":
             return {
                 kind: "action",
                 id: announcementCustomId(action, event),
@@ -455,17 +458,18 @@ function announcementButton(
                 style: "danger",
             }
         case "assignment":
+            return {
+                kind: "action",
+                id: announcementCustomId(action, event),
+                label,
+                style: "secondary",
+            }
         case "confirm":
             return {
                 kind: "action",
                 id: announcementCustomId(action, event),
                 label,
-                // "Zobrazit zařazení" is the primary action only while the
-                // card shows the published roster (L1-39, L1-49).
-                style:
-                    action === "confirm" || input.state === "roster"
-                        ? "primary"
-                        : "secondary",
+                style: "success",
             }
         default:
             return {

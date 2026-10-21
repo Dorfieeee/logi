@@ -112,8 +112,8 @@ test("each state has the board's button set (L1-B04)", () => {
     const expected: Record<AnnouncementState, number> = {
         open: 4,
         closed: 1,
-        roster: 3,
-        starting: 3,
+        roster: 6,
+        starting: 4,
         playing: 0,
         played: 1,
         cancelled: 0,
@@ -129,11 +129,12 @@ test("each state has the board's button set (L1-B04)", () => {
         ["calendar"],
     ])
     assert.deepEqual(announcementActions("roster", options), [
-        ["assignment", "openRoster"],
-        ["calendar"],
+        ["confirm", "late", "attendanceDecline"],
+        ["assignment", "openRoster", "calendar"],
     ])
     assert.deepEqual(announcementActions("starting", options), [
-        ["confirm", "late", "assignment"],
+        ["confirm", "late", "attendanceDecline"],
+        ["assignment"],
     ])
     assert.deepEqual(announcementActions("played", options), [["match"]])
 })

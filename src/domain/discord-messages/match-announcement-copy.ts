@@ -101,6 +101,7 @@ export type MatchAnnouncementCopy = {
         openRoster: string
         confirm: string
         late: string
+        attendanceDecline: string
         match: string
         changeGroup: string
         remind: string
