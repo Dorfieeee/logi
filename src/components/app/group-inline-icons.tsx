@@ -80,6 +80,7 @@ export function GroupInlineIcons({
         .filter((group): group is Group => Boolean(group))
     const signupGroup = findGroupByName(groupsById, signupGroupName)
     const hasDistinctSignupGroup =
+        Boolean(primaryGroup) &&
         Boolean(signupGroupName) &&
         signupGroup?.id !== primaryGroup?.id &&
         signupGroupName !== primaryGroup?.name
