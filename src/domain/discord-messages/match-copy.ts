@@ -34,6 +34,10 @@ export type RosterMessageCopy = {
         published: string
         showRoster: string
         showFullRoster: string
+        /** Attendance actions on the public published roster. */
+        confirmAttendance: string
+        runningLate: string
+        cannotAttend: string
         /** Alt text of the roster photo. */
         imageDescription: string
     }

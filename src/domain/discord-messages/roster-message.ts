@@ -427,13 +427,14 @@ export const rosterButtonIds = {
 export function showAssignmentButton(
     eventId: string,
     copy: RosterMessageCopy,
-    guildId?: string
+    guildId?: string,
+    style: "primary" | "secondary" = "primary"
 ): MessageButton {
     return {
         kind: "action",
         id: rosterButtonIds.assignment(eventId, guildId),
         label: copy.common.showAssignment,
-        style: "primary",
+        style,
     }
 }
 
@@ -483,7 +484,35 @@ function rosterMessageFrame(
             {
                 kind: "buttons",
                 buttons: [
-                    showAssignmentButton(event.id, copy),
+                    {
+                        kind: "action",
+                        id: attendanceButtonIds.confirm(event.id),
+                        label: copy.message.confirmAttendance,
+                        style: "success",
+                    },
+                    {
+                        kind: "action",
+                        id: attendanceButtonIds.late(event.id),
+                        label: copy.message.runningLate,
+                        style: "secondary",
+                    },
+                    {
+                        kind: "action",
+                        id: attendanceButtonIds.decline(event.id),
+                        label: copy.message.cannotAttend,
+                        style: "danger",
+                    },
+                ],
+            },
+            {
+                kind: "buttons",
+                buttons: [
+                    showAssignmentButton(
+                        event.id,
+                        copy,
+                        undefined,
+                        "secondary"
+                    ),
                     {
                         kind: "action",
                         id: rosterButtonIds.squads(event.id),

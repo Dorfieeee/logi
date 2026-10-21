@@ -30,7 +30,8 @@ const event = {
     id: "event-1",
     guildId: "guild-1",
     name: "Liga",
-    status: "starting",
+    // A published roster can be answered before the 24-hour reminder window.
+    status: "closed",
     meetingStart: "2026-10-11T17:30:00.000Z",
     gameStart: "2099-10-11T18:00:00.000Z",
     matchTeams: [
@@ -94,7 +95,7 @@ test("the late form names the match in the clan language", () => {
     assert.equal(input.required, true)
 })
 
-test("Potvrdím in a DM acknowledges and answers in the same DM with the footer", async (t) => {
+test("Potvrdím acknowledges before the reminder window and answers in the same DM with the footer", async (t) => {
     const mutations: string[] = []
     t.mock.method(
         ConvexReactClient.prototype,

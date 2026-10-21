@@ -174,7 +174,7 @@ test("saved section order overrides the group catalogue in published Discord ros
     )
 })
 
-test("variant A: photo, then the whole roster as text, three buttons and the publish footer", () => {
+test("variant A: photo, then the whole roster as text, attendance actions and the publish footer", () => {
     const view = rosterMessageView(
         {
             event,
@@ -222,7 +222,10 @@ test("variant A: photo, then the whole roster as text, three buttons and the pub
             button.kind === "action" ? button.style : "link",
         ]),
         [
-            ["Zobrazit zařazení", "primary"],
+            ["Potvrzuji účast", "success"],
+            ["Přijdu později", "secondary"],
+            ["Nepřijdu", "danger"],
+            ["Zobrazit zařazení", "secondary"],
             ["Zobrazit soupisku", "secondary"],
             ["Otevřít soupisku", "link"],
         ]
@@ -231,7 +234,7 @@ test("variant A: photo, then the whole roster as text, three buttons and the pub
     assert.doesNotMatch(content, /k7-sraz/)
 })
 
-test("variant B is the photo only with the same buttons", () => {
+test("variant B is the photo only with the same actions", () => {
     const view = rosterMessageView(
         {
             event,
@@ -243,7 +246,7 @@ test("variant B is the photo only with the same buttons", () => {
         layout
     )
     assert.doesNotMatch(text(view), /VELENÍ|Kowalski/)
-    assert.equal(buttons(view).length, 3)
+    assert.equal(buttons(view).length, 6)
 })
 
 test("a roster over Discord's 4000 characters keeps the photo and offers the whole roster privately", () => {
@@ -275,6 +278,9 @@ test("a roster over Discord's 4000 characters keeps the photo and offers the who
     assert.deepEqual(
         buttons(view).map((button) => button.label),
         [
+            "Potvrzuji účast",
+            "Přijdu později",
+            "Nepřijdu",
             "Zobrazit zařazení",
             "Zobrazit soupisku",
             "Zobrazit celou soupisku",

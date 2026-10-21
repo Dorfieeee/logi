@@ -32,6 +32,9 @@ const rosterMessages: Record<ClanLanguage, RosterMessages> = {
             published: "Zveřejněno {time}",
             showRoster: "Zobrazit soupisku",
             showFullRoster: "Zobrazit celou soupisku",
+            confirmAttendance: "Potvrzuji účast",
+            runningLate: "Přijdu později",
+            cannotAttend: "Nepřijdu",
             imageDescription: "Soupiska · {match}",
         },
         squadView: {
@@ -134,6 +137,9 @@ const rosterMessages: Record<ClanLanguage, RosterMessages> = {
             published: "Published {time}",
             showRoster: "Show roster",
             showFullRoster: "Show full roster",
+            confirmAttendance: "Acknowledge",
+            runningLate: "Running late",
+            cannotAttend: "Can't make it",
             imageDescription: "Roster · {match}",
         },
         squadView: {
@@ -239,6 +245,9 @@ const rosterMessages: Record<ClanLanguage, RosterMessages> = {
             published: "Veröffentlicht {time}",
             showRoster: "Aufstellung anzeigen",
             showFullRoster: "Ganze Aufstellung anzeigen",
+            confirmAttendance: "Teilnahme bestätigen",
+            runningLate: "Ich komme später",
+            cannotAttend: "Ich komme nicht",
             imageDescription: "Aufstellung · {match}",
         },
         squadView: {

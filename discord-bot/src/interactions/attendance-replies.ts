@@ -167,17 +167,10 @@ async function handleConfirm(
     if (!loaded) return
     const { context, copy, frame, dm } = loaded
     const window = attendanceAnswerWindow(context.event, Date.now())
-    if (window !== "open") {
+    if (window === "started") {
         await replyCard(
             interaction,
-            window === "started"
-                ? matchStartedReply({ copy, dm, frame })
-                : simpleReply({
-                      title: copy.replies.confirmNotOpenTitle,
-                      body: copy.replies.confirmNotOpenBody,
-                      dm,
-                      frame,
-                  }),
+            matchStartedReply({ copy, dm, frame }),
             kitOptions(context)
         )
         return
