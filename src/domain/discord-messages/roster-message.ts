@@ -97,7 +97,12 @@ export type RosterCardEvent = {
     server?: string
     serverPassword?: string
     /** Late and absence notices; only the arrival time is ever shown. */
-    notices?: Array<{ userId: string; reason: string }>
+    notices?: Array<{
+        userId: string
+        reason: string
+        /** Older notices without a kind are late notices. */
+        kind?: "late" | "cannot_come"
+    }>
     /**
      * The clan's Discord server. "Moje zařazení" can arrive in a DM, so its
      * attendance buttons name the server (see {@link eventCustomId}).
@@ -599,6 +604,7 @@ function statusText(
     const notice = userId
         ? event.notices?.find((item) => item.userId === userId)
         : undefined
+    if (notice?.kind === "cannot_come") return copy.squadView.absent
     const time = notice ? noticeArrivalTime(notice.reason) : undefined
     return joinParts([
         acknowledged ? copy.squadView.confirmed : copy.squadView.pending,

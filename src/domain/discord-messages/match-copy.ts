@@ -55,6 +55,8 @@ export type RosterMessageCopy = {
         /** "přijde později ({time})". */
         late: string
         lateNoTime: string
+        /** A player said they cannot attend. Includes its X marker. */
+        absent: string
         openSlot: string
         legend: string
         /** "Zálohy · {count}". */
