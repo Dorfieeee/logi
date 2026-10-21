@@ -123,6 +123,8 @@ export function getRosterImageVersion(
         event.server,
         // The public roster image never shows the server password.
         event.description,
+        // Attendance notices change the public roster image's markers.
+        event.absenceNotices,
     ])
 }
 
