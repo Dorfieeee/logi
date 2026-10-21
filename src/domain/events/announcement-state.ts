@@ -84,11 +84,12 @@ export type AnnouncementAction =
     | "openRoster"
     | "confirm"
     | "late"
+    | "attendanceDecline"
     | "match"
 
 /**
  * The buttons of each state, in rows (L1-B04): open 5 (sign up, edit,
- * decline, sign-ups, calendar); closed 2; roster published 4; starting 3;
+ * decline, sign-ups, calendar); closed 2; roster published 5; starting 4;
  * playing none; played one link to the match; cancelled none. A start
  * without a published roster has nothing to confirm, so it keeps only the
  * sign-up list.
@@ -108,11 +109,14 @@ export function announcementActions(
         case "closed":
             return [["calendar"]]
         case "roster":
-            return [["assignment", "openRoster"], ["calendar"]]
+            return [
+                ["confirm", "late", "attendanceDecline"],
+                ["assignment", "openRoster", "calendar"],
+            ]
         case "starting":
             return options.rosterPublished &&
                 (options.kind ?? "match") === "match"
-                ? [["confirm", "late", "assignment"]]
+                ? [["confirm", "late", "attendanceDecline"], ["assignment"]]
                 : []
         case "playing":
         case "cancelled":
