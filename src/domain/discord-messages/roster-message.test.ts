@@ -59,7 +59,10 @@ const event: RosterCardEvent = {
     meetingChannelId: "200000000000000001",
     server: "VLK Scrim",
     serverPassword: "k7-sraz",
-    notices: [{ userId: id(6), reason: "Přijdu ve 20:15, práce" }],
+    notices: [
+        { userId: id(5), reason: "Práce", kind: "cannot_come" },
+        { userId: id(6), reason: "Přijdu ve 20:15, práce", kind: "late" },
+    ],
 }
 
 const roster: RosterCardRoster = {
@@ -315,6 +318,7 @@ test("the squad view lists every slot with its confirmation and the late arrival
         /Velitel čety Rex\\_CZ · sraz běží v kanálu <#200000000000000001> · start ve <t:1791741600:t>/
     )
     assert.match(content, /≡ Squad Leader · \*\*Rex\\_CZ\*\* ✓ potvrzeno/)
+    assert.match(content, /Support · \*\*kapitánSova\*\* ✕ nepřijde/)
     assert.match(
         content,
         /Machine Gunner · \*\*Bizon\*\* ⏳ zatím ne · přijde později \(20:15\)/

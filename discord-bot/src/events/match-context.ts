@@ -78,6 +78,7 @@ export function rosterCardEvent(
         notices: event.absenceNotices?.map((notice) => ({
             userId: notice.userId,
             reason: notice.reason,
+            kind: notice.kind,
         })),
         guildId: event.guildId,
     }
