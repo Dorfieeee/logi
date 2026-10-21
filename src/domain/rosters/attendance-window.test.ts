@@ -7,10 +7,10 @@ const gameStart = "2026-10-11T18:00:00.000Z"
 const before = Date.parse("2026-10-11T17:00:00.000Z")
 const after = Date.parse("2026-10-11T18:01:00.000Z")
 
-test("confirming opens with the starting status and closes at the game start", () => {
+test("a published roster can be acknowledged before the reminder window and closes at the game start", () => {
     assert.equal(
         attendanceAnswerWindow({ status: "closed", gameStart }, before),
-        "not_open"
+        "open"
     )
     assert.equal(
         attendanceAnswerWindow({ status: "starting", gameStart }, before),

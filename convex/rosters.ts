@@ -199,10 +199,12 @@ export const acknowledgeAttendance = mutation({
             .query("rosters")
             .withIndex("eventId", (q) => q.eq("eventId", args.eventId))
             .unique()
+        const gameStart = event ? Date.parse(event.gameStart) : Number.NaN
         if (
             !event ||
             event.guildId !== args.guildId ||
-            deriveEventStatus(event) !== "starting" ||
+            deriveEventStatus(event) === "concluded" ||
+            (Number.isFinite(gameStart) && Date.now() >= gameStart) ||
             !roster?.published ||
             (roster.guildId !== undefined && roster.guildId !== args.guildId)
         )

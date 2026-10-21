@@ -1,9 +1,8 @@
 /**
  * When a rostered player can answer the attendance question from a button
- * (board L2-B07, L1-B08): confirming opens with the attendance window (a day
- * before the meeting, the event's `starting` status); running late and
- * cannot-come work until the game starts; after the start every answer is
- * refused with "Zápas už začal".
+ * (board L2-B07, L1-B08): a published roster lets players answer as soon as
+ * it is available. After the game starts every answer is refused with
+ * "Zápas už začal".
  */
 
 export type AttendanceAnswerWindow = "not_open" | "open" | "started"
@@ -21,7 +20,7 @@ export function attendanceAnswerWindow(
         (Number.isFinite(start) && now >= start)
     )
         return "started"
-    return event.status === "starting" ? "open" : "not_open"
+    return "open"
 }
 
 /** Whether the player is in a squad slot or a reserve of the roster. */
