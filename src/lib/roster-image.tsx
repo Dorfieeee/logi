@@ -20,6 +20,12 @@ type RosterImageContext = {
         server?: string
         serverPassword?: string
         description?: string
+        absenceNotices?: Array<{
+            userId: string
+            reason: string
+            /** Older notices without a kind are late notices. */
+            kind?: "late" | "cannot_come"
+        }>
     }
     roster: {
         updatedAt: string

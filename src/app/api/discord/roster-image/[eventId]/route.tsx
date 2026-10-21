@@ -96,16 +96,67 @@ function getFilledPlayerName(player: Player, userName?: string | null) {
     return userName ?? null
 }
 
-function getAttendanceStyle(player: Player) {
+type AttendanceNoticeKind = "late" | "cannot_come"
+
+function getAttendanceStyle(player: Player, noticeKind?: AttendanceNoticeKind) {
+    const indicator: "late" | "absent" | null =
+        noticeKind === "cannot_come"
+            ? "absent"
+            : noticeKind === "late"
+              ? "late"
+              : null
     if (player.confirmed) {
-        return { background: "#166534", showCheck: true }
+        return { background: "#166534", showCheck: true, indicator }
     }
 
     if (player.ack) {
-        return { background: "#166534", showCheck: false }
+        return { background: "#166534", showCheck: false, indicator }
     }
 
-    return { background: "#18324a", showCheck: false }
+    return { background: "#18324a", showCheck: false, indicator }
+}
+
+/** A public, word-free attendance marker for the generated roster image. */
+function AttendanceIndicator({ kind }: { kind: "late" | "absent" | null }) {
+    if (!kind) return null
+    if (kind === "absent")
+        return (
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                aria-label="Absent"
+                style={{ display: "flex", flexShrink: 0 }}
+            >
+                <circle cx="9" cy="9" r="7" fill="#7f1d1d" />
+                <path
+                    d="M6 6L12 12M12 6L6 12"
+                    stroke="#fecaca"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                />
+            </svg>
+        )
+    return (
+        <svg
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            aria-label="Late"
+            style={{ display: "flex", flexShrink: 0 }}
+        >
+            <circle cx="9" cy="10" r="6" fill="#854d0e" />
+            <path
+                d="M9 6.5V10l2.5 1.5M6.5 2.5L5 4M11.5 2.5L13 4"
+                stroke="#fef3c7"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    )
 }
 
 function formatDate(value: string, locale: string, timezone?: string) {
@@ -385,6 +436,20 @@ export async function GET(
     const intlLocale = getIntlLocaleForClanLanguage(clanLanguage)
 
     const usersById = new Map(data.users.map((user) => [user.discordId, user]))
+    const attendanceNoticesByUserId = new Map<string, AttendanceNoticeKind>(
+        (data.event.absenceNotices ?? []).map((notice) => [
+            notice.userId,
+            notice.kind === "cannot_come" ? "cannot_come" : "late",
+        ])
+    )
+    const attendanceIndicatorFor = (
+        userId?: string
+    ): "late" | "absent" | null => {
+        const notice = userId
+            ? attendanceNoticesByUserId.get(userId)
+            : undefined
+        return notice === "cannot_come" ? "absent" : notice ? "late" : null
+    }
 
     const sortedSquads = data.roster.squads
         .slice()
@@ -800,7 +865,12 @@ export async function GET(
                                                                         )
                                                                     const attendance =
                                                                         getAttendanceStyle(
-                                                                            player
+                                                                            player,
+                                                                            player.id
+                                                                                ? attendanceNoticesByUserId.get(
+                                                                                      player.id
+                                                                                  )
+                                                                                : undefined
                                                                         )
 
                                                                     return (
@@ -947,6 +1017,11 @@ export async function GET(
                                                                                     }
                                                                                 </span>
                                                                             ) : null}
+                                                                            <AttendanceIndicator
+                                                                                kind={
+                                                                                    attendance.indicator
+                                                                                }
+                                                                            />
                                                                             {user &&
                                                                             attendance.showCheck ? (
                                                                                 <div
@@ -1222,6 +1297,9 @@ export async function GET(
                             >
                                 {user!.name}
                             </span>
+                            <AttendanceIndicator
+                                kind={attendanceIndicatorFor(user!.discordId)}
+                            />
                         </div>
                     ))}
                     {reserveUsers.length === 0 ? (

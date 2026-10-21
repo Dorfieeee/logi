@@ -62,4 +62,24 @@ test("the published roster image keeps its URL for sign-up changes and changes w
         ),
         imageUrl
     )
+    assert.notEqual(
+        buildRosterImageUrl(
+            event.id,
+            getRosterImageVersion(
+                {
+                    ...event,
+                    absenceNotices: [
+                        {
+                            userId: "player-1",
+                            reason: "Work",
+                            createdAt: "2026-07-29T10:03:00.000Z",
+                            kind: "late",
+                        },
+                    ],
+                },
+                rosterUpdatedAt
+            )
+        ),
+        imageUrl
+    )
 })
