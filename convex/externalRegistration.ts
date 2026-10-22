@@ -9,7 +9,7 @@ import {
 } from "../src/application/users/register-external-user"
 import { UpsertAssignmentUseCase } from "../src/application/assignments/upsert-assignment.use-case"
 import { externalRegistrationSchema } from "../src/domain/users/external-registration.schema"
-import { linkedSteamIds } from "../src/domain/player-stats/player-stats"
+import { linkedExternalPlatformId } from "../src/domain/users/external-platform-id"
 import { linkDiscordPlatformInTransaction } from "./platformLinkStore"
 import { getGuildByDiscordId, getUserStableId } from "./identity"
 import { startIdempotentMutation } from "./apiIdempotency"
@@ -29,6 +29,7 @@ export const register = mutation({
             guildId: v.string(),
             name: v.string(),
             steamId: v.optional(v.string()),
+            platformId: v.optional(v.string()),
             steamName: v.optional(v.string()),
             avatar: v.string(),
             createMembership: v.optional(v.boolean()),
@@ -134,8 +135,8 @@ export const register = mutation({
                     )
                     return {
                         userId,
-                        steamId: user
-                            ? (linkedSteamIds(
+                        platformId: user
+                            ? linkedExternalPlatformId(
                                   [
                                       ...(user.platformIds ?? []),
                                       (
@@ -151,22 +152,18 @@ export const register = mutation({
                                   ].filter((value): value is string =>
                                       Boolean(value)
                                   )
-                              )[0] ?? null)
+                              )
                             : null,
                         primaryGuildId: otherPrimary?.serverId,
                         assignmentId: assignment?.id ?? null,
                     }
                 },
-                createUser: async () => {
-                    if (!input.steamId)
-                        throw new RegistrationValidationError(
-                            "Steam ID is required for a new user."
-                        )
+                createUser: async (resolved) => {
                     await linkDiscordPlatformInTransaction(ctx, {
                         userId: input.discordId,
                         userName: input.name,
                         userAvatar: input.avatar,
-                        platformId: input.steamId,
+                        platformId: resolved.platformId,
                     })
                     const user = await ctx.db
                         .query("users")
@@ -182,7 +179,7 @@ export const register = mutation({
                         })
                     return getUserStableId(user)
                 },
-                linkSteam: async (resolved) => {
+                linkPlatform: async (resolved) => {
                     const user = await ctx.db
                         .query("users")
                         .withIndex("discordId", (q) =>
@@ -199,7 +196,7 @@ export const register = mutation({
                         userId: input.discordId,
                         userName: user.name,
                         userAvatar: user.avatar,
-                        platformId: resolved.steamId,
+                        platformId: resolved.platformId,
                     })
                     if (!user.steamName && resolved.steamName)
                         await ctx.db.patch(user._id, {

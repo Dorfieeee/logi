@@ -1,4 +1,5 @@
 import type { ExternalRegistration } from "../../domain/users/external-registration.schema"
+import { externalPlatformId } from "../../domain/users/external-platform-id"
 
 export class RegistrationConflict extends Error {}
 export class RegistrationValidationError extends Error {}
@@ -6,13 +7,15 @@ export class RegistrationValidationError extends Error {}
 export interface ExternalRegistrationPort {
     inspect(input: ExternalRegistration): Promise<{
         userId: string | null
-        steamId: string | null
+        platformId: string | null
         primaryGuildId?: string
         assignmentId: string | null
     }>
-    createUser(input: ExternalRegistration): Promise<string>
-    linkSteam(
-        input: ExternalRegistration & { steamId: string },
+    createUser(
+        input: ExternalRegistration & { platformId: string }
+    ): Promise<string>
+    linkPlatform(
+        input: ExternalRegistration & { platformId: string },
         userId: string
     ): Promise<void>
     createMembership(
@@ -27,10 +30,13 @@ export async function registerExternalUser(
     port: ExternalRegistrationPort
 ) {
     const existing = await port.inspect(input)
-    const steamId = input.steamId ?? existing.steamId
-    if (!steamId)
+    const suppliedId = input.platformId ?? input.steamId
+    const platformId = suppliedId
+        ? externalPlatformId(suppliedId)
+        : existing.platformId
+    if (!platformId)
         throw new RegistrationValidationError(
-            "Steam ID is required for a new user or an existing user without Steam details."
+            "A Steam or EOS player ID is required for a new user or an existing user without supported platform details."
         )
     if (
         input.createMembership &&
@@ -43,9 +49,9 @@ export async function registerExternalUser(
         throw new RegistrationConflict(
             "This user already has a primary clan membership elsewhere."
         )
-    const resolved = { ...input, steamId }
+    const resolved = { ...input, platformId }
     const userId = existing.userId ?? (await port.createUser(resolved))
-    if (existing.userId) await port.linkSteam(resolved, userId)
+    if (existing.userId) await port.linkPlatform(resolved, userId)
     const assignmentId = input.createMembership
         ? (existing.assignmentId ??
           (await port.createMembership(input, userId)))
