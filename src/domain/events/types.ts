@@ -68,6 +68,10 @@ export type AttendanceReminder = {
 }
 
 export type EventLike = {
+    /** Long-form event briefing, stored as Discord-compatible Markdown. */
+    description?: string
+    /** Short operational addendum, also rendered as Discord-compatible Markdown. */
+    notes?: string
     map?: string
     timeOfDay?: string
     tacticalPlan?: import("./tactical-plan").TacticalPlan | null

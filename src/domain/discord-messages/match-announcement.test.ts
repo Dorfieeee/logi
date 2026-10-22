@@ -138,6 +138,18 @@ test("the open card reads like the board (L1-11..24)", () => {
     )
 })
 
+test("the card keeps a Markdown description and notes as separate briefings", () => {
+    const view = buildAnnouncementView({
+        ...base,
+        description: "**Briefing**\n\n- Hold the centre",
+        notes: "Bring a working microphone.",
+    })
+    const body = text(view)
+    assert.match(body, /\*\*Briefing\*\*/)
+    assert.match(body, /Hold the centre/)
+    assert.match(body, /Bring a working microphone\./)
+})
+
 test("the bar is the clan colour whatever the state or category (L1-02, L1-07)", () => {
     for (const state of ANNOUNCEMENT_STATES) {
         const view = buildAnnouncementView({ ...base, state })
