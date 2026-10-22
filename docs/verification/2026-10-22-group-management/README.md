@@ -70,5 +70,11 @@ Typecheck and bundle validation pass after regeneration (172 V8 modules,
 backend `http://127.0.0.1:32420` succeeds without changing either generated file.
 The first local full-suite invocation (`npm run test`) lacked CI's synthetic
 Convex URL / Discord bot environment and failed its bot environment guard; it
-is not a passing regression result. The subsequent GitHub Verify check is the
-authoritative full-suite result for this revision.
+is not a passing regression result. It also exposed three stale assertions
+already present on the base: two announcement-preview expectations still used
+the old layout, and the notice target fixture only mocked `Date.now()` while
+the implementation uses `new Date()`. Test-only repairs align the preview
+expectations with the existing labeled fields and freeze the complete Date
+clock. Builder parity and message-layout/style coverage remain in place.
+The subsequent GitHub Verify check is the authoritative full-suite result for
+this revision.
