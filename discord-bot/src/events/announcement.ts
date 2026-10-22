@@ -59,8 +59,17 @@ import { SIGNUP_NOT_ATTENDING } from "../constants"
 import { messagePayload } from "../ui/message-kit"
 import { formatMapLabel } from "../map-label"
 
-/** Notes keep room for the rest of the card within Discord's 4,000 characters. */
-const NOTES_LIMIT = 1_800
+/**
+ * Together, the free-form sections leave room for facts, sign-ups and buttons
+ * within Discord's 4,000-character message limit. The description is a real,
+ * independently rendered briefing; notes remain a short addendum.
+ */
+const MARKDOWN_TOTAL_LIMIT = 1_800
+
+function truncateMarkdownSection(value: string, limit: number) {
+    if (limit <= 0) return ""
+    return value.length > limit ? `${value.slice(0, limit - 1)}…` : value
+}
 
 const SLOT_ORDER: Record<string, number> = { a: 0, b: 1, c: 2 }
 
@@ -157,7 +166,11 @@ export function matchCardEventOf(input: {
                           code:
                               team.snapshot.shortCode?.trim() ||
                               team.snapshot.name,
-                          side: team.side,
+                          // Older matches stored the clan's map side only on
+                          // the event. Preserve it for their home-team row.
+                          side:
+                              team.side ??
+                              (team.slot === "a" ? (event.side ?? null) : null),
                       }))
                 : [],
         side: event.side ?? null,
@@ -386,7 +399,8 @@ export function buildAnnouncementCard(
         roster && event.kind === "match" ? rosterFactsOf(event, roster) : null
     const meetingChannelId =
         event.meetingChannelId?.trim() || config.meetingChannelId?.trim()
-    const notes = formatDiscordMarkdown(event.notes || event.description)
+    const description = formatDiscordMarkdown(event.description)
+    const notes = formatDiscordMarkdown(event.notes)
     const announcementUrl = options.announcementChannelId
         ? buildDiscordMessageLink(config.guildId, options.announcementChannelId)
         : null
@@ -411,10 +425,11 @@ export function buildAnnouncementCard(
               }
             : null,
         confirmation: rosterFacts?.confirmation ?? null,
-        notes:
-            notes.length > NOTES_LIMIT
-                ? `${notes.slice(0, NOTES_LIMIT - 1)}…`
-                : notes,
+        description: truncateMarkdownSection(description, MARKDOWN_TOTAL_LIMIT),
+        notes: truncateMarkdownSection(
+            notes,
+            Math.max(0, MARKDOWN_TOTAL_LIMIT - description.length)
+        ),
         meetingChannelId: meetingChannelId ?? null,
         forumChannelId: options.forumChannelId ?? null,
         result: options.result ?? null,

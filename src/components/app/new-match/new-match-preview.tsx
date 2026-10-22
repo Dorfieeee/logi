@@ -46,7 +46,9 @@ export type NewMatchPreviewModel = {
     categoryColor?: string
     /** The clan's message style (Settings › Discord messages). */
     messageStyle?: { accentColor?: string; iconDensity?: MessageIconDensity }
-    /** The notes (or the description) the bot shows below the times. */
+    /** Long-form event briefing rendered below the match facts. */
+    description?: string | null
+    /** Short operational addendum rendered after the description. */
     notes?: string | null
     thumbnailUrl?: string | null
     imageUrl?: string | null
@@ -159,6 +161,7 @@ export function NewMatchPreview({
                       declined: [],
                   }
                 : null,
+        description: model.description,
         notes: model.notes,
         forumChannelId:
             model.kind === "match" && model.forum ? FORUM_CHANNEL_ID : null,

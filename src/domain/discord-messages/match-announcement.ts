@@ -110,6 +110,8 @@ export type AnnouncementViewInput = {
         late: number
         cannotCome: number
     } | null
+    /** Long-form event briefing, written in Discord-compatible Markdown. */
+    description?: string | null
     notes?: string | null
     meetingChannelId?: string | null
     forumChannelId?: string | null
@@ -500,8 +502,14 @@ export function buildAnnouncementView(
                 ? copy.card.cancelledBody
                 : copy.card.cancelledBodyNoEvent,
         })
-    } else if (state !== "played" && input.notes?.trim()) {
-        blocks.push({ kind: "text", markdown: input.notes.trim() })
+    } else if (state !== "played") {
+        // Notes are an optional short operational addendum. Keep the event
+        // description separate so a manager's full briefing is never hidden
+        // merely because they also supplied notes.
+        for (const markdown of [input.description, input.notes]) {
+            if (markdown?.trim())
+                blocks.push({ kind: "text", markdown: markdown.trim() })
+        }
     }
 
     const meeting = discordTimestamp(event.meetingStart, "f")

@@ -51,6 +51,39 @@ test("a linked clan team fills missing slot a on legacy match cards", () => {
     )
 })
 
+test("a saved map side fills a home team that predates per-team sides", () => {
+    const event = boardEvent({
+        side: "Allies",
+        matchTeams: boardEvent().matchTeams?.map((team) => ({
+            ...team,
+            side: null,
+        })),
+    })
+    const card = matchCardEventOf({ config: boardConfig, event })
+    assert.deepEqual(
+        card.teams.map((team) => team.side),
+        ["Allies", null]
+    )
+})
+
+test("the announcement includes a Markdown description as well as notes", () => {
+    const event = withLimits(
+        boardEvent({
+            description: "**Match briefing**\n\n- Hold the centre",
+            notes: "Bring a working microphone.",
+        })
+    )
+    const { view } = buildAnnouncementCard(boardPayload(event), event, {
+        now: BOARD_NOW,
+    })
+    const text = JSON.stringify(
+        json(announcementMessage(view, { config: boardConfig }))
+    )
+    assert.match(text, /\*\*Match briefing\*\*/)
+    assert.match(text, /Hold the centre/)
+    assert.match(text, /Bring a working microphone\./)
+})
+
 test("the first post pings above the card; the card keeps the clan colour (L1-10, L1-02)", () => {
     const event = withLimits(boardEvent())
     const { view, state } = buildAnnouncementCard(boardPayload(event), event, {
@@ -85,7 +118,7 @@ test("later edits carry no ping line and allow no mentions (L1-25, L1-B02)", () 
     assert.deepEqual(message.allowedMentions, { parse: [], roles: [] })
 })
 
-test("the card never carries the password, the raw map or the raw side (L1-03, L1-139)", () => {
+test("the card never carries the password, raw map or raw side (L1-03, L1-139)", () => {
     const event = withLimits(boardEvent({ status: "starting" }))
     const { view } = buildAnnouncementCard(
         boardPayload(event, [boardRoster]),
