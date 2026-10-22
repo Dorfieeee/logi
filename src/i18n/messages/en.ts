@@ -5822,6 +5822,11 @@ export const enMessages = {
     },
     groups: {
         title: "Groups",
+        manageAction: "Manage groups",
+        refreshAction: "Refresh groups",
+        newTab: "opens in a new tab",
+        refreshFailed:
+            "Groups could not be loaded. Save your changes and reload the page.",
         description:
             "Groups are reusable clan specialties for players and squad presets. Rosters copy the names so older events stay intact.",
         createTitle: "Create group",

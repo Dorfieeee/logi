@@ -205,12 +205,18 @@ export function AppSidebar({
                                         title: t.users,
                                         url: `${base}/users`,
                                         icon: UserCog,
-                                        isActive: within("users"),
+                                        isActive:
+                                            within("users") || within("groups"),
                                         items: [
                                             {
                                                 title: t.users,
                                                 url: `${base}/users`,
                                                 isActive: within("users"),
+                                            },
+                                            {
+                                                title: t.groups,
+                                                url: `${base}/groups`,
+                                                isActive: within("groups"),
                                             },
                                             {
                                                 title: t.memberships,

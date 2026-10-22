@@ -131,8 +131,10 @@ test("the live preview is the bot's own announcement while sign-ups are open (N1
     const rendered = text(preview)
     assert.equal(preview.view.header?.title, "VLK vs ROG")
     assert.match(rendered, /Spojenci ★ {2}vs {2}`ROG` Osa ✚/)
-    assert.match(rendered, /Foy · den · sraz <t:\d+:t>/)
-    assert.match(rendered, /\*\*Přihlášeno 23\*\* · Pěchota 15 · Tanky 6\/6/)
+    assert.match(rendered, /\*\*Čas\*\*\n<t:1791739800:f>/)
+    assert.match(rendered, /\*\*Konec přihlášek\*\*\n<t:1791653400:f>/)
+    assert.match(rendered, /\*\*Přihlásit se mohou\*\*\nKdokoli/)
+    assert.match(rendered, /\*\*Role účastníků\*\*\nVytvoří Logi pro účastníky/)
     assert.match(
         rendered,
         /\[Přihlásit se\] \[Zkontrolovat přihlášení\] \[Nepřijdu\]/
@@ -337,7 +339,7 @@ test("the clan's own recruitment and ticket panels replace the samples", () => {
     )
 })
 
-test("the clan's icon density changes the announcement's lines", () => {
+test("the clan's accent changes without altering the announcement's labeled fields", () => {
     const system = getSystemMessages("cs")
     const preview = settingsPreview(input("announcement"))
     const sparse = layoutMessageView(preview.view, {
@@ -350,12 +352,10 @@ test("the clan's icon density changes the announcement's lines", () => {
         locale: system.locale,
         style: { iconDensity: "rich", accentColor: "#123456" },
     })
-    const all = (layout: typeof sparse) =>
-        layout.nodes
-            .map((node) => ("content" in node ? node.content : ""))
-            .join("\n")
-    assert.doesNotMatch(all(sparse), /🕒/)
-    assert.match(all(rich), /🕒/)
+    // The current card uses fields rather than icon-bearing meta lines.
+    // Changing the clan style preserves the content and available actions.
+    assert.deepEqual(rich.nodes, sparse.nodes)
+    assert.equal(sparse.accentColor, 0xe8a33d)
     assert.equal(rich.accentColor, 0x123456)
 })
 

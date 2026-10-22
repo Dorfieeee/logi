@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-22T21:46:31.087Z",
+  "production": false,
+  "backend": "http://127.0.0.1:32420",
+  "serverId": "qh71hp30gxy6ga4dgxw652s9jx8gs0rg",
+  "deletedGroup": {
+    "id": "q576tvzvrqc5dhs2v71a90tgx98gr4sf",
+    "absent": true,
+    "remainingWardogsCount": 7
+  },
+  "event": {
+    "id": "p577nk1shfd48rh5jt3xvr82vs8gshqa",
+    "name": "Ověření skupin — zachovat koncept",
+    "gameId": "wardogs",
+    "status": "starting",
+    "signupGroupIds": [
+      "q578cayhv17gm1a9p6pak6hbtn8gr1bd",
+      "q57fybdvncxn5kgkkn9m4kmg2h8gs20p",
+      "q57cr65fct2a4rs31beetrb1ad8gswa9",
+      "q57296a60g3jy5etbec6ngn8hh8gsrvw",
+      "q576rt4d3b5np0v73wdb6tcfjn8gst6g",
+      "q5752sy90112xpcbwg3mztxmzn8gs3zd"
+    ],
+    "signupGroupLimits": [
+      {
+        "groupId": "q57cr65fct2a4rs31beetrb1ad8gswa9",
+        "max": 4
+      }
+    ],
+    "useGeneralSignup": false
+  }
+}
