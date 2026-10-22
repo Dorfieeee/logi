@@ -1,0 +1,83 @@
+{
+  "at": "2026-10-22T21:39:35.390Z",
+  "production": false,
+  "backend": "http://127.0.0.1:32420",
+  "frontend": "http://127.0.0.1:30420",
+  "login": "http://127.0.0.1:30421/admin",
+  "memberLogin": "http://127.0.0.1:30421/member",
+  "serverId": "qh71hp30gxy6ga4dgxw652s9jx8gs0rg",
+  "events": {
+    "hell_let_loose": "p57dtvzxpjs745rv4egkfr98r18grwxy",
+    "wardogs": "p572ynes6fvc9tz622xx8dvvgh8grk06"
+  },
+  "checks": [
+    {
+      "role": "admin",
+      "status": 200,
+      "cacheControl": "no-store",
+      "count": 10,
+      "countsByGame": {
+        "wardogs": 7,
+        "hell_let_loose": 3
+      }
+    },
+    {
+      "role": "member",
+      "status": 403,
+      "cacheControl": "no-store",
+      "error": "Forbidden."
+    },
+    {
+      "role": "unauthenticated",
+      "status": 403,
+      "cacheControl": "no-store",
+      "error": "Forbidden."
+    }
+  ],
+  "baseline": {
+    "hell_let_loose": [
+      {
+        "id": "q5770cpph41s3szmtw1m1k0vy98gshzs",
+        "name": "Infantry"
+      },
+      {
+        "id": "q573mg49e1zaykw2mpardkdy518grj2h",
+        "name": "Armor"
+      },
+      {
+        "id": "q572n26m3dct5g4y21dm8xdx3n8grq66",
+        "name": "Logistics"
+      }
+    ],
+    "wardogs": [
+      {
+        "id": "q578cayhv17gm1a9p6pak6hbtn8gr1bd",
+        "name": "Infantry"
+      },
+      {
+        "id": "q57fybdvncxn5kgkkn9m4kmg2h8gs20p",
+        "name": "Builder"
+      },
+      {
+        "id": "q57cr65fct2a4rs31beetrb1ad8gswa9",
+        "name": "Tank"
+      },
+      {
+        "id": "q576jxg55jx4gdhqbhf3xhzdhd8gr6pk",
+        "name": "Humvee"
+      },
+      {
+        "id": "q57296a60g3jy5etbec6ngn8hh8gsrvw",
+        "name": "Havoc"
+      },
+      {
+        "id": "q576rt4d3b5np0v73wdb6tcfjn8gst6g",
+        "name": "Little Bird (LB)"
+      },
+      {
+        "id": "q5752sy90112xpcbwg3mztxmzn8gs3zd",
+        "name": "SPA"
+      }
+    ]
+  }
+}

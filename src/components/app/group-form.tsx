@@ -60,8 +60,9 @@ export function GroupForm({
 }) {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
-    const [metadata, setMetadata] = useState<DiscordMetadata | null>(null)
-    const selectedGameId = group?.gameId ?? gameId
+    const [loadedMetadata, setMetadata] = useState<DiscordMetadata | null>(null)
+    const metadata = canEdit ? loadedMetadata : null
+    const selectedGameId = group?.gameId ?? gameId ?? "hell_let_loose"
     const form = useForm<z.input<typeof groupSchema>, unknown, GroupInput>({
         resolver: zodResolver(groupSchema),
         defaultValues: {
@@ -77,10 +78,7 @@ export function GroupForm({
     })
 
     useEffect(() => {
-        if (!canEdit) {
-            setMetadata(null)
-            return
-        }
+        if (!canEdit) return
 
         fetch(`/api/servers/${serverId}/discord-metadata`)
             .then((response) => response.json())
@@ -89,7 +87,10 @@ export function GroupForm({
     }, [canEdit, serverId])
 
     const filteredParentGroups = availableGroups.filter(
-        (g) => g.id !== group?.id && !g.parentId
+        (g) =>
+            g.id !== group?.id &&
+            !g.parentId &&
+            (g.gameId ?? "hell_let_loose") === selectedGameId
     )
 
     async function submit(values: GroupInput) {
@@ -178,8 +179,11 @@ export function GroupForm({
                 >
                     <div className="grid gap-4 md:grid-cols-[1fr_112px_112px]">
                         <div className="space-y-2">
-                            <Label>{dictionary.groups.name}</Label>
+                            <Label htmlFor="group-name">
+                                {dictionary.groups.name}
+                            </Label>
                             <Input
+                                id="group-name"
                                 {...form.register("name")}
                                 className="rounded-xl"
                                 disabled={!canEdit}
@@ -191,8 +195,11 @@ export function GroupForm({
                             ) : null}
                         </div>
                         <div className="space-y-2">
-                            <Label>{dictionary.groups.order}</Label>
+                            <Label htmlFor="group-order">
+                                {dictionary.groups.order}
+                            </Label>
                             <Input
+                                id="group-order"
                                 type="number"
                                 {...form.register("order", {
                                     valueAsNumber: true,
@@ -207,8 +214,11 @@ export function GroupForm({
                             ) : null}
                         </div>
                         <div className="space-y-2">
-                            <Label>{dictionary.groups.color}</Label>
+                            <Label htmlFor="group-color">
+                                {dictionary.groups.color}
+                            </Label>
                             <Input
+                                id="group-color"
                                 type="color"
                                 {...form.register("color")}
                                 className="h-11 rounded-xl p-1"
@@ -222,7 +232,9 @@ export function GroupForm({
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label>{dictionary.groups.parent}</Label>
+                        <Label htmlFor="group-parent">
+                            {dictionary.groups.parent}
+                        </Label>
                         <Controller
                             control={form.control}
                             name="parentId"
@@ -232,7 +244,10 @@ export function GroupForm({
                                     value={field.value ?? "none"}
                                     disabled={!canEdit}
                                 >
-                                    <SelectTrigger className="rounded-xl">
+                                    <SelectTrigger
+                                        id="group-parent"
+                                        className="rounded-xl"
+                                    >
                                         <SelectValue
                                             placeholder={dictionary.groups.none}
                                         />
@@ -252,8 +267,11 @@ export function GroupForm({
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label>{dictionary.groups.descriptionLabel}</Label>
+                        <Label htmlFor="group-description">
+                            {dictionary.groups.descriptionLabel}
+                        </Label>
                         <Textarea
+                            id="group-description"
                             {...form.register("description")}
                             className="min-h-28 rounded-xl"
                             disabled={!canEdit}

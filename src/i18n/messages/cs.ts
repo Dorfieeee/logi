@@ -5797,6 +5797,11 @@ export const csMessages = {
     },
     groups: {
         title: "Skupiny",
+        manageAction: "Spravovat skupiny",
+        refreshAction: "Obnovit skupiny",
+        newTab: "otevře se v nové kartě",
+        refreshFailed:
+            "Skupiny se nepodařilo načíst. Uložte rozepsané změny a obnovte stránku.",
         description:
             "Skupiny jsou znovupoužitelné klanové specializace pro hráče a šablony jednotek. Soupisky kopírují pouze názvy, takže starší akce zůstanou beze změn.",
         createTitle: "Vytvořit skupinu",

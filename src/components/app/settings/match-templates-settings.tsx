@@ -1,5 +1,7 @@
 "use client"
 
+import { ManageGroupsLink } from "@/components/app/manage-groups-link"
+
 import {
     AlertTriangle,
     CalendarClock,
@@ -275,7 +277,7 @@ export function MatchTemplatesSettings({
     serverId,
     templates: savedTemplates,
     categories,
-    groups,
+    groups: initialGroups,
     topicPresets,
     squadPresets,
     enabledGames,
@@ -300,6 +302,7 @@ export function MatchTemplatesSettings({
     const text = dictionary.matchTemplates
     const router = useRouter()
     const [templates, setTemplates] = useState(savedTemplates)
+    const [groups, setGroups] = useState(initialGroups)
     const [selectedId, setSelectedId] = useState(savedTemplates[0]?.id)
     const [saving, setSaving] = useState(false)
     const [metadata, setMetadata] = useState<{
@@ -308,6 +311,22 @@ export function MatchTemplatesSettings({
     }>({ roles: [], channels: [] })
     const dirty = JSON.stringify(templates) !== JSON.stringify(savedTemplates)
     const selected = templates.find((template) => template.id === selectedId)
+
+    const receiveGroups = (next: Group[]) => {
+        setGroups(next)
+        const ids = new Set(next.map((group) => group.id))
+        setTemplates((current) =>
+            current.map((template) => ({
+                ...template,
+                signupGroupIds: template.signupGroupIds?.filter((id) =>
+                    ids.has(id)
+                ),
+                signupGroupLimits: template.signupGroupLimits?.filter((limit) =>
+                    ids.has(limit.groupId)
+                ),
+            }))
+        )
+    }
 
     useEffect(() => {
         fetch(`/api/servers/${serverId}/discord-metadata`)
@@ -916,6 +935,13 @@ export function MatchTemplatesSettings({
                                             {text.signup.groupsAllGames}
                                         </p>
                                     )}
+                                    <ManageGroupsLink
+                                        serverId={serverId}
+                                        locale={locale}
+                                        gameId={selected.gameId}
+                                        dictionary={dictionary}
+                                        onGroupsUpdated={receiveGroups}
+                                    />
                                     <div className="flex min-h-9 items-center gap-3 text-sm">
                                         <Switch
                                             id="tpl-general"
