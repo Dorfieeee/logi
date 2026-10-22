@@ -12,7 +12,7 @@ and removes deleted IDs/caps from the edited configuration. Adding or renaming a
 group alone does not mark an otherwise unchanged match dirty. New groups can be
 enabled through the existing per-match checkbox. Parent choices are limited to
 the same game. Existing `/api/v1/clan/groups` CRUD already supports these actions;
-no public API contract or Convex implementation changed.
+no group API contract or Convex implementation changed.
 
 ## Verified locally
 
@@ -54,3 +54,21 @@ No production build, complete test suite, live Discord action, CI result, merge,
 or production deployment is claimed here. Discord metadata is unavailable in
 this isolated environment. Existing historical signup/roster snapshots are not
 rewritten when catalogue groups are renamed or deleted.
+
+## Merge preparation
+
+PR #253's initial Verify run (`39860200445`) stopped at the generated-contract
+check. The base commit already had the same stale generated outputs: OpenAPI
+omitted the existing `wardogsReportId` and `signupReminderClaimedAt` event fields,
+and the offline Convex generator emitted a different comment/import layout.
+Running the checked-in generators refreshes these two artifacts. The Convex
+inventory still contains the same 182 modules and the same public/internal
+type signatures; no schema or runtime behavior was changed for this repair.
+
+Typecheck and bundle validation pass after regeneration (172 V8 modules,
+10 Node modules). Deployment with `--codegen disable` to the verified isolated
+backend `http://127.0.0.1:32420` succeeds without changing either generated file.
+The first local full-suite invocation (`npm run test`) lacked CI's synthetic
+Convex URL / Discord bot environment and failed its bot environment guard; it
+is not a passing regression result. The subsequent GitHub Verify check is the
+authoritative full-suite result for this revision.

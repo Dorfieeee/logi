@@ -470,6 +470,10 @@ export const generatedOpenApiSchemas = {
                 "type": "string",
                 "description": "Convex ID for matchStats"
             },
+            "wardogsReportId": {
+                "type": "string",
+                "description": "Convex ID for wardogsMatchReports"
+            },
             "competitionFixtureId": {
                 "type": "string",
                 "description": "Convex ID for competitionFixtures"
@@ -495,6 +499,9 @@ export const generatedOpenApiSchemas = {
                         "sentAt"
                     ]
                 }
+            },
+            "signupReminderClaimedAt": {
+                "type": "string"
             },
             "participants": {
                 "type": "array",
@@ -859,6 +866,7 @@ export const generatedOpenApiSchemas = {
                 }
             },
             "matchStatsId": "string",
+            "wardogsReportId": "string",
             "competitionFixtureId": "string",
             "attendanceReminderLog": [
                 {
@@ -867,6 +875,7 @@ export const generatedOpenApiSchemas = {
                     "sentAt": "string"
                 }
             ],
+            "signupReminderClaimedAt": "string",
             "participants": [
                 {
                     "userId": "string",
