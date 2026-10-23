@@ -533,6 +533,9 @@ export function buildAnnouncementView(
                       : {}),
               }
             : null,
+        event.kind === "match" && event.mapLabel?.trim()
+            ? { title: copy.card.map, text: event.mapLabel.trim() }
+            : null,
         state === "open"
             ? {
                   title: copy.card.signupsRestrictedTo,

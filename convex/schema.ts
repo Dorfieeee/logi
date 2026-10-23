@@ -996,6 +996,8 @@ export default defineSchema({
         ),
         pingRoleIds: v.optional(v.array(v.string())),
         createForumChannel: v.optional(v.boolean()),
+        // Opt-in only: absent legacy events must not get a thread.
+        createSignupThread: v.optional(v.boolean()),
         topicPresetId: v.optional(v.id("topicPresets")),
         stratmapIds: v.optional(v.array(v.id("stratmaps"))),
         status: v.optional(
@@ -1421,6 +1423,7 @@ export default defineSchema({
         ),
         forumChannelId: v.optional(v.string()),
         forumThreadId: v.optional(v.string()),
+        signupThreadId: v.optional(v.string()),
         infoMessageId: v.optional(v.string()),
         // The match forum's Debrief post, found again by ID even after
         // Discord archived it, so it is edited and never posted twice.

@@ -87,6 +87,7 @@ export async function saveServerEventCommand(input: {
     pingMode?: "none" | "clan" | "roles"
     pingRoleIds?: string[]
     createForumChannel: boolean
+    createSignupThread?: boolean
     topicPresetId?: string
     stratmapIds?: string[]
     /** Forwarded unchanged; Convex resolves and snapshots the selection. */
@@ -140,6 +141,7 @@ export async function saveServerEventCommand(input: {
         pingMode: input.pingMode,
         pingRoleIds: input.pingRoleIds,
         createForumChannel: input.createForumChannel,
+        createSignupThread: input.createSignupThread,
         topicPresetId: input.topicPresetId as never,
         stratmapIds: input.stratmapIds,
         matchTeams: input.matchTeams,

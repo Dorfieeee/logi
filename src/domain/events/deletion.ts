@@ -23,6 +23,7 @@ export function eventDiscordDeletion(
         eventInfoMessageId?: string
         scheduledEventId?: string
         forumThreadId?: string
+        signupThreadId?: string
         squadVoiceChannelIds?: string[]
         topicMessageState?: Array<{ threadId: string }>
     }>,
@@ -58,6 +59,7 @@ export function eventDiscordDeletion(
         channelIds: unique(
             syncs.flatMap((sync) => [
                 sync.forumThreadId,
+                sync.signupThreadId,
                 ...(sync.squadVoiceChannelIds ?? []),
                 ...(sync.topicMessageState ?? []).map(
                     (topic) => topic.threadId

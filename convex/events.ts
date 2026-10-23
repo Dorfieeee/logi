@@ -160,6 +160,7 @@ export const upsert = mutation({
         ),
         pingRoleIds: v.optional(v.array(v.string())),
         createForumChannel: v.optional(v.boolean()),
+        createSignupThread: v.optional(v.boolean()),
         topicPresetId: v.optional(v.id("topicPresets")),
         stratmapIds: v.optional(v.array(v.id("stratmaps"))),
         // Directory team selections (identity, slot, side); snapshots are captured here.

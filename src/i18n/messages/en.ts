@@ -5028,6 +5028,9 @@ export const enMessages = {
             pingRoles: "Chosen roles",
             pingRolesLabel: "Roles to ping",
             forum: "Match forum",
+            signupThread: "Event discussion thread",
+            signupThreadHint:
+                "Create a public thread under the announcement and keep its members in sync with sign-ups.",
             voice: "Squad voice channels at the meeting",
             serverAndPassword: "Server and password",
             server: "Server",

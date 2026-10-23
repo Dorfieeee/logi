@@ -383,6 +383,10 @@ export const execute = mutation({
                                 pingRoleIds: current?.pingRoleIds,
                                 createForumChannel:
                                     current?.createForumChannel ?? false,
+                                createSignupThread:
+                                    fields.createSignupThread ??
+                                    current?.createSignupThread ??
+                                    false,
                                 topicPresetId: current?.topicPresetId
                                     ? String(current.topicPresetId)
                                     : undefined,

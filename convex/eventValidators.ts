@@ -75,6 +75,7 @@ export const eventWriteFields = {
     ),
     pingRoleIds: v.optional(v.array(v.string())),
     createForumChannel: v.optional(v.boolean()),
+    createSignupThread: v.optional(v.boolean()),
     topicPresetId: v.optional(v.id("topicPresets")),
     stratmapIds: v.optional(v.array(v.id("stratmaps"))),
     matchTeams: v.optional(v.array(matchTeamInput)),

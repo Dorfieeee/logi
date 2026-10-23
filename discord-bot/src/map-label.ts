@@ -35,3 +35,22 @@ export function formatMapLabel(
         .filter(Boolean)
         .join(" · ")
 }
+
+/** The configured map facts, including an HLL strongpoint or another game-specific target. */
+export function formatMapDetails(
+    map: string | null | undefined,
+    cap: string | null | undefined,
+    gameId: GameId | undefined,
+    messages: ReturnType<typeof getEventMessages>
+) {
+    const mapLabel = formatMapLabel(map, gameId, messages)
+    const target = cap
+        ?.trim()
+        .replace(/[\s\p{Cc}]+/gu, " ")
+        .replace(MARKDOWN, "\\$1")
+    return (
+        [mapLabel, target]
+            .filter((value): value is string => Boolean(value))
+            .join(" · ") || undefined
+    )
+}

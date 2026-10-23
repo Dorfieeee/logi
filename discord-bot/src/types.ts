@@ -381,6 +381,7 @@ export type EventRecord = {
     pingMode?: "none" | "clan" | "roles"
     pingRoleIds?: string[]
     createForumChannel: boolean
+    createSignupThread?: boolean
     topicPresetId?: string
     stratmapIds?: string[]
     /** Native match teams; absent or empty on legacy events. */
@@ -472,6 +473,8 @@ export type SyncState = {
     scheduledEventStatus?: "scheduled" | "active" | "completed" | "canceled"
     forumChannelId?: string
     forumThreadId?: string
+    /** Public discussion thread attached to the announcement. */
+    signupThreadId?: string
     infoMessageId?: string
     /** The match forum's Debrief post (its starter message ID). */
     debriefMessageId?: string
@@ -547,6 +550,7 @@ export type EventInteractionContext = {
         status?: "pending" | "recruit" | "active"
     }>
     roster: Roster | null
+    syncState?: Pick<SyncState, "signupThreadId"> | null
     /** Colour of the event's category; absent from older backends. */
     categoryColor?: string | null
 }

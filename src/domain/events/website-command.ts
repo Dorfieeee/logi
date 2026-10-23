@@ -109,6 +109,8 @@ export const websiteEventFieldsSchema = z
         map: z.string().trim().max(200).optional(),
         timeOfDay: eventTimeOfDaySchema.optional(),
         tacticalPlan: tacticalPlanSchema.nullable().optional(),
+        /** Opt-in public Discord thread under the announcement; omitted preserves it on update. */
+        createSignupThread: z.boolean().optional(),
         side: z.string().trim().max(200).optional(),
         registrationStart: instant.optional(),
         registrationEnd: instant,

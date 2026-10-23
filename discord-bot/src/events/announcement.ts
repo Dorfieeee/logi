@@ -57,7 +57,7 @@ import { resolveGameScope } from "../../../src/domain/games/game"
 import { builtInMapImage } from "../public-panels/assets"
 import { SIGNUP_NOT_ATTENDING } from "../constants"
 import { messagePayload } from "../ui/message-kit"
-import { formatMapLabel } from "../map-label"
+import { formatMapDetails } from "../map-label"
 
 /**
  * Together, the free-form sections leave room for facts, sign-ups and buttons
@@ -176,7 +176,12 @@ export function matchCardEventOf(input: {
         side: event.side ?? null,
         mapLabel:
             event.kind === "match"
-                ? (formatMapLabel(event.map, event.gameId, messages) ?? null)
+                ? (formatMapDetails(
+                      event.map,
+                      event.cap,
+                      event.gameId,
+                      messages
+                  ) ?? null)
                 : null,
         server: event.kind === "training" ? (event.server ?? null) : null,
         meetingStart: event.meetingStart,

@@ -366,6 +366,8 @@ export type EventRecord = {
     pingMode?: "none" | "clan" | "roles"
     pingRoleIds?: string[]
     createForumChannel: boolean
+    /** Opt-in public discussion thread attached to the announcement. */
+    createSignupThread?: boolean
     topicPresetId?: string
     stratmapIds: string[]
     signupGroupIds?: string[]

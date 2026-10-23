@@ -82,6 +82,7 @@ export const eventSchema = z
         pingMode: z.enum(["none", "clan", "roles"]).default("none"),
         pingRoleIds: z.array(z.string().trim()).default([]),
         createForumChannel: z.boolean().default(false),
+        createSignupThread: z.boolean().default(false),
         topicPresetId: z.string().trim().optional(),
         stratmapIds: z.array(z.string().trim()).default([]),
         signupGroupIds: z.array(z.string().trim()).default([]),

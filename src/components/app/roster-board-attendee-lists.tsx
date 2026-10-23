@@ -138,10 +138,10 @@ export function RosterBoardAttendeeLists({
         )
     )
     return (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+        <div className="grid gap-4 md:grid-cols-2 xl:h-full xl:min-h-0 xl:grid-cols-1 xl:grid-rows-2">
             <Card
                 data-testid="roster-reserves"
-                className="border-border/70 bg-card gap-0 rounded-2xl"
+                className="border-border/70 bg-card gap-0 rounded-2xl xl:flex xl:min-h-0 xl:flex-col"
                 onDragOver={(event) =>
                     isAssignmentMode && event.preventDefault()
                 }
@@ -260,13 +260,13 @@ export function RosterBoardAttendeeLists({
                         />
                     </label>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
+                <CardContent className="p-4 pt-0 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col">
                     {canAdmin && isAssignmentMode ? (
                         <p className="text-muted-foreground mb-2 text-xs">
                             {dictionary.roster.dragHelp}
                         </p>
                     ) : null}
-                    <ScrollArea className="h-[min(34vh,24rem)] pr-1">
+                    <ScrollArea className="h-[min(34vh,24rem)] pr-1 xl:h-auto xl:min-h-0 xl:flex-1">
                         <GroupedUserList
                             slotOptions={slotOptions}
                             assignUserToSlot={assignUserToSlot}
@@ -295,7 +295,7 @@ export function RosterBoardAttendeeLists({
             </Card>
 
             <Card
-                className="border-border/70 bg-card gap-0 rounded-2xl"
+                className="border-border/70 bg-card gap-0 rounded-2xl xl:flex xl:min-h-0 xl:flex-col"
                 onDragOver={(event) =>
                     isAssignmentMode && event.preventDefault()
                 }
@@ -417,8 +417,8 @@ export function RosterBoardAttendeeLists({
                         />
                     </label>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
-                    <ScrollArea className="h-[min(18vh,12rem)] pr-1">
+                <CardContent className="p-4 pt-0 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col">
+                    <ScrollArea className="h-[min(18vh,12rem)] pr-1 xl:h-auto xl:min-h-0 xl:flex-1">
                         <GroupedUserList
                             slotOptions={slotOptions}
                             assignUserToSlot={assignUserToSlot}
