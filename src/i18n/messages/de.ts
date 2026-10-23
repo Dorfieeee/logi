@@ -5965,6 +5965,11 @@ export const deMessages = {
     },
     groups: {
         title: "Gruppen",
+        manageAction: "Gruppen verwalten",
+        refreshAction: "Gruppen aktualisieren",
+        newTab: "öffnet sich in einem neuen Tab",
+        refreshFailed:
+            "Die Gruppen konnten nicht geladen werden. Speichere deine Änderungen und lade die Seite neu.",
         description:
             "Gruppen sind wiederverwendbare Clan-Spezialisierungen für Spieler und Squad-Presets. Roster kopieren die Namen, damit ältere Events intakt bleiben.",
         createTitle: "Gruppe erstellen",

@@ -1,0 +1,90 @@
+{
+  "at": "2026-10-22T21:40:44.756Z",
+  "production": false,
+  "backend": "http://127.0.0.1:32420",
+  "serverId": "qh71hp30gxy6ga4dgxw652s9jx8gs0rg",
+  "groups": {
+    "hell_let_loose": [
+      {
+        "id": "q5770cpph41s3szmtw1m1k0vy98gshzs",
+        "name": "Infantry",
+        "color": "#60a5fa",
+        "order": 0,
+        "gameId": "hell_let_loose"
+      },
+      {
+        "id": "q573mg49e1zaykw2mpardkdy518grj2h",
+        "name": "Armor",
+        "color": "#4ade80",
+        "order": 1,
+        "gameId": "hell_let_loose"
+      },
+      {
+        "id": "q572n26m3dct5g4y21dm8xdx3n8grq66",
+        "name": "Logistics",
+        "color": "#fb923c",
+        "order": 2,
+        "gameId": "hell_let_loose"
+      }
+    ],
+    "wardogs": [
+      {
+        "id": "q578cayhv17gm1a9p6pak6hbtn8gr1bd",
+        "name": "Infantry",
+        "color": "#60a5fa",
+        "order": 0,
+        "gameId": "wardogs"
+      },
+      {
+        "id": "q57fybdvncxn5kgkkn9m4kmg2h8gs20p",
+        "name": "Builder",
+        "color": "#4ade80",
+        "order": 1,
+        "gameId": "wardogs"
+      },
+      {
+        "id": "q57cr65fct2a4rs31beetrb1ad8gswa9",
+        "name": "Tank",
+        "color": "#fb923c",
+        "order": 2,
+        "gameId": "wardogs"
+      },
+      {
+        "id": "q576jxg55jx4gdhqbhf3xhzdhd8gr6pk",
+        "name": "Humvee",
+        "color": "#60a5fa",
+        "order": 3,
+        "gameId": "wardogs"
+      },
+      {
+        "id": "q57296a60g3jy5etbec6ngn8hh8gsrvw",
+        "name": "Havoc",
+        "color": "#4ade80",
+        "order": 4,
+        "gameId": "wardogs"
+      },
+      {
+        "id": "q576rt4d3b5np0v73wdb6tcfjn8gst6g",
+        "name": "Little Bird (LB)",
+        "color": "#fb923c",
+        "order": 5,
+        "gameId": "wardogs"
+      },
+      {
+        "id": "q5752sy90112xpcbwg3mztxmzn8gs3zd",
+        "name": "SPA",
+        "color": "#60a5fa",
+        "order": 6,
+        "gameId": "wardogs"
+      },
+      {
+        "id": "q576tvzvrqc5dhs2v71a90tgx98gr4sf",
+        "name": "Logistika ověřena",
+        "color": "#64748b",
+        "order": 8,
+        "gameId": "wardogs",
+        "description": "Místní ověření přidání, úpravy a smazání skupiny."
+      }
+    ]
+  }
+}

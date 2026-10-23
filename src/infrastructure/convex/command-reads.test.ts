@@ -11,7 +11,10 @@ const GUILD = "100000000000000000"
 const MEMBER = "100000000000000017"
 
 test("/notice's choices carry the match category (M3-15)", async (t) => {
-    t.mock.method(Date, "now", () => Date.parse("2026-10-20T12:00:00Z"))
+    t.mock.timers.enable({
+        apis: ["Date"],
+        now: Date.parse("2026-10-20T12:00:00Z"),
+    })
     const ctx = testContext()
     ctx.db.seed("guilds", {
         _id: "guilds:a",

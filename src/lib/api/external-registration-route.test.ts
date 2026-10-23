@@ -110,6 +110,50 @@ test("OpenAPI documents the registration request, authorization and creation res
     const schema = operation.requestBody.content["application/json"].schema
     assert.equal(schema.required?.includes("steamName"), false)
     assert.equal(schema.required?.includes("steamId"), false)
+    assert.equal(schema.required?.includes("platformId"), false)
+    assert.ok(schema.properties?.platformId)
     assert.ok(operation.responses["201"])
     assert.ok(operation.responses["409"])
+})
+
+test("HTTP registration accepts EOS without Steam and rejects conflicting or malformed IDs before writes", async () => {
+    const { steamId: _steam, ...eosBody } = body
+    const eos = "f17568f25c8fb49a2c10c23e444ad07b"
+    let calls = 0
+    const dependencies = {
+        authenticate: async () => auth,
+        register: async (
+            args: Parameters<
+                Parameters<typeof handleExternalRegistration>[1]["register"]
+            >[0]
+        ) => {
+            calls++
+            assert.equal(args.input.platformId, eos)
+            assert.equal(args.input.steamId, undefined)
+            assert.equal(args.input.steamName, body.steamName)
+            assert.equal(args.input.createMembership, false)
+            return { status: 201, body: '{"data":{}}' }
+        },
+    }
+    for (const value of [
+        { ...body, platformId: eos },
+        { ...eosBody, platformId: "bad" },
+        { ...eosBody, platformId: eos, unknown: true },
+    ])
+        assert.equal(
+            (await handleExternalRegistration(request(value), dependencies))
+                .status,
+            400
+        )
+    assert.equal(calls, 0)
+    assert.equal(
+        (
+            await handleExternalRegistration(
+                request({ ...eosBody, platformId: eos }),
+                dependencies
+            )
+        ).status,
+        201
+    )
+    assert.equal(calls, 1)
 })

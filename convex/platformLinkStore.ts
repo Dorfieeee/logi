@@ -1,3 +1,4 @@
+import { externalPlatformId } from "../src/domain/users/external-platform-id"
 import { parseSteamId } from "../src/domain/player-stats/player-stats"
 import type { MutationCtx } from "./_generated/server"
 
@@ -13,7 +14,7 @@ function normalizePlatformIds(value: string | string[] | undefined) {
     ]
 }
 function platformComparisonKey(value: string) {
-    return parseSteamId(value) ?? value
+    return externalPlatformId(value) ?? value
 }
 
 export async function linkDiscordPlatformInTransaction(

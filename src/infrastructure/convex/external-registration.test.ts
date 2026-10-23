@@ -6,6 +6,7 @@ import test from "node:test"
 const discordId = "111111111111111111"
 const guildId = "222222222222222222"
 const steamId = "76561198199051397"
+const eos = "f17568f25c8fb49a2c10c23e444ad07b"
 const input = {
     discordId,
     guildId,
@@ -39,6 +40,139 @@ function fixture() {
     })
     return ctx
 }
+
+test("EOS creates an account without Steam or memberships; retries replay and canonicalize", async () => {
+    const ctx = fixture()
+    const { steamId: _steam, ...details } = input
+    const eosArgs = {
+        ...args,
+        input: {
+            ...details,
+            createMembership: false,
+            platformId: eos.toUpperCase(),
+            steamName: "EOS player",
+        },
+    }
+    const result = await invoke(register, ctx, eosArgs)
+    assert.equal(result.status, 201)
+    assert.deepEqual(ctx.db.tables.users[0].platformIds, [eos])
+    assert.equal(ctx.db.tables.users[0].steamName, "EOS player")
+    assert.equal(JSON.parse(result.body).data.assignmentId, null)
+    assert.equal(ctx.db.tables.userAssignments?.length ?? 0, 0)
+    assert.equal(ctx.db.tables.platformIdentityLinks?.length ?? 0, 0)
+    assert.equal(ctx.db.tables.memberRoleOperations?.length ?? 0, 0)
+    const before = structuredClone(ctx.db.tables)
+    assert.deepEqual(await invoke(register, ctx, eosArgs), result)
+    assert.deepEqual(ctx.db.tables, before)
+    assert.equal(
+        (await invoke(register, ctx, { ...eosArgs, bodyHash: "different" }))
+            .status,
+        409
+    )
+    assert.equal(
+        (
+            await invoke(register, ctx, {
+                ...eosArgs,
+                idempotencyKey: "lowercase",
+                input: { ...eosArgs.input, platformId: eos },
+            })
+        ).status,
+        200
+    )
+    assert.deepEqual(ctx.db.tables.users[0].platformIds, [eos])
+})
+
+test("EOS links to an existing Steam user without changing existing identity or other division membership", async () => {
+    const ctx = fixture()
+    await invoke(register, ctx, args)
+    const original = structuredClone(ctx.db.tables.users[0])
+    const memberships = structuredClone(ctx.db.tables.userAssignments)
+    const { steamId: _steam, ...details } = input
+    const result = await invoke(register, ctx, {
+        ...args,
+        idempotencyKey: "eos-link",
+        input: {
+            ...details,
+            platformId: eos,
+            createMembership: false,
+            gameId: "wardogs",
+            name: "Changed",
+            avatar: "https://new.test/avatar.jpg",
+        },
+    })
+    assert.equal(result.status, 200)
+    assert.equal(JSON.parse(result.body).data.userId, original.id)
+    assert.equal(ctx.db.tables.users[0].name, original.name)
+    assert.equal(ctx.db.tables.users[0].avatar, original.avatar)
+    assert.equal(ctx.db.tables.users[0].guildId, original.guildId)
+    assert.deepEqual(ctx.db.tables.users[0].platformIds, [steamId, eos])
+    assert.deepEqual(ctx.db.tables.userAssignments, memberships)
+})
+
+test("an existing EOS ID can be omitted and can opt in to membership without Steam", async () => {
+    for (const value of [
+        eos,
+        eos.toUpperCase(),
+        `epic:${eos}`,
+        `EPIC:${eos.toUpperCase()}`,
+    ]) {
+        const ctx = fixture()
+        ctx.db.seed("users", {
+            _id: "users:existing",
+            id: discordId,
+            discordId,
+            name: "Existing",
+            avatar: "",
+            platformIds: [value],
+        })
+        const { steamId: _steam, ...details } = input
+        const result = await invoke(register, ctx, { ...args, input: details })
+        assert.equal(result.status, 201)
+        assert.equal(JSON.parse(result.body).data.userCreated, false)
+        assert.deepEqual(ctx.db.tables.users[0].platformIds, [value])
+        assert.equal(ctx.db.tables.userAssignments[0].status, "active")
+    }
+})
+
+test("EOS ownership conflicts include legacy fields, prefixes and case and roll back all writes", async () => {
+    for (const field of ["platformIds", "platformId"]) {
+        for (const value of [
+            eos,
+            eos.toUpperCase(),
+            `epic:${eos}`,
+            `EPIC:${eos.toUpperCase()}`,
+        ]) {
+            const ctx = fixture()
+            ctx.db.seed("users", {
+                _id: "users:applicant",
+                id: discordId,
+                discordId,
+                name: "Applicant",
+                avatar: "",
+                platformIds: [steamId],
+            })
+            ctx.db.seed("users", {
+                _id: "users:owner",
+                id: "333333333333333333",
+                discordId: "333333333333333333",
+                name: "Owner",
+                avatar: "",
+                platformIds: [],
+                [field]: field === "platformIds" ? [value] : value,
+            })
+            const before = structuredClone(ctx.db.tables)
+            const { steamId: _steam, ...details } = input
+            await assert.rejects(
+                invoke(register, ctx, {
+                    ...args,
+                    input: { ...details, platformId: eos },
+                }),
+                /already linked/
+            )
+            assert.deepEqual(ctx.db.tables, before)
+        }
+    }
+})
 
 test("registration creates profile, assignment and membership projections; retries replay", async () => {
     const ctx = fixture()
@@ -246,7 +380,7 @@ test("existing linked Steam can be omitted, and existing game membership is pres
     assert.equal(ctx.db.tables.userAssignments[0].status, "active")
 })
 
-test("missing Steam without an existing linked ID rejects the whole transaction", async () => {
+test("missing player ID without an existing supported linked ID rejects the whole transaction", async () => {
     for (const existing of [false, true]) {
         const ctx = fixture()
         if (existing)
@@ -262,7 +396,7 @@ test("missing Steam without an existing linked ID rejects the whole transaction"
         const { steamId: _steam, steamName: _name, ...withoutSteam } = input
         await assert.rejects(
             invoke(register, ctx, { ...args, input: withoutSteam }),
-            /Steam ID is required/
+            /Steam or EOS player ID is required/
         )
         assert.deepEqual(ctx.db.tables, before)
     }

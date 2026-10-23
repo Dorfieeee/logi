@@ -62,6 +62,7 @@ import { ConfirmActionDialog } from "@/components/app/confirm-action-dialog"
 import type { MessageStyle } from "@/domain/discord-messages/message-style"
 import { DiscordMarkdownTextarea } from "@/components/app/discord-markdown"
 import { TeamRequestDialog } from "@/components/app/team-request-dialog"
+import { ManageGroupsLink } from "@/components/app/manage-groups-link"
 import { TacticalPlanEditor, TacticalPlanMap } from "./tactical-plan"
 import { matchTeamGame } from "@/lib/teams/match-team-selection"
 import { eventWriteErrorMessage } from "@/lib/event-write-error"
@@ -353,7 +354,7 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
         dictionary,
         timezone,
         templates,
-        groups,
+        groups: initialGroups,
         linkedTeams,
         channelDefaults,
     } = props
@@ -365,6 +366,9 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
         startingValues(props)
     )
     const [values, setValues] = useState<FlowValues>(initial)
+    const valuesRef = useRef(values)
+    valuesRef.current = values
+    const [groups, setGroups] = useState(initialGroups)
     const gameDefinition = props.gameCatalogue.find(
         (game) => game.id === values.gameId
     )
@@ -415,6 +419,32 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
     const update = useCallback(
         (patch: Partial<FlowValues>) => {
             setValues((current) => ({ ...current, ...patch }))
+            markDirty()
+        },
+        [markDirty]
+    )
+
+    const receiveGroups = useCallback(
+        (next: Group[]) => {
+            setGroups(next)
+            const ids = new Set(next.map((group) => group.id))
+            const current = valuesRef.current
+            if (
+                current.signupGroupIds.every((id) => ids.has(id)) &&
+                current.signupGroupLimits.every((limit) =>
+                    ids.has(limit.groupId)
+                )
+            )
+                return
+            setValues((current) => ({
+                ...current,
+                signupGroupIds: current.signupGroupIds.filter((id) =>
+                    ids.has(id)
+                ),
+                signupGroupLimits: current.signupGroupLimits.filter((limit) =>
+                    ids.has(limit.groupId)
+                ),
+            }))
             markDirty()
         },
         [markDirty]
@@ -2736,6 +2766,13 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                             />
                                         </div>
                                     }
+                                    <ManageGroupsLink
+                                        serverId={serverId}
+                                        locale={locale}
+                                        gameId={values.gameId}
+                                        dictionary={dictionary}
+                                        onGroupsUpdated={receiveGroups}
+                                    />
                                     {groupsOfGame.length ? (
                                         <div className="flex flex-col gap-2">
                                             <div className="border-border flex flex-col rounded-[10px] border">
