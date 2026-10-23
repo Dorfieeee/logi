@@ -73,6 +73,7 @@ function match(overrides: Partial<EventRecord> = {}): EventRecord {
         pingMode: "clan",
         pingRoleIds: [],
         createForumChannel: true,
+        createSignupThread: true,
         topicPresetId: "topicPresets:1",
         stratmapIds: ["stratmaps:1"],
         signupGroupIds: ["g-inf", "g-tank"],
@@ -162,6 +163,7 @@ test("a stored match reads back into the flow exactly", () => {
     assert.equal(values.opponentSide, "Axis")
     assert.equal(values.nameTouched, true)
     assert.deepEqual(values.stratmapIds, ["stratmaps:1"])
+    assert.equal(values.createSignupThread, true)
     assert.equal(values.createParticipantRoles, undefined)
     // The untouched values reproduce the stored timeline.
     assert.deepEqual(flowSchedule(values, zone), {

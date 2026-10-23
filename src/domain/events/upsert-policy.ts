@@ -52,6 +52,8 @@ export type EventUpsertInput = {
     pingMode?: "none" | "clan" | "roles"
     pingRoleIds?: string[]
     createForumChannel?: boolean
+    /** Opt-in only. Missing also means off for existing events. */
+    createSignupThread?: boolean
     topicPresetId?: string
     stratmapIds?: string[]
     signupGroupIds?: string[]
@@ -222,6 +224,8 @@ export function buildEventBasePayload(input: EventUpsertInput) {
             .filter(Boolean),
         createForumChannel:
             kind === "training" ? false : (input.createForumChannel ?? true),
+        createSignupThread:
+            kind === "match" && Boolean(input.createSignupThread),
         topicPresetId: input.topicPresetId,
         stratmapIds: normalizeOptionalArray(input.stratmapIds)
             .map((id) => id.trim())

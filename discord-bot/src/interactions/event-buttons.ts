@@ -44,6 +44,7 @@ import { getResolvedMemberStatus } from "../../../src/domain/assignments/policy"
 import { announcementCountsOf, matchCardEventOf } from "../events/announcement"
 import { getEventMessages } from "../../../src/lib/clan-language/events"
 import { canAcceptSignups } from "../../../src/domain/events/status"
+import { syncSignupThreadMember } from "../events/signup-thread"
 import { buildRosterAssignmentReply } from "./roster-assignment"
 import type { EventInteractionContext } from "../types"
 import { interactionLanguage } from "../ui/replies"
@@ -563,6 +564,15 @@ export async function handleEventButtonInteraction(
             serverId: context.event.guildId,
             eventId,
         })
+
+        if (context.event.createSignupThread) {
+            await syncSignupThreadMember({
+                guild,
+                threadId: context.syncState?.signupThreadId,
+                userId: interaction.user.id,
+                attending: result.appliedSignupLabel !== SIGNUP_NOT_ATTENDING,
+            })
+        }
 
         options.enqueueEventSync(eventId)
         options.triggerPollSoon()

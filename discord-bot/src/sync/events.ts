@@ -42,6 +42,7 @@ import { fetchRosterImageAttachment } from "./roster-image-attachment"
 import { applicationFactionEmoji } from "../runtime/faction-emoji"
 import { syncSquadVoiceChannels } from "../events/squad-voice"
 import { reportClanDiscordError } from "../error-reporting"
+import { syncSignupThread } from "../events/signup-thread"
 import { publishManagedMessage } from "./publication"
 import { logError, logInfo, logWarn } from "../log"
 import { syncEventRoles } from "../event-roles"
@@ -351,6 +352,7 @@ async function syncEvent(
     let scheduledEventId = state?.scheduledEventId
     let scheduledEventStatus = state?.scheduledEventStatus
     let forumChannelId = state?.forumChannelId
+    let signupThreadId = state?.signupThreadId
     const forumThreadId = state?.forumThreadId
     let infoMessageId = state?.infoMessageId
     let debriefMessageId = state?.debriefMessageId
@@ -661,6 +663,14 @@ async function syncEvent(
         })
     }
 
+    signupThreadId = await syncSignupThread({
+        guild,
+        event,
+        announcementMessageId,
+        announcementChannelId,
+        existingThreadId: signupThreadId,
+    })
+
     const scheduledLifecycle = deriveScheduledEventLifecycle(event)
     // "Událost na Discordu" is a clan switch (N1-16); off cancels it below.
     if (
@@ -746,6 +756,7 @@ async function syncEvent(
         scheduledEventStatus,
         forumChannelId,
         forumThreadId,
+        signupThreadId,
         infoMessageId,
         debriefMessageId,
         topicMessageIds,

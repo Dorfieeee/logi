@@ -3244,6 +3244,16 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                     isEdit ? (
                                         <div className="flex flex-col gap-2">
                                             {switchRow(
+                                                "nm-signup-thread",
+                                                t.discord.signupThread,
+                                                values.createSignupThread,
+                                                (createSignupThread) =>
+                                                    update({
+                                                        createSignupThread,
+                                                    }),
+                                                t.discord.signupThreadHint
+                                            )}
+                                            {switchRow(
                                                 "nm-forum",
                                                 t.discord.forum,
                                                 values.createForumChannel,
@@ -3336,27 +3346,50 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                             ) : null}
                                         </div>
                                     ) : (
-                                        <div className="flex items-center gap-3">
-                                            <Switch
-                                                id="nm-forum"
-                                                checked={
-                                                    values.createForumChannel
-                                                }
-                                                onCheckedChange={(
-                                                    createForumChannel
-                                                ) =>
-                                                    update({
-                                                        createForumChannel,
-                                                    })
-                                                }
-                                            />
-                                            <Label
-                                                htmlFor="nm-forum"
-                                                className="text-sm font-normal"
-                                            >
-                                                {t.discord.forum}
-                                            </Label>
-                                        </div>
+                                        <>
+                                            <div className="flex items-center gap-3">
+                                                <Switch
+                                                    id="nm-signup-thread"
+                                                    checked={
+                                                        values.createSignupThread
+                                                    }
+                                                    onCheckedChange={(
+                                                        createSignupThread
+                                                    ) =>
+                                                        update({
+                                                            createSignupThread,
+                                                        })
+                                                    }
+                                                />
+                                                <Label
+                                                    htmlFor="nm-signup-thread"
+                                                    className="text-sm font-normal"
+                                                >
+                                                    {t.discord.signupThread}
+                                                </Label>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <Switch
+                                                    id="nm-forum"
+                                                    checked={
+                                                        values.createForumChannel
+                                                    }
+                                                    onCheckedChange={(
+                                                        createForumChannel
+                                                    ) =>
+                                                        update({
+                                                            createForumChannel,
+                                                        })
+                                                    }
+                                                />
+                                                <Label
+                                                    htmlFor="nm-forum"
+                                                    className="text-sm font-normal"
+                                                >
+                                                    {t.discord.forum}
+                                                </Label>
+                                            </div>
+                                        </>
                                     )
                                 ) : null}
                                 {isEdit ? (

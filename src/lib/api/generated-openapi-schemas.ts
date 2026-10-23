@@ -370,6 +370,9 @@ export const generatedOpenApiSchemas = {
             "createForumChannel": {
                 "type": "boolean"
             },
+            "createSignupThread": {
+                "type": "boolean"
+            },
             "topicPresetId": {
                 "type": "string",
                 "description": "Convex ID for topicPresets"
@@ -844,6 +847,7 @@ export const generatedOpenApiSchemas = {
                 "string"
             ],
             "createForumChannel": true,
+            "createSignupThread": true,
             "topicPresetId": "string",
             "stratmapIds": [
                 "string"

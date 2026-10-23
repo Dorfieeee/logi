@@ -118,6 +118,7 @@ test("the open card reads like the board (L1-11..24)", () => {
     assert.match(body, /`VLK` Spojenci ★ {2}vs {2}`ROG` Osa ✚/)
     assert.match(body, /\*\*Čas\*\*\n<t:1791739800:f> - <t:1791748800:t>/)
     assert.match(body, /\*\*Konec přihlášek\*\*\n<t:1791653400:f>/)
+    assert.match(body, /\*\*Mapa\*\*\nFoy · den/)
     assert.match(body, /\*\*Přihlásit se mohou\*\*\nKdokoli/)
     assert.match(body, /\*\*Role účastníků\*\*/)
     assert.match(body, /Tanky drží střed, F2 brání\. Mikrofon povinný\./)

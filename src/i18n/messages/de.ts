@@ -5153,6 +5153,9 @@ export const deMessages = {
             pingRoles: "Gewählte Rollen",
             pingRolesLabel: "Rollen zum Pingen",
             forum: "Match-Forum",
+            signupThread: "Diskussions-Thread zum Event",
+            signupThreadHint:
+                "Erstellt einen öffentlichen Thread unter der Ankündigung und synchronisiert seine Mitglieder mit den Anmeldungen.",
             voice: "Sprachkanäle der Trupps beim Treffpunkt",
             serverAndPassword: "Server und Passwort",
             server: "Server",

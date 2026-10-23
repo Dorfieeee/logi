@@ -59,6 +59,9 @@ export function normalizeEventRecord<T extends EventLike>(
                           status === "reserve_member"
                   ),
         createForumChannel: resolveCreateForumChannel(event),
+        // Discussion threads are opt-in. Do not turn them on for legacy rows.
+        createSignupThread:
+            event.kind === "match" && Boolean(event.createSignupThread),
         status,
         statusUpdatedAt: timestamps.statusUpdatedAt,
         concludedAt: event.concludedAt,

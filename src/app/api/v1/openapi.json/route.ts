@@ -874,6 +874,11 @@ const eventMutation = {
                             type: "array",
                             items: { type: "string" },
                         },
+                        createSignupThread: {
+                            type: "boolean",
+                            description:
+                                "Creates a public discussion thread under the Discord announcement and synchronizes its members with attending sign-ups. Defaults to false, including existing events.",
+                        },
                         topicPresetId: { type: "string" },
                         stratmapIds: {
                             type: "array",

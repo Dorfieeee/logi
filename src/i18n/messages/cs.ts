@@ -5006,6 +5006,9 @@ export const csMessages = {
             pingRoles: "Vybrané role",
             pingRolesLabel: "Role k pingnutí",
             forum: "Fórum k zápasu",
+            signupThread: "Diskuzní vlákno akce",
+            signupThreadHint:
+                "Vytvoří veřejné vlákno pod oznámením a udržuje jeho členy podle přihlášek.",
             voice: "Hlasové kanály čet při srazu",
             serverAndPassword: "Server a heslo",
             server: "Server",

@@ -505,24 +505,29 @@ export const getEventSignupContext = query({
             return null
         }
         const guildId = event.guildId
-        const [config, groups, roster, assignments] = await Promise.all([
-            ctx.db
-                .query("discordConfigs")
-                .withIndex("guildId", (q) => q.eq("guildId", guildId))
-                .unique(),
-            ctx.db
-                .query("groups")
-                .withIndex("guildId", (q) => q.eq("guildId", guildId))
-                .collect(),
-            ctx.db
-                .query("rosters")
-                .withIndex("eventId", (q) => q.eq("eventId", args.eventId))
-                .unique(),
-            ctx.db
-                .query("userAssignments")
-                .withIndex("serverId", (q) => q.eq("serverId", guildId))
-                .collect(),
-        ])
+        const [config, groups, roster, assignments, syncState] =
+            await Promise.all([
+                ctx.db
+                    .query("discordConfigs")
+                    .withIndex("guildId", (q) => q.eq("guildId", guildId))
+                    .unique(),
+                ctx.db
+                    .query("groups")
+                    .withIndex("guildId", (q) => q.eq("guildId", guildId))
+                    .collect(),
+                ctx.db
+                    .query("rosters")
+                    .withIndex("eventId", (q) => q.eq("eventId", args.eventId))
+                    .unique(),
+                ctx.db
+                    .query("userAssignments")
+                    .withIndex("serverId", (q) => q.eq("serverId", guildId))
+                    .collect(),
+                ctx.db
+                    .query("discordEventSyncs")
+                    .withIndex("eventId", (q) => q.eq("eventId", args.eventId))
+                    .unique(),
+            ])
 
         if (!config) {
             return null
@@ -550,6 +555,7 @@ export const getEventSignupContext = query({
                     status: assignment.status,
                 })),
             roster: roster ? normalizeDoc(roster) : null,
+            syncState: syncState ? normalizeDoc(syncState) : null,
         }
     },
 })
@@ -657,6 +663,7 @@ export const updateEventSyncState = mutation({
         ),
         forumChannelId: v.optional(v.string()),
         forumThreadId: v.optional(v.string()),
+        signupThreadId: v.optional(v.string()),
         infoMessageId: v.optional(v.string()),
         debriefMessageId: v.optional(v.string()),
         topicMessageIds: v.array(v.string()),
@@ -699,6 +706,7 @@ export const updateEventSyncState = mutation({
             scheduledEventStatus: args.scheduledEventStatus,
             forumChannelId: args.forumChannelId,
             forumThreadId: args.forumThreadId,
+            signupThreadId: args.signupThreadId,
             infoMessageId: args.infoMessageId,
             // Only a bot that knows the Debrief writes it; an older bot
             // leaves the stored ID alone.

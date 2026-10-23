@@ -90,6 +90,7 @@ export type FlowValues = {
     pingMode: "none" | "clan" | "roles"
     pingRoleIds: string[]
     createForumChannel: boolean
+    createSignupThread: boolean
     createSquadVoiceChannels: boolean
     server: string
     serverPassword: string
@@ -216,6 +217,7 @@ export function applyTemplateValues(
         pingMode: template.pingMode,
         pingRoleIds: template.pingRoleIds,
         createForumChannel: isMatch && template.createForumChannel,
+        createSignupThread: false,
         createSquadVoiceChannels: template.createSquadVoiceChannels,
         matchType: template.categoryId ?? values.matchType,
         topicPresetId: template.topicPresetId,
@@ -297,6 +299,7 @@ export function newFlowValues(input: {
         pingMode: "clan",
         pingRoleIds: [],
         createForumChannel: kind === "match",
+        createSignupThread: false,
         createSquadVoiceChannels: false,
         server: "",
         serverPassword: "",
@@ -424,6 +427,7 @@ export function flowValuesFromEvent(
         pingMode: event.pingMode ?? (event.pingClan ? "clan" : "none"),
         pingRoleIds: event.pingRoleIds ?? [],
         createForumChannel: event.createForumChannel,
+        createSignupThread: event.createSignupThread ?? false,
         createSquadVoiceChannels: event.createSquadVoiceChannels ?? false,
         server: event.server ?? "",
         serverPassword: event.serverPassword ?? "",
@@ -572,6 +576,7 @@ export function flowEventPayload(values: FlowValues, context: PayloadContext) {
         pingMode: values.pingMode,
         pingRoleIds: values.pingMode === "roles" ? values.pingRoleIds : [],
         createForumChannel: isMatch && values.createForumChannel,
+        createSignupThread: isMatch && values.createSignupThread,
         createSquadVoiceChannels: values.createSquadVoiceChannels,
         squadVoiceCategoryId: values.createSquadVoiceChannels
             ? values.squadVoiceCategoryId || undefined
@@ -802,6 +807,7 @@ export function flowEditPayload(
         pingMode: values.pingMode,
         pingRoleIds: values.pingMode === "roles" ? values.pingRoleIds : [],
         createForumChannel: isMatch && values.createForumChannel,
+        createSignupThread: isMatch && values.createSignupThread,
         createSquadVoiceChannels: values.createSquadVoiceChannels,
         squadVoiceCategoryId: values.squadVoiceCategoryId || undefined,
         meetingChannelId: values.meetingChannelId || undefined,
