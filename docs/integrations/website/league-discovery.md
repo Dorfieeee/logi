@@ -71,9 +71,40 @@ The Discord redesign replaces the per-match cards with two self-updating WD Leag
 - **Table.** `computeStandings` counts every result of the season (calendar year in Europe/Prague) with the points rule published on its page ("1st 3 · 2nd 2 · 3rd 1", 3/2/1 when missing): points, matches and 1st/2nd/3rd counts. Order: points, then more 1st, 2nd and 3rd places, then fewer matches; teams equal on all of these share the rank and are listed by code. The table is laid out as a code block (`layoutStandingsTable`), untrusted names cannot close the block or inject terminal escapes, and the clan's row is marked "›" (ANSI bold white on desktop).
 - **Recent results.** Podiums (places 1–3) of the last seven days, newest first, shown under the fixtures. They come from the League site and are not verified by Logi; the clan's confirmed results stay in its own results panels. Until Logi has collected any League result (the results revision is still 0), the section says "Výsledky se zobrazí po prvních výsledcích ligy" and the API reports `fixtures.recentResults.state: "waiting_for_results"`; only afterwards does an empty week read "Za posledních 7 dní nejsou žádné výsledky ligy." (INDEX resolution 12).
 
-### Results parser: not available yet
+### Results parser: verified final placements
 
-`src/infrastructure/wardogs-league/parse-results.ts` returns `results: null` with the warning `results_not_supported`, because no finished match page has been captured and the League site is blocked in the development sandbox. Until it exists the fixtures panel works and the table shows its waiting state ("Tabulka se zobrazí po prvních výsledcích"). Adding the parser is a change to that one file and its test: read the places from a captured completed page, then change `RESULTS_PARSER_ID`. The collector then re-reads finished pages without placements once, so earlier results of the season are backfilled. The required captures are listed in `src/infrastructure/wardogs-league/fixtures/README.md`.
+`src/infrastructure/wardogs-league/parse-results.ts` identifies itself as
+`final-placements/1`. Actual anonymous captures on 24 October 2026 verify the
+League's **Final placements** result layout for automatic **Confirmed** and
+**Set by admin** pages, including a two-team result with ranks 2 and 3 and a
+percent-encoded pipe in the team profile URL. The capture URLs, timestamps,
+byte counts, hashes and reduction policy are in
+`src/infrastructure/wardogs-league/fixtures/README.md` and
+`fixtures/results-provenance.json`.
+
+Ranks come from explicit card labels, identities from matching public profile
+links and visible codes. The card count must equal the header's explicit team
+count; rank values need not be consecutive and ties are preserved. An admin
+override can be final with zero leader submissions. The matching final progress
+step must be done. Unknown/disputed/unfinished states, conflicting identities,
+missing or ambiguous cards return null and a bounded `results_*` warning.
+Scheduled pages retain their existing no-result behavior. The match adapter
+reads team names/factions from final cards, without fabricating pre-match member
+counts, nationalities, hosting or map details omitted by the result layout.
+
+The structure-loss guard accepts this verified final-layout transition even
+when pre-match sections disappear or the published team count falls from three
+to two. Match ID/source URL, an already known kickoff and previously confirmed
+results retain their no-regression checks. Unknown result states cannot use
+this exception, and older fetches remain rejected by tracked-snapshot selection.
+
+The parser identifier change causes `leagueDiscoveryFixtures:markReparse` to
+schedule retained completed fixtures without results for a bounded re-read.
+Deploying the producer and collecting those pages is required before claiming
+hosted results; neither the local captures nor tests prove production activation
+or a complete historical season. The existing `league-fixtures`/`wardogs` API
+grant and the table/recent-result DTOs are unchanged. External League finality
+does not confirm or overwrite a native Logi result.
 
 ### Reads
 
@@ -84,4 +115,7 @@ The Discord redesign replaces the per-match cards with two self-updating WD Leag
 
 Run `node --import tsx scripts/smoke-league-discovery.ts` for credential-free live source verification. Colocated parser, transport, tracking, snapshot, intake, DTO, API query and renderer tests cover the key boundaries. See [dated acceptance](evidence/2026-10-03-league-discovery/README.md) for live provider/test Discord versus isolated database/HTTP evidence and production limits.
 
-Completed-result extraction (blocked on a captured finished page, see above), no-show/dispute interpretation, private Report Player tickets and HLL-specific live player/map presentation remain follow-up work. Their approved design is not implemented behavior.
+No-show/dispute interpretation and uncaptured provisional result layouts remain
+unsupported. A tied-place test is a labelled synthetic regression; no live tied
+page is claimed. Private Report Player tickets and HLL-specific live player/map
+presentation retain their own implementation and activation boundaries.

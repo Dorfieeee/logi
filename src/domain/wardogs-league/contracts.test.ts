@@ -29,6 +29,77 @@ test("results are null until parsed, and parsed placements validate", () => {
     })
 })
 
+test("verified final layouts can omit preparation metadata without weakening identity, time or results", () => {
+    const previous = leagueSnapshotFixture()
+    const teams = previous.teams!.slice(0, 2).map((team) => ({
+        ...team,
+        nations: null,
+        displayedMemberCount: null,
+        readyCheck: null,
+    }))
+    const next = {
+        ...previous,
+        status: "Set by admin",
+        teams,
+        map: null,
+        hosting: null,
+        mapVote: null,
+        rules: null,
+        progress: [
+            { label: "Placements", state: "done" as const, detail: "0/3" },
+            {
+                label: "Set by admin",
+                state: "done" as const,
+                detail: "Overridden",
+            },
+        ],
+        results: {
+            placements: [
+                { place: 2, teamCode: teams[0].code },
+                { place: 3, teamCode: teams[1].code },
+            ],
+            confirmed: true,
+        },
+    }
+    assert.equal(losesMatchStructure(previous, next), false)
+    for (const invalid of [
+        { ...next, id: "foreign" },
+        { ...next, sourceUrl: "https://wardogsleague.net/matches/foreign" },
+        { ...next, scheduledAt: null },
+        { ...next, status: "Disputed" },
+        { ...next, results: { ...next.results, confirmed: false } },
+        {
+            ...next,
+            results: {
+                ...next.results,
+                placements: next.results.placements.slice(1),
+            },
+        },
+        {
+            ...next,
+            teams: [
+                { ...teams[0], profileUrl: "https://foreign.invalid/team" },
+                teams[1],
+            ],
+        },
+        {
+            ...next,
+            progress: [
+                { label: "Set by admin", state: "done" as const, detail: null },
+            ],
+        },
+    ])
+        assert.equal(losesMatchStructure(previous, invalid), true)
+    assert.equal(losesMatchStructure(next, { ...next, results: null }), true)
+    assert.equal(
+        losesMatchStructure(next, {
+            ...next,
+            results: { ...next.results, confirmed: false },
+        }),
+        true
+    )
+})
+
 test("a team cannot finish twice, places are 1–20 and results need a team", () => {
     const valid = {
         placements: [

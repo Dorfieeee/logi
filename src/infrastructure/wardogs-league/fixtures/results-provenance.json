@@ -1,0 +1,49 @@
+{
+  "sanitization": "Anonymous public HTML main only; scripts, page chrome, forms/dialogs, hidden nodes and media removed; presentation attributes removed; semantic structure, labels, links and times retained. Index-tab navigation is retained in index-results.html because it establishes the fixtures/results tab contract.",
+  "captures": [
+    {
+      "file": "completed-admin.html",
+      "url": "https://wardogsleague.net/matches/cmv520uf003glmm01f2ti157i",
+      "capturedAt": "2026-10-24T14:38:56.363Z",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "originalBytes": 120168,
+      "originalSha256": "cd7c7297a9a55dcd4b0dc85f9b5bdad82435b36d0ae1b17664e142f5fcd15433",
+      "fixtureBytes": 5037,
+      "fixtureSha256": "f9f2fb8986cd68f4091ad2ce5af0142dddf35c446ebde8233a28b7fb11c59861"
+    },
+    {
+      "file": "completed-confirmed.html",
+      "url": "https://wardogsleague.net/matches/cmuim5nu20073lf01332kozcf",
+      "capturedAt": "2026-10-24T14:38:56.535Z",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "originalBytes": 128141,
+      "originalSha256": "0639ed2579596bcdf7a4b5a605cb0bb67145b14b35792e8f0e3c2d43e267b0b2",
+      "fixtureBytes": 5672,
+      "fixtureSha256": "9f7a3f0821f6f0bb0579e98eeafb16a76dda0597ce73069925826e858a4952b8"
+    },
+    {
+      "file": "completed-two-ranked.html",
+      "url": "https://wardogsleague.net/matches/cmuduewpx0001o601v5we0g4e",
+      "capturedAt": "2026-10-24T14:38:56.717Z",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "originalBytes": 113071,
+      "originalSha256": "0eb4ee861a575ab51631073518f22bd6ba42ca94fc78eb948d43e190becadb5a",
+      "fixtureBytes": 4601,
+      "fixtureSha256": "96709bb7318713b270dd5cd53db0952c826245e00d9f55ea43351236e80483d5"
+    },
+    {
+      "file": "index-results.html",
+      "url": "https://wardogsleague.net/matches?tab=results",
+      "capturedAt": "2026-10-24T14:43:58.126Z",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "originalBytes": 537231,
+      "originalSha256": "771c9601ce510bcc58522646b030795fb0f052a20ec899e59a98bf25677840d1",
+      "fixtureBytes": 39223,
+      "fixtureSha256": "748407019dde551064583c6cd85d268450a465f676c72daf49e161c5b7c8ea5a"
+    }
+  ]
+}

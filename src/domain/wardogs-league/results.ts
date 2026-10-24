@@ -25,8 +25,7 @@ export function leagueSeason(iso: string, timeZone = LEAGUE_TIME_ZONE) {
 
 /**
  * Builds the stored result of a snapshot that carries League placements.
- * Returns null while the League has published no placements (today always,
- * because no completed page is parsed yet).
+ * Returns null while the League has published no supported placements.
  */
 export function resultRecordFromSnapshot(
     snapshot: LeagueSnapshot,

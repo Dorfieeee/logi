@@ -20,6 +20,7 @@ import {
     readHllSessionPage,
 } from "../src/infrastructure/game-data/hll-sessions"
 import { wardogsDirectoryProvider } from "../src/infrastructure/game-data/wardogs-public-directory"
+import { collectDueSnapshots } from "../src/application/game-data/collect-due-snapshots"
 import { createProviderHttp } from "../src/infrastructure/game-data/provider-http"
 import { wardogsRconProvider } from "../src/infrastructure/game-data/wardogs-rcon"
 import { runHistorySteps } from "../src/application/game-data/run-history-steps"
@@ -42,37 +43,39 @@ const providers: Record<ClaimedConnection["provider"], GameDataProvider> = {
 export const collectDue = internalAction({
     args: {},
     handler: async (ctx): Promise<{ processed: number }> => {
-        const connection = await ctx.runMutation(
-            internal.gameData.claimNext,
-            {}
-        )
-        if (!connection) return { processed: 0 }
-        const provider = providers[connection.provider] ?? {
-            readSnapshot: async () => {
-                throw new ProviderError("unsupported")
-            },
-        }
-        await collectSnapshot(connection, {
-            provider,
-            http: createProviderHttp(connection, {
-                credential: runCredential(ctx, connection, {
-                    connectionId: connection.id,
-                    generation: connection.generation,
-                }),
-                now: Date.now,
-            }),
+        const processed = await collectDueSnapshots({
             now: Date.now,
-            repository: {
-                finish: async (result) =>
-                    ctx.runMutation(internal.gameData.finishSnapshot, {
-                        id: connection.id as Id<"gameDataConnections">,
-                        generation: connection.generation,
-                        fence: connection.fence,
-                        result,
+            claim: (tickStartedAt) =>
+                ctx.runMutation(internal.gameData.claimNext, { tickStartedAt }),
+            collect: async (connection) => {
+                const provider = providers[connection.provider] ?? {
+                    readSnapshot: async () => {
+                        throw new ProviderError("unsupported")
+                    },
+                }
+                await collectSnapshot(connection, {
+                    provider,
+                    http: createProviderHttp(connection, {
+                        credential: runCredential(ctx, connection, {
+                            connectionId: connection.id,
+                            generation: connection.generation,
+                        }),
+                        now: Date.now,
                     }),
+                    now: Date.now,
+                    repository: {
+                        finish: async (result) =>
+                            ctx.runMutation(internal.gameData.finishSnapshot, {
+                                id: connection.id as Id<"gameDataConnections">,
+                                generation: connection.generation,
+                                fence: connection.fence,
+                                result,
+                            }),
+                    },
+                })
             },
         })
-        return { processed: 1 }
+        return { processed }
     },
 })
 
