@@ -7,6 +7,7 @@ import {
     allowsApiKeyRead,
     isApiKeyReadAccess,
 } from "../src/domain/api/key-access"
+import { retainedHistoryGame } from "../src/domain/game-data/history-rules"
 import { dashboardActor, authorizeDashboardAdmin } from "./dashboardActor"
 import { historyFiltersSchema } from "../src/domain/game-data/history"
 import { assertSessionGateway } from "./dashboardSessionStore"
@@ -18,6 +19,9 @@ export const read = query({
     args: {
         secret: v.string(),
         guildId: v.string(),
+        gameId: v.optional(
+            v.union(v.literal("wardogs"), v.literal("hell_let_loose"))
+        ),
         keyHash: v.optional(v.string()),
         actor: v.optional(dashboardActor),
         id: v.optional(v.string()),
@@ -32,6 +36,7 @@ export const read = query({
     },
     handler: async (ctx, args) => {
         assertSessionGateway(args.secret)
+        const gameId = args.gameId ?? "wardogs"
         if (args.keyHash !== undefined) {
             if (args.actor !== undefined) return null
             const key = await ctx.db
@@ -43,11 +48,7 @@ export const read = query({
                 key.revokedAt !== undefined ||
                 key.guildId !== args.guildId ||
                 !isApiKeyReadAccess(key.readAccess) ||
-                !allowsApiKeyRead(
-                    key.readAccess,
-                    "server-game-history",
-                    "wardogs"
-                )
+                !allowsApiKeyRead(key.readAccess, "server-game-history", gameId)
             )
                 return null
         } else {
@@ -69,9 +70,9 @@ export const read = query({
         )
             return null
         if (args.id !== undefined)
-            return readHistoryRecord(ctx, args.guildId, args.id)
+            return readHistoryRecord(ctx, args.guildId, args.id, gameId)
         const filters = parsed.data,
-            head = await historyHead(ctx, args.guildId),
+            head = await historyHead(ctx, args.guildId, gameId),
             revision = head?.revision ?? "0"
         if (args.revision !== undefined && args.revision !== revision)
             return { resetRequired: true as const }
@@ -89,9 +90,13 @@ export const read = query({
                   )
             : ctx.db
                   .query("serverGameHistory")
-                  .withIndex("guildId_endedAt", (q) =>
+                  .withIndex("guildId_gameId_endedAt", (q) =>
                       q
                           .eq("guildId", args.guildId)
+                          .eq(
+                              "gameId",
+                              gameId === "wardogs" ? undefined : gameId
+                          )
                           .gte("endedAt", from)
                           .lt("endedAt", until)
                   )
@@ -99,10 +104,15 @@ export const read = query({
             cursor: args.cursor,
             numItems: 20,
             maximumRowsRead: 20,
+            maximumBytesRead: 1_000_000,
         })
         return {
             items: page.page
-                .filter((row) => !filters.map || row.map === filters.map)
+                .filter(
+                    (row) =>
+                        retainedHistoryGame(row) === gameId &&
+                        (!filters.map || row.map === filters.map)
+                )
                 .map(projectHistory),
             revision,
             nextCursor: page.isDone ? null : page.continueCursor,

@@ -193,8 +193,14 @@ export const readSyncRecord = query({
                 : null
         }
         if (resource === "server-game-history") {
-            if (args.gameId !== "wardogs") return null
-            const data = await readHistoryRecord(ctx, key.guildId, args.id)
+            if (args.gameId !== "wardogs" && args.gameId !== "hell_let_loose")
+                return null
+            const data = await readHistoryRecord(
+                ctx,
+                key.guildId,
+                args.id,
+                args.gameId
+            )
             return data
                 ? {
                       ...identity,

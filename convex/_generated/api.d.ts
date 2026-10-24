@@ -91,6 +91,7 @@ import type * as gameDataHistory from "../gameDataHistory.js";
 import type * as gameDataRunCredential from "../gameDataRunCredential.js";
 import type * as gameDataSources from "../gameDataSources.js";
 import type * as gameDataValidators from "../gameDataValidators.js";
+import type * as gameHistoryBackfill from "../gameHistoryBackfill.js";
 import type * as gameHistoryReads from "../gameHistoryReads.js";
 import type * as gameHistoryRetention from "../gameHistoryRetention.js";
 import type * as gameHistoryStore from "../gameHistoryStore.js";
@@ -283,6 +284,7 @@ declare const fullApi: ApiFromModules<{
   gameDataRunCredential: typeof gameDataRunCredential;
   gameDataSources: typeof gameDataSources;
   gameDataValidators: typeof gameDataValidators;
+  gameHistoryBackfill: typeof gameHistoryBackfill;
   gameHistoryReads: typeof gameHistoryReads;
   gameHistoryRetention: typeof gameHistoryRetention;
   gameHistoryStore: typeof gameHistoryStore;

@@ -1,4 +1,4 @@
-import { isRetainedWarconSession } from "./history-rules"
+import { isRetainedHllSession, isRetainedWarconSession } from "./history-rules"
 import { providerSessionSchema } from "./contracts"
 import { z } from "zod"
 
@@ -7,19 +7,37 @@ export const retainedWarconSessionSchema = providerSessionSchema.refine(
     isRetainedWarconSession,
     { message: "Invalid retained Warcon session." }
 )
-export const historyRecordSchema = z.strictObject({
+export const historyGameSchema = z.enum(["wardogs", "hell_let_loose"])
+export const retainedHllSessionSchema = providerSessionSchema.refine(
+    isRetainedHllSession,
+    {
+        message: "Invalid retained HLL session.",
+    }
+)
+const recordFields = {
     schemaVersion: z.literal(1),
     id: z.string(),
     guildId: z.string(),
-    gameId: z.literal("wardogs"),
-    provider: z.literal("wardogs_warcon"),
     sourceId: z.string().regex(/^[a-f0-9]{64}$/),
     serverName: z.string().max(200).nullable(),
     revision,
     collectedAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
-    session: retainedWarconSessionSchema,
-})
+}
+export const historyRecordSchema = z.discriminatedUnion("gameId", [
+    z.strictObject({
+        ...recordFields,
+        gameId: z.literal("wardogs"),
+        provider: z.literal("wardogs_warcon"),
+        session: retainedWarconSessionSchema,
+    }),
+    z.strictObject({
+        ...recordFields,
+        gameId: z.literal("hell_let_loose"),
+        provider: z.literal("hll_crcon"),
+        session: retainedHllSessionSchema,
+    }),
+])
 export type HistoryRecord = z.infer<typeof historyRecordSchema>
 export const historyPageSchema = z.strictObject({
     items: z.array(historyRecordSchema).max(20),

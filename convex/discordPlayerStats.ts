@@ -2,6 +2,7 @@ import {
     linkedSteamIds,
     parseSteamId,
 } from "../src/domain/player-stats/player-stats"
+import { retainedHistoryGame } from "../src/domain/game-data/history-rules"
 import { historyFiltersSchema } from "../src/domain/game-data/history"
 import { historyHead, projectHistory } from "./gameHistoryStore"
 import { assertSessionGateway } from "./dashboardSessionStore"
@@ -180,9 +181,10 @@ export const history = query({
                   )
             : ctx.db
                   .query("serverGameHistory")
-                  .withIndex("guildId_endedAt", (q) =>
+                  .withIndex("guildId_gameId_endedAt", (q) =>
                       q
                           .eq("guildId", args.guildId)
+                          .eq("gameId", undefined)
                           .gte("endedAt", from)
                           .lt("endedAt", until)
                   )
@@ -192,6 +194,7 @@ export const history = query({
             maximumRowsRead: 20,
         })
         const items = page.page
+            .filter((row) => retainedHistoryGame(row) === "wardogs")
             .map(projectHistory)
             .map((row) =>
                 args.steamId

@@ -2,6 +2,13 @@
 
 Logi retains completed server games independently of the live collector configuration. This is server gameplay history: a faction victory is not a clan victory, a provider player is not a verified Logi member, and import does not confirm a League result.
 
+The same retained API now also supports `game=hell_let_loose` with provider
+`hll_crcon`. Its complete-map/faction-score facts do not inherit Warcon winner,
+player-result or playtime semantics. See [Retained HLL history](./hll-retained-history.md)
+for the strict union, game-scoped grants/revisions/retention and bounded seed
+from existing `gameSessions`. This page describes the unchanged Wardogs payload
+and its existing dashboard.
+
 ## Collection and corrections
 
 The existing Warcon collector reads completed match details, then saves the normalized session and archive in the same Convex transaction. History cycles every ten minutes collect new games and stop at the first provider page that is already stored; once a day a full sweep re-reads every game, so a provider correction arrives within a day. Enabling a source with existing sessions recollects their new metadata. Only successfully observed games can be retained. Logi cannot recover games already deleted upstream before import, or guarantee observation of every future game during an outage.
@@ -40,7 +47,12 @@ Each page scans at most 20 games. A filtered page can be empty and still have a 
 
 The framework-independent `src/application/game-data/history-report.ts` helper consumes complete pages, rejects mixed revisions/repeated cursors, supports cancellation and returns a finished report only at completion. Its default budget is 1,000 pages; exceeding it throws an incomplete-scan error. A backend consumer can choose up to 10,000 pages or narrower date ranges. No partial result is labeled an all-time ranking.
 
-For incremental synchronization, capture a `/changes` cursor with `resource=server-game-history` before initial paging, finish the snapshot, then replay changes and read their current `/sync-records` projections. Replace by record ID. Changes/webhooks carry record identifiers; raw player facts remain behind the explicit grant. The history dataset revision and integration change revision are separate counters.
+The current `/changes` endpoint does not retain a replay log: after a continuation
+it requests a complete bootstrap (`resetRequired`). Rebuild complete revision-consistent
+history pages then. `/sync-records` can read one exact game-scoped retained record;
+webhooks carry identifiers, while raw player facts stay behind the explicit grant.
+History dataset revisions are per game and separate from the global integration
+change revision.
 
 ## Report rules and dashboard
 

@@ -32,6 +32,7 @@ const sessionSchema = z.object({
         .array(
             z.object({
                 player_id: z.string().min(1).max(200),
+                player: z.string().max(200).nullable().optional(),
                 kills: metric,
                 deaths: metric,
                 combat: metric,
@@ -129,6 +130,7 @@ export async function readHllSession(
                   ? "xbox"
                   : "unknown",
             platformId: player.player_id,
+            ...(player.player !== undefined ? { name: player.player } : {}),
             metrics: {
                 kills: player.kills ?? null,
                 deaths: player.deaths ?? null,

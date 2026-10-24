@@ -68,6 +68,59 @@ test("indefinite retention prunes nothing and leaves the revision alone", async 
     assert.equal(ctx.db.tables.serverGameHistoryHeads[0].revision, "7")
 })
 
+test("retention and deletion revisions stay game-scoped; legacy settings govern only Wardogs", async (t) => {
+    const ctx = fixture(t, 90)
+    ctx.db.seed("serverGameHistory", {
+        _id: "serverGameHistory:hll-old",
+        guildId: "guild",
+        gameId: "hell_let_loose",
+        endedAt: "2026-01-01T10:00:00.000Z",
+        sourceId: "hll-source",
+        revision: "1",
+    })
+    ctx.db.seed("serverGameHistoryHeads", {
+        _id: "serverGameHistoryHeads:hll",
+        guildId: "guild",
+        gameId: "hell_let_loose",
+        revision: "12",
+        lastCollectedAt: "2026-10-03T10:00:00Z",
+    })
+    assert.deepEqual(
+        await invoke(retention.prune, ctx, {
+            guildId: "guild",
+            gameId: "hell_let_loose",
+        }),
+        { deleted: 0 }
+    )
+    await invoke(retention.prune, ctx, { guildId: "guild" })
+    assert.ok(await ctx.db.get("serverGameHistory:hll-old"))
+    assert.equal(
+        (await ctx.db.get("serverGameHistoryHeads:hll"))!.revision,
+        "12"
+    )
+    ctx.db.seed("gameHistorySettings", {
+        _id: "gameHistorySettings:hll",
+        guildId: "guild",
+        gameId: "hell_let_loose",
+        retentionDays: 90,
+        updatedAt: "2026-10-03T10:00:00Z",
+        updatedBy: "admin",
+    })
+    assert.deepEqual(
+        await invoke(retention.prune, ctx, {
+            guildId: "guild",
+            gameId: "hell_let_loose",
+        }),
+        { deleted: 1 }
+    )
+    assert.equal(await ctx.db.get("serverGameHistory:hll-old"), null)
+    assert.equal(
+        (await ctx.db.get("serverGameHistoryHeads:hll"))!.revision,
+        "13"
+    )
+    assert.equal(ctx.db.tables.serverGameHistoryHeads[0].revision, "8")
+})
+
 test("the daily sweep schedules a prune only for workspaces with a retention window", async (t) => {
     const ctx = fixture(t, 365)
     ctx.db.seed("gameHistorySettings", {

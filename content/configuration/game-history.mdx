@@ -14,7 +14,33 @@ Invalid provider data, including repeated faction names, is rejected. The last s
 
 Administrators can give a website backend a read key with **Retained server games** and **Wardogs** access. This includes player names and platform IDs, so keep the key on the backend and choose which fields the public website displays. The `/api/v1/clan/server-game-history?game=wardogs` endpoint supplies revision-consistent pages. A website must finish all pages before showing totals, and restart a scan if the API returns `reset_required`.
 
-See the [API reference](/api-reference) for the structured contract. This feature currently supports Warcon completed games; official clan/League results and verified membership retain their separate workflows.
+See the [API reference](/api-reference) for the structured contract. Official clan/League results and verified membership retain their separate workflows.
+
+## Hell Let Loose history for websites
+
+The same retained-history API also accepts `game=hell_let_loose`, with an explicit
+**Retained server games** and **Hell Let Loose** read grant. The current CRCON
+collector saves completed maps into the archive as it collects them; it does not
+need a second provider collector. An administrator can seed already collected
+maps through a bounded internal backfill. Deployment and actual collection must
+be verified before a website claims historical coverage.
+
+HLL exposes the observed Allies/Axis scores, map times, player nicknames and IDs,
+and available kills, deaths, combat, offense, defense and support values. These
+scores do not establish a clan winner or an individual player's win/loss. Unknown
+values and individual playtime stay unknown; a complete map does not claim a
+complete combat feed. Observed nicknames do not link a player to Discord or prove
+account ownership. Keep the API key and platform IDs in the website backend and
+choose the public fields deliberately.
+
+HLL and Wardogs use separate history revisions, cursors, details and retention
+settings. Existing history and retention settings without a game remain Wardogs.
+The administrator retention API accepts `?game=hell_let_loose`; omitting game
+keeps the current Wardogs settings behavior. Collection and backfill respect the
+chosen game's retention window. The Warcon dashboard described above remains
+the Wardogs view; the HLL contract is available to website consumers through the
+shared API. Every paginated scan must reach its final cursor before publishing
+totals, including empty continuation pages.
 
 
 ## Wardogs score timelines
