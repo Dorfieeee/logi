@@ -14,7 +14,7 @@ import {
 import type { HistoryProgress } from "../src/application/game-data/collect-sessions"
 import type { ResolvedSource } from "../src/domain/game-data/credentials"
 import { internalQuery, type MutationCtx } from "./_generated/server"
-import { archiveWarconHistory } from "./gameHistoryStore"
+import { archiveProviderHistory } from "./gameHistoryStore"
 import { internalMutation } from "./integrationMutation"
 import { connectionSource } from "./gameDataCatalog"
 import type { Id } from "./_generated/dataModel"
@@ -196,7 +196,7 @@ export const commit = internalMutation({
             const session = args.result.session
             if (!isProviderSessionWithinLimits(session))
                 throw new Error("Invalid session.")
-            await archiveWarconHistory(ctx, connection, session)
+            await archiveProviderHistory(ctx, connection, session)
             const existing = await ctx.db
                 .query("gameSessions")
                 .withIndex("connection_external", (q) =>

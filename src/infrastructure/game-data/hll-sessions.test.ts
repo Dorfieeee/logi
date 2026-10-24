@@ -81,7 +81,8 @@ test("unfinished HLL sessions stay provisional and same nicknames never link peo
         session.players.map((player) => player.platformId),
         ["76561198000000001", "76561198000000002"]
     )
-    assert.equal(JSON.stringify(session).includes("Same nickname"), false)
+    assert.equal(session.players[0].name, "Same nickname")
+    assert.equal(session.players[1].name, "Same nickname")
     assert.equal(JSON.stringify(session).includes("steaminfo"), false)
     assert.equal("userId" in session.players[0], false)
     assert.equal(session.sourceDigest.length, 64)

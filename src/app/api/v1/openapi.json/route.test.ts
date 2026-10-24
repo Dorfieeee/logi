@@ -183,9 +183,14 @@ test("every clan operation documents runtime scope denial and its read-access re
             ) {
                 assert.deepEqual(operation["x-logi-read-access"], {
                     resource,
-                    games: [
-                        resource === "hll-live" ? "hell_let_loose" : "wardogs",
-                    ],
+                    games:
+                        resource === "server-game-history"
+                            ? ["wardogs", "hell_let_loose"]
+                            : [
+                                  resource === "hll-live"
+                                      ? "hell_let_loose"
+                                      : "wardogs",
+                              ],
                     explicitGrantRequired: true,
                 })
                 continue
@@ -730,6 +735,25 @@ test("player and clan history contracts define game-specific Wardogs money witho
     assert.match(
         document.paths["/clan/performance-history"].get.description,
         /Unknown cash is null/
+    )
+})
+
+test("public exact Discord identity lookup documents binding proof and preserves default legacy selection", async () => {
+    const document = await (await GET()).json()
+    const player = document.paths["/public/players/{playerId}"].get
+    assert.deepEqual(
+        player.parameters.find(
+            (entry: { name: string }) => entry.name === "identity"
+        ).schema.enum,
+        ["discord"]
+    )
+    assert.match(player.description, /no imported-ID fallback/)
+    assert.match(player.description, /public-player-native-v1/)
+    assert.match(player.description, /original RPC arguments remain unchanged/)
+    assert.equal(
+        player.responses["200"].content["application/json"].schema.properties
+            .data.properties.identityBinding.pattern,
+        "^[a-f0-9]{64}$"
     )
 })
 

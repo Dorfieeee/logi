@@ -10,6 +10,80 @@ import { canonicalJson } from "./canonical-json"
 const DIGEST = /^[a-f0-9]{64}$/
 const ID = /^\d{1,20}$/
 
+export type HistoryGame = "wardogs" | "hell_let_loose"
+
+/** Old retained rows were exclusively Wardogs. */
+export function retainedHistoryGame(row: {
+    gameId?: HistoryGame
+}): HistoryGame {
+    return row.gameId ?? "wardogs"
+}
+
+/** Shared without importing the settings schema into collector hot paths. */
+export function historyRetentionCutoff(
+    settings: { retentionDays: number | null } | null | undefined,
+    now: number
+): string | null {
+    if (!settings || settings.retentionDays === null) return null
+    return new Date(now - settings.retentionDays * 86_400_000).toISOString()
+}
+
+/** CRCON completed maps carry faction scores, never Wardogs outcome metadata. */
+export function isRetainedHllSession(session: ProviderSession): boolean {
+    return (
+        session.complete &&
+        session.startedAt !== null &&
+        session.endedAt !== null &&
+        Number.isFinite(Date.parse(session.startedAt)) &&
+        Number.isFinite(Date.parse(session.endedAt)) &&
+        Date.parse(session.endedAt) >= Date.parse(session.startedAt) &&
+        isHllHistoryFacts(session)
+    )
+}
+
+/** Valid HLL facts can be collected before a provider supplies their start time. */
+export function isHllHistoryFacts(session: ProviderSession): boolean {
+    return (
+        ID.test(session.externalId) &&
+        session.warcon === undefined &&
+        session.participants.length === 2 &&
+        session.participants.some(
+            (side) => side.id === "allied" && side.label === "Allies"
+        ) &&
+        session.participants.some(
+            (side) => side.id === "axis" && side.label === "Axis"
+        ) &&
+        session.participants.every(
+            (side) =>
+                side.score === null ||
+                (Number.isFinite(side.score) && side.score >= 0)
+        ) &&
+        new Set(
+            session.players.map(
+                (player) => `${player.platform}:${player.platformId}`
+            )
+        ).size === session.players.length &&
+        session.players.every(
+            (player) =>
+                player.faction === undefined &&
+                player.result === undefined &&
+                Object.entries(player.metrics).every(
+                    ([key, value]) =>
+                        [
+                            "kills",
+                            "deaths",
+                            "combat",
+                            "offense",
+                            "defense",
+                            "support",
+                        ].includes(key) &&
+                        (value === null ||
+                            (Number.isFinite(value) && value >= 0))
+                )
+        )
+    )
+}
+
 /** A session that may be archived: complete, consistent times, unique players and factions, a winner the factions name. */
 export function isRetainedWarconSession(session: ProviderSession): boolean {
     return (

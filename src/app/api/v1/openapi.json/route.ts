@@ -462,7 +462,7 @@ const paths: Record<string, unknown> = {
             summary: "Get a public player profile",
             tags: ["Public API — no key required"],
             description:
-                "Public, rate-limited player profile. Optional game selects a supported game; by default the most recently played game is selected. gameId and games describe the selection. clans contains one record per active clan with gameIds listing the player’s active membership games for its badge icons. Totals and recentMatches never combine games. Wardogs matches expose kills, deaths, killDeathRatio and nullable signed cashDelta, excluding HLL offense/defense/support. HLL and HLL Vietnam expose their existing metrics. Unregistered games have no gameplay statistics. Use collection=clans or collection=recentMatches for related records.",
+                "Public, rate-limited player profile. Optional game selects one game; totals and latest 30 recentMatches never combine games. Wardogs exposes nullable signed cashDelta, excluding HLL offense/defense/support. identity=discord opts into an exact, unique users.discordId lookup with no imported-ID fallback; missing/duplicate matches return 404. Its full-profile response additionally carries identityBinding: lowercase hex SHA256 of UTF-8 JSON.stringify(['public-player-native-v1', String(native user._id), exact Discord subject]). It exposes no new raw identity fields and is account binding, not verified ownership, membership or publication consent. Consumers with current native identity evidence must compare this proof; absent/mismatched proof fails closed, including an older API ignoring the selector. Without identity the historical imported-ID-first lookup and original RPC arguments remain unchanged; identityBinding is omitted. Default and exact lookups have distinct v5 read-model cache entries. clans contains active clan game badges; collection=clans/recentMatches pages only those related records. Public profile cache policy and existing publication rules are unchanged.",
             parameters: [
                 {
                     name: "game",
@@ -473,13 +473,49 @@ const paths: Record<string, unknown> = {
                         "Selected gameplay-stat game; defaults to the latest played game.",
                 },
                 {
+                    name: "identity",
+                    in: "query",
+                    required: false,
+                    schema: { type: "string", enum: ["discord"] },
+                    description:
+                        "Exact unique Discord-subject lookup. Requires a 17–20 digit playerId; cannot be repeated. Unknown selectors return 400. Omit for legacy imported-ID behavior.",
+                },
+                {
                     name: "playerId",
                     in: "path",
                     required: true,
                     schema: { type: "string" },
                 },
             ],
-            responses,
+            responses: {
+                ...responses,
+                "200": {
+                    ...responses["200"],
+                    description:
+                        "Public profile or related collection. Only full profiles requested with identity=discord include the opaque native identity binding.",
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                required: ["data"],
+                                properties: {
+                                    data: {
+                                        type: "object",
+                                        properties: {
+                                            identityBinding: {
+                                                type: "string",
+                                                pattern: "^[a-f0-9]{64}$",
+                                                description:
+                                                    "Only for identity=discord on a full profile; exact protocol described above. No raw native/Discord identifier is added.",
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         },
     },
     "/public/competitions/{slug}": {

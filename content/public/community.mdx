@@ -73,6 +73,16 @@ K/D always displays two decimal places, including chart tooltips.
 
 A player page identifies a player and can show their public game or community data. It is not an invitation to edit another person’s account. Players manage their own account settings after signing in; server managers manage server-specific membership separately.
 
+Websites integrating these public statistics can request an exact Discord-account
+lookup through the public API with `identity=discord`. This avoids confusion with
+historical imported IDs. A unique matching account is required; missing or duplicate
+accounts return no profile. The optional response binding lets a website compare
+the result with its already-authorized current native identity without receiving
+another raw identifier. It does not establish account ownership, clan membership
+or consent to publish a personal biography. Existing profile URLs and the default
+imported-ID lookup retain their current behavior. See the [API reference](/api-reference)
+for the selector and comparison protocol.
+
 <Callout type="info">
     Can’t find a player or clan? It may not be public, it may not have been
     imported or linked yet, or you may need a more specific name.

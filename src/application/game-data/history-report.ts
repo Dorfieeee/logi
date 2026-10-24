@@ -12,6 +12,7 @@ export async function buildHistoryReport(
         signal?: AbortSignal
         maxPages?: number
         minMinutes?: number
+        gameId?: HistoryRecord["gameId"]
     } = {}
 ) {
     const records: HistoryRecord[] = [],
@@ -31,7 +32,10 @@ export async function buildHistoryReport(
             throw new Error("History revision changed; restart the scan.")
         if (
             page.items.some(
-                (record) => BigInt(record.revision) > BigInt(page.revision)
+                (record) =>
+                    BigInt(record.revision) > BigInt(page.revision) ||
+                    (options.gameId !== undefined &&
+                        record.gameId !== options.gameId)
             )
         )
             throw new Error("Invalid history revision.")

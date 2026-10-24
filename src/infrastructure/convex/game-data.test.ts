@@ -1,4 +1,5 @@
 import { collectSessions } from "../../application/game-data/collect-sessions"
+import type { ProviderSession } from "../../domain/game-data/contracts"
 import { warconMatchDetail, warconServerId } from "../testing/warcon"
 import * as publicApiReads from "../../../convex/publicApiReads"
 import * as history from "../../../convex/gameDataHistory"
@@ -855,14 +856,17 @@ const hll = {
     provider: "hll_crcon",
     providerServerId: "1",
 }
-function completeSession(id: string) {
+function completeSession(id: string): ProviderSession {
     return {
         externalId: id,
         startedAt: "2026-10-01T10:00:00.000Z",
         endedAt: "2026-10-01T11:00:00.000Z",
         complete: true,
         map: "Foy" as string | null,
-        participants: [],
+        participants: [
+            { id: "allied", label: "Allies", score: 0 },
+            { id: "axis", label: "Axis", score: 5 },
+        ],
         players: [],
         sourceDigest: "b".repeat(64),
     }
@@ -888,7 +892,7 @@ async function enableHll(ctx: ReturnType<typeof fixture>) {
 /** One collector step against the Convex handlers, with a counting provider fake. */
 async function historyStep(
     ctx: ReturnType<typeof fixture>,
-    provider: { pages: string[][] },
+    provider: { pages: string[][]; sessions?: Record<string, ProviderSession> },
     calls: { pages: number[]; sessions: string[] }
 ) {
     ctx.db.tables.gameDataHistoryRuns[0].nextAttemptAt = 0
@@ -917,7 +921,7 @@ async function historyStep(
                 })) as string[],
             readSession: async (id) => {
                 calls.sessions.push(id)
-                return completeSession(id)
+                return provider.sessions?.[id] ?? completeSession(id)
             },
             commit: async (value) =>
                 (await handler(history.commit)(ctx, {
@@ -931,7 +935,7 @@ async function historyStep(
 }
 async function historyCycle(
     ctx: ReturnType<typeof fixture>,
-    provider: { pages: string[][] }
+    provider: { pages: string[][]; sessions?: Record<string, ProviderSession> }
 ) {
     const calls = { pages: [] as number[], sessions: [] as string[] }
     const modes: boolean[] = []
@@ -1034,6 +1038,29 @@ test("history walks everything once, then stops at the first stored page until t
     assert.deepEqual(daily.calls.sessions, ["5", "4", "3", "2", "1"])
     assert.equal(writes.gameSessions, 2, "unchanged complete rows stay put")
     assert.ok((run().lastFullWalkAt as number) > Date.now() - 1_000)
+})
+
+test("a completed HLL map without a start remains usable in gameSessions and never stalls the collector checkpoint", async (t) => {
+    const ctx = fixture(t)
+    await enableHll(ctx)
+    const result = await historyCycle(ctx, {
+        pages: [["42", "43"]],
+        sessions: { "42": { ...completeSession("42"), startedAt: null } },
+    })
+    assert.deepEqual(result.calls.sessions, ["42", "43"])
+    assert.equal(ctx.db.tables.gameSessions.length, 2)
+    const undated = ctx.db.tables.gameSessions.find(
+        (row) => row.externalId === "42"
+    )!
+    assert.equal((undated.session as ProviderSession).startedAt, null)
+    assert.equal(undated.complete, true)
+    assert.deepEqual(
+        ctx.db.tables.serverGameHistory.map((row) => row.externalId),
+        ["43"]
+    )
+    assert.equal(ctx.db.tables.serverGameHistoryHeads[0].revision, "1")
+    assert.ok(ctx.db.tables.gameDataHistoryRuns[0].lastFullWalkAt)
+    assert.equal(ctx.db.tables.gameDataHistoryRuns[0].leaseUntil, 0)
 })
 
 test("a cycle keeps its walk mode until it ends; a new source generation walks in full", async (t) => {
