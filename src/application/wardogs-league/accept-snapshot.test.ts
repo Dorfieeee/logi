@@ -66,3 +66,64 @@ test("public DTO preserves age and excludes storage, Discord references and priv
         null
     )
 })
+
+test("the captured two-ranked final page replaces a synthetic earlier three-team observation", () => {
+    const next = {
+        ...parseMatchHtml(
+            readFileSync(
+                new URL(
+                    "../../infrastructure/wardogs-league/fixtures/completed-two-ranked.html",
+                    import.meta.url
+                ),
+                "utf8"
+            ),
+            "https://wardogsleague.net/matches/cmuduewpx0001o601v5we0g4e"
+        ),
+        fetchedAt: "2026-10-24T14:00:00.000Z",
+    }
+    // This prior three-team observation is synthetic; only next is a captured page.
+    const previous = {
+        ...snapshot,
+        id: next.id,
+        sourceUrl: next.sourceUrl,
+        scheduledAt: next.scheduledAt,
+        teams: [
+            ...next.teams!.map((team) => ({
+                ...team,
+                displayedMemberCount: 48,
+                nations: ["SYN"],
+                readyCheck: "Pending",
+            })),
+            {
+                ...next.teams![0],
+                code: "POL",
+                name: "Synthetic prior participant",
+                profileUrl: "https://wardogsleague.net/teams/POL",
+            },
+        ],
+    }
+    assert.deepEqual(selectTrackedSnapshot(previous, next), {
+        snapshot: next,
+        rejected: false,
+    })
+    assert.deepEqual(next.results?.placements, [
+        { place: 2, teamCode: "AK|" },
+        { place: 3, teamCode: "BAMC" },
+    ])
+    assert.equal(
+        selectTrackedSnapshot(previous, {
+            ...next,
+            fetchedAt: "2026-10-02T00:00:00.000Z",
+        }).rejected,
+        true
+    )
+    assert.equal(
+        selectTrackedSnapshot(previous, { ...next, id: "foreign" }).rejected,
+        true
+    )
+    assert.equal(
+        selectTrackedSnapshot(previous, { ...next, scheduledAt: null })
+            .rejected,
+        true
+    )
+})

@@ -1,5 +1,6 @@
 import { cronJobs } from "convex/server"
 
+import { SNAPSHOT_TICK_SECONDS } from "../src/domain/game-data/snapshot-rules"
 import { makeFunctionReference } from "convex/server"
 import { internal } from "./_generated/api"
 
@@ -42,7 +43,7 @@ crons.daily(
 )
 crons.interval(
     "collect game server data",
-    { minutes: 5 },
+    { seconds: SNAPSHOT_TICK_SECONDS },
     internal.gameDataCollector.collectDue,
     {}
 )

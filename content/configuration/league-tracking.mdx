@@ -37,9 +37,11 @@ Developers: the options are `leaguePanelOptionsSchema` with the defaults `DEFAUL
 
 **Recent results.** Places 1–3 of every League match of the last seven days. They come from the League site and are not checked by Logi; the clan's confirmed results are in its results panel.
 
-### Results are not read yet
+### Published final results
 
-The table and recent results need the finishing places of completed matches. Logi does not read them from the League site yet, because the layout of a finished match page has not been verified. Until it does, the table shows its waiting text and the recent results say **Výsledky se zobrazí po prvních výsledcích ligy**; the next matches work fully. Only once results are being read does a week without any say **Za posledních 7 dní nejsou žádné výsledky ligy.** Once results are read, earlier results of the season are filled in automatically.
+Logi reads the League's **Final placements** cards when the page says **Confirmed** or **Set by admin** and its matching final progress step is done. It keeps the explicitly published place and team identity, including tied ranks. An admin-set result can be final without all leaders submitting; submission count is not used as the result. If the League publishes only second and third place, those places remain unchanged and no first-place team or no-show is invented. Disputed, unknown or incomplete result layouts stay unavailable.
+
+Until collection stores the first result, the table shows its waiting text and the recent results say **Výsledky se zobrazí po prvních výsledcích ligy**. Afterwards a week without results says **Za posledních 7 dní nejsou žádné výsledky ligy.** Deploying a changed results parser schedules retained finished fixtures without results for a bounded re-read; it does not guarantee complete historical coverage beyond the pages the League index and retained fixture store provide. League results remain separate from reviewed native Logi match results.
 
 ## Settings → Wardogs League
 

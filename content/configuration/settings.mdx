@@ -655,6 +655,11 @@ players and completed matches. It is distinct from a direct Wardogs RCON source.
 Select one source for a server; Logi does not silently replace it with another.
 
 Cards show players, map, last observation, data freshness and any provider error.
+The collector checks for due servers every thirty seconds, collecting at most ten
+servers per tick with two reads in parallel. Each server keeps its normal polling
+interval (usually sixty seconds) or a longer interval required by its provider.
+Retry delays and rate limits are respected; a large backlog or a provider failure
+can delay the next observation. Older due servers are served first across workspaces.
 HLL and Warcon also show the number of collected sessions and last successful history
 import. Zero players is a known value; unknown is different. Old counts remain
 visible with their timestamp when a source fails. Data becomes stale after three

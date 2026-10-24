@@ -14,7 +14,7 @@ const count = z.number().int().nonnegative().nullable()
 const choice = z.object({ teamCode: text, value: nullableText })
 /**
  * Finishing places the League publishes for a completed fixture. Parser
- * version 1 never produces it: no completed match page has been captured yet
+ * pages use the verified Final placements layout
  * (see `src/infrastructure/wardogs-league/parse-results.ts`). Places may tie;
  * a team finishes at most once. Points are not stored: Logi derives them from
  * the published scoring rule (`scoring.ts`).
@@ -137,8 +137,54 @@ export const leagueReadSchema = z.object({
 })
 export type LeagueRead = z.infer<typeof leagueReadSchema>
 
-/** Losing previously observed structure is a refresh failure, not a new empty match. */
+/** Final pages deliberately omit pre-match sections and can publish fewer ranked teams. */
+function hasVerifiedFinalPlacements(match: LeagueMatch): boolean {
+    const finalStep =
+        match.status === "Confirmed"
+            ? "Confirmed"
+            : match.status === "Set by admin"
+              ? "Set by admin"
+              : null
+    const teams = match.teams
+    const result = match.results
+    if (
+        !finalStep ||
+        !teams?.length ||
+        !result?.confirmed ||
+        teams.length !== result.placements.length ||
+        new Set(teams.map((team) => team.code)).size !== teams.length ||
+        new Set(result.placements.map((entry) => entry.teamCode)).size !==
+            teams.length ||
+        teams.some(
+            (team) =>
+                team.profileUrl !==
+                `https://wardogsleague.net/teams/${encodeURIComponent(team.code)}`
+        ) ||
+        result.placements.some(
+            (entry) => !teams.some((team) => team.code === entry.teamCode)
+        )
+    )
+        return false
+    return ["Placements", finalStep].every((label) => {
+        const steps = match.progress?.filter((step) => step.label === label)
+        return steps?.length === 1 && steps[0].state === "done"
+    })
+}
+
+/** Losing previously observed structure is a refresh failure, except a verified final layout. */
 export function losesMatchStructure(previous: LeagueMatch, next: LeagueMatch) {
+    if (
+        previous.id !== next.id ||
+        previous.sourceUrl !== next.sourceUrl ||
+        (previous.scheduledAt !== null && next.scheduledAt === null) ||
+        (previous.results !== null && next.results === null) ||
+        (previous.results?.confirmed === true &&
+            next.results?.confirmed !== true)
+    )
+        return true
+    // The parser validates the explicit header/card count. Final cards replace
+    // pre-match metadata; do not retain an absent participant or invent a winner.
+    if (hasVerifiedFinalPlacements(next)) return false
     const lostFields = <T extends object>(before: T | null, after: T | null) =>
         before !== null &&
         (after === null ||

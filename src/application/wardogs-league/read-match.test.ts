@@ -115,3 +115,41 @@ test("revocation or superseded lease after fetch does not return data", async ()
     }
     assert.deepEqual(await readLeagueMatch(url, p), { kind: "denied" })
 })
+
+test("a verified final result can replace the cached pre-match layout", async () => {
+    const finalUrl =
+        "https://wardogsleague.net/matches/cmuim5nu20073lf01332kozcf"
+    const next = {
+        ...parseMatchHtml(
+            readFileSync(
+                new URL(
+                    "../../infrastructure/wardogs-league/fixtures/completed-confirmed.html",
+                    import.meta.url
+                ),
+                "utf8"
+            ),
+            finalUrl
+        ),
+        fetchedAt: new Date(CACHE_MS + 1000).toISOString(),
+    }
+    const p = ports()
+    // The cache's prior observation is synthetic; the final body/URL are captured.
+    p.reserve = async () => ({
+        kind: "claimed",
+        cacheId: "id",
+        fence: 1,
+        previous: {
+            ...snapshot,
+            id: next.id,
+            sourceUrl: finalUrl,
+            scheduledAt: next.scheduledAt,
+        },
+    })
+    p.fetch = async () => next
+    const result = await readLeagueMatch(finalUrl, p)
+    assert.equal(result.kind, "data")
+    if (result.kind !== "data") return
+    assert.equal(result.data.error, null)
+    assert.equal(result.data.snapshot?.status, "Confirmed")
+    assert.deepEqual(result.data.snapshot?.results, next.results)
+})

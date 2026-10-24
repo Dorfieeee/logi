@@ -104,16 +104,28 @@ their last data, displayed as unavailable. No API key may configure sources.
 - Snapshots normally poll every 60 seconds. Directory polling also respects
   `meta.refreshSeconds`, capped by the supported 30–3600 second contract and a
   60-second minimum. A 304 retains the original observation time.
-- Each action claims one source transactionally. A 60-second lease and increasing
-  fence protect both snapshot and history writes. HTTP calls have a 10-second
-  deadline, a shared 30-second work budget and a 2 MiB response bound. No lease
-  renewal is needed for this bounded action; a late result is rejected.
+- The snapshot scheduler wakes every 30 seconds. Each tick starts at most ten
+  source claims, with two collections in flight, and stops starting claims after
+  twenty seconds. Claims follow the oldest `nextAttemptAt` across all workspaces;
+  no workspace gets priority. A fixed tick-start cutoff prevents a source's newly
+  scheduled poll or retry from being collected twice in that tick. The scheduler
+  respects the stored poll interval, backoff and `Retry-After`; waking more often
+  does not make a source due earlier. Large backlogs still require multiple ticks.
+- Each source is claimed transactionally. A 60-second lease and increasing fence
+  protect both snapshot and history writes, including overlapping slow ticks.
+  HTTP calls retain a 10-second deadline, a shared 30-second source work budget
+  and a 2 MiB response bound. In-flight collections finish after the start budget;
+  a late result is rejected. With the current snapshot providers, at most three
+  HTTP reads per source bound a tick to thirty reads (sixty per minute); healthy
+  sources normally use their existing sixty-second or provider-supplied interval.
+  A storage failure stops new claims, waits for other in-flight collections and
+  fails the action; its uncommitted lease remains for recovery.
 - Retry delays are 5 seconds, 10 seconds, then at least 60 seconds before the next
   attempt cycle. `Retry-After` can extend this up to 24 hours. Authorization,
   configuration and unsupported-capability errors pause that collector until
   resumed. Provider errors expose categories, not response bodies or secrets.
 - Snapshot and history work have independent leases and health. One failed
-  history import cannot erase a successful current snapshot. Minute crons recover
+  history import cannot erase a successful current snapshot. Collector ticks recover
   expired work; mutations schedule the next attempt atomically. No queue service
   or second bot is introduced.
 - HLL discovery reads ten map IDs at a time and commits one normalized session

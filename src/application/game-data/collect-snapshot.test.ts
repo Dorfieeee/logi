@@ -39,6 +39,45 @@ const observed: SnapshotRead = {
     },
 }
 
+test("snapshot polling and rate-limit delay remain independent of scheduler wake frequency", async () => {
+    const attempts: Array<number | null> = []
+    const ports = {
+        now: () => now,
+        http: {
+            get: async () => {
+                throw new Error("Unexpected request")
+            },
+        },
+        repository: {
+            finish: async (value: { nextAttemptAt: number | null }) => {
+                attempts.push(value.nextAttemptAt)
+                return true
+            },
+        },
+    }
+    for (const pollAfterMs of [30_000, 60_000, 3_600_000])
+        await collectSnapshot(connection, {
+            ...ports,
+            provider: {
+                readSnapshot: async () => ({ ...observed, pollAfterMs }),
+            },
+        })
+    await collectSnapshot(connection, {
+        ...ports,
+        provider: {
+            readSnapshot: async () => {
+                throw new ProviderError("rate_limited", 300_000)
+            },
+        },
+    })
+    assert.deepEqual(attempts, [
+        now + 60_000,
+        now + 60_000,
+        now + 3_600_000,
+        now + 300_000,
+    ])
+})
+
 test("collector persists normalized zero values and reports a rejected late fence", async () => {
     let applied: unknown
     const ports = {
