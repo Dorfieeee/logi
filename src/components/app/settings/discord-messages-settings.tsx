@@ -685,6 +685,25 @@ export function DiscordMessagesSettingsView({
                             detail: rows.announcement.detail,
                             target: routed("announcementsChannelId", "channel"),
                         })}
+                        <MessageRow
+                            icon={Trophy}
+                            title={
+                                dictionary.settingsHub.channelsPage.eventResults
+                            }
+                            detail={
+                                dictionary.settingsHub.channelsPage
+                                    .eventResultsHelp
+                            }
+                            target={
+                                <MessageTargetView
+                                    target={owned(
+                                        config?.eventResultsChannelId,
+                                        text.pages.channels,
+                                        hrefs.channels
+                                    )}
+                                />
+                            }
+                        />
                         {row({
                             key: "roster",
                             icon: Users,

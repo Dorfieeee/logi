@@ -1,6 +1,7 @@
 import {
     allowedTeamSourceUrl,
     parseHeloTeams,
+    parseTeamSource,
     parseWardogsTeams,
 } from "./team-source"
 import assert from "node:assert/strict"
@@ -67,4 +68,26 @@ test("logo network access is confined to HTTPS provider paths", () => {
         ),
         true
     )
+})
+
+test("Wardogs selects the provider logo rather than unrelated images in a card", () => {
+    const [team] = parseWardogsTeams(
+        '<a href="/teams/PMF"><img src="/brand/badge.svg"><span class="line-clamp-2">Pardon My French</span><img alt="" width="48" height="48" class="block shrink-0 object-cover h-12 w-12 text-[11px]" src="/api/logos/team-logos/example.png"></a>'
+    )
+    assert.equal(
+        team?.logoUrl,
+        "https://wardogsleague.net/api/logos/team-logos/example.png"
+    )
+})
+
+test("HeLO rendered cards use the explicit Team Icon alt marker", () => {
+    const [team] = parseTeamSource(
+        "hell_let_loose",
+        '<div class="team-card" data-team-name="Esprit de Corps" data-team-tag="ESPT"><img alt="Unrelated" src="https://other.test/logo"><img alt="Team Icon" loading="lazy" decoding="async" width="48px" style="content-visibility: auto;" src="https://floriansw.github.io/helo-team-images/teams/espt_128px.png"></div>'
+    )
+    assert.equal(
+        team?.logoUrl,
+        "https://floriansw.github.io/helo-team-images/teams/espt_128px.png"
+    )
+    assert.equal(team?.shortCode, "ESPT")
 })

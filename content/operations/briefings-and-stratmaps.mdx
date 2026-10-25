@@ -109,8 +109,24 @@ Editing a topic preset does not rewrite old forum posts by itself. The event's
 topic resync control is available only for a non-concluded event that has both
 a forum channel and topic preset. Resyncing can update topic posts and delete
 old topic posts that no longer exist in the preset, so review the preset before
-using it. When a forum-backed event is concluded, the bot adds a debrief post;
-it does not delete the forum channel.
+using it.
+
+New matches default to **Delete the forum after the match**. After manual or
+scheduled conclusion, Logi creates a private debrief thread directly in the
+results channel (falling back to event info, then registration) and invites
+attending signups and rostered players, including confirmed reserves, excluding
+explicit absences. The thread survives deletion of the event card. The bot needs
+Create Private Threads, Send Messages in Threads, Read Message History, Pin Messages
+and Manage Threads, plus Manage Channels to delete the forum; participants
+also need View Channel on the parent channel. A configured parent must be a text
+channel. Invitation or thread failures keep the forum intact for retry.
+Once the debrief is ready, the event forum and **all its posts, tactics and
+attachments are deleted**. Copy anything you need to keep beforehand.
+
+Turn this option off to keep the forum and put its debrief there instead.
+Existing matches keep their forum until you explicitly enable deletion. The
+workspace's debrief message switch still controls whether a debrief is created;
+when disabled, the deletion option removes the forum without a debrief.
 
 From a match or event detail page, open the connected briefing resources. A briefing can combine event details, topic presets, and selected stratmaps, but each must be prepared and saved independently.
 

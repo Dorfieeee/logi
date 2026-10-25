@@ -99,6 +99,7 @@ export const upsert = mutation({
         imageUrl: v.optional(v.string()),
         announcementChannelId: v.optional(v.string()),
         eventInfoChannelId: v.optional(v.string()),
+        eventResultsChannelId: v.optional(v.string()),
         meetingChannelId: v.optional(v.string()),
         createSquadVoiceChannels: v.optional(v.boolean()),
         squadVoiceCategoryId: v.optional(v.string()),
@@ -161,6 +162,7 @@ export const upsert = mutation({
         pingRoleIds: v.optional(v.array(v.string())),
         createForumChannel: v.optional(v.boolean()),
         createSignupThread: v.optional(v.boolean()),
+        deleteForumAfterConclusion: v.optional(v.boolean()),
         topicPresetId: v.optional(v.id("topicPresets")),
         stratmapIds: v.optional(v.array(v.id("stratmaps"))),
         // Directory team selections (identity, slot, side); snapshots are captured here.

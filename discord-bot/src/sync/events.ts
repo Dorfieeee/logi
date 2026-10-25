@@ -24,6 +24,10 @@ import {
     announcementThumbnail,
     buildAnnouncementCard,
 } from "../events/announcement"
+import {
+    debriefParentChannelId,
+    debriefParticipantIds,
+} from "../../../src/domain/events/debrief"
 import { isRegistrationAnnouncementDue } from "../../../src/domain/events/registration-announcement"
 import {
     loadAnnouncementContext,
@@ -42,6 +46,7 @@ import { finishAnnouncementMigration } from "../events/announcement-migration"
 import type { EventRecord, Roster, SyncPayload, SyncState } from "../types"
 import { fetchRosterImageAttachment } from "./roster-image-attachment"
 import { applicationFactionEmoji } from "../runtime/faction-emoji"
+import { syncForumChannel, concludeEventForum } from "../forum"
 import { syncSquadVoiceChannels } from "../events/squad-voice"
 import { reportClanDiscordError } from "../error-reporting"
 import { syncSignupThread } from "../events/signup-thread"
@@ -50,7 +55,6 @@ import { logError, logInfo, logWarn } from "../log"
 import { syncEventRoles } from "../event-roles"
 import { getCalendarSyncVersion } from "./work"
 import { convex, references } from "../convex"
-import { syncForumChannel } from "../forum"
 import { env } from "../environment"
 
 // One event can legitimately include role reconciliation, two message writes,
@@ -226,7 +230,11 @@ export async function syncPayloadEvents(
         const queued = queuedEventIds.has(event.id)
 
         if (
-            !payload.config.eventResultsChannelId &&
+            !event.deleteForumAfterConclusion &&
+            !(
+                event.eventResultsChannelId ??
+                payload.config.eventResultsChannelId
+            ) &&
             shouldWriteMinimalConcludedSyncState({ event, state, queued })
         ) {
             logInfo(
@@ -391,7 +399,54 @@ async function syncEvent(
         isRegistrationAnnouncementDue(event) && event.status !== "concluded"
 
     if (
-        registrationAnnouncementDue &&
+        event.status === "concluded" &&
+        event.createForumChannel &&
+        event.deleteForumAfterConclusion
+    ) {
+        debriefMessageId = await concludeEventForum({
+            guild,
+            event,
+            config: payload.config,
+            categories: payload.guild.eventCategories,
+            parentChannelId: debriefParentChannelId(event, payload.config),
+            existingThreadId: debriefMessageId,
+            forumChannelId,
+            participantIds: debriefParticipantIds(event, roster),
+            rememberThread: async (id) => {
+                debriefMessageId = id
+                await convex.mutation(references.updateEventSyncState, {
+                    announcementChannelId: state?.announcementChannelId,
+                    announcementMessageId,
+                    eventInfoMessageId,
+                    eventInfoMessageRenderVersion:
+                        state?.eventInfoMessageRenderVersion,
+                    scheduledEventId,
+                    scheduledEventStatus,
+                    forumThreadId,
+                    signupThreadId,
+                    infoMessageId,
+                    squadVoiceChannelIds,
+                    lastEventUpdatedAt: undefined,
+                    lastRosterUpdatedAt: state?.lastRosterUpdatedAt,
+                    lastConfigUpdatedAt: state?.lastConfigUpdatedAt,
+                    lastCalendarSyncVersion: state?.lastCalendarSyncVersion,
+                    lastSyncedAt: new Date().toISOString(),
+                    secret: env.internalSecret,
+                    eventId: event.id as never,
+                    guildId: guild.id,
+                    debriefMessageId: id,
+                    forumChannelId,
+                    topicMessageIds,
+                    // Keep previous versions until invitations and cleanup complete.
+                })
+            },
+        })
+        forumChannelId = undefined
+        infoMessageId = undefined
+        topicMessageIds = []
+    } else if (
+        (registrationAnnouncementDue ||
+            (event.status === "concluded" && Boolean(forumChannelId))) &&
         event.createForumChannel &&
         payload.config.forumCategoryId &&
         !(event.status === "concluded" && !forumChannelId)
@@ -468,6 +523,7 @@ async function syncEvent(
                 forumChannelId,
                 error,
             })
+            throw error
         }
     } else {
         logInfo("forum", "Skipping forum sync", {

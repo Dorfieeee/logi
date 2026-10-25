@@ -156,6 +156,7 @@ function editableFields(event: Doc<"events">): WebsiteEventFields | null {
         ...(event.registrationStart !== undefined
             ? { registrationStart: event.registrationStart }
             : {}),
+        deleteForumAfterConclusion: event.deleteForumAfterConclusion ?? false,
         registrationEnd: event.registrationEnd,
         meetingStart: event.meetingStart,
         gameStart: event.gameStart,
@@ -388,6 +389,10 @@ export const execute = mutation({
                                     fields.createSignupThread ??
                                     current?.createSignupThread ??
                                     false,
+                                deleteForumAfterConclusion:
+                                    fields.deleteForumAfterConclusion ??
+                                    current?.deleteForumAfterConclusion ??
+                                    !current,
                                 topicPresetId: current?.topicPresetId
                                     ? String(current.topicPresetId)
                                     : undefined,
@@ -396,6 +401,8 @@ export const execute = mutation({
                                 announcementChannelId:
                                     current?.announcementChannelId,
                                 eventInfoChannelId: current?.eventInfoChannelId,
+                                eventResultsChannelId:
+                                    current?.eventResultsChannelId,
                                 meetingChannelId: current?.meetingChannelId,
                                 requiredRoleIds: current?.requiredRoleIds,
                                 rewardRoleIds: current?.rewardRoleIds,

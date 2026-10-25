@@ -86,6 +86,7 @@ export type EventLike = {
     createForumChannel?: boolean
     /** Whether the announcement owns an opt-in public signup discussion thread. */
     createSignupThread?: boolean
+    deleteForumAfterConclusion?: boolean
     status?: EventStatus
     statusUpdatedAt?: string
     concludedAt?: string
@@ -104,6 +105,7 @@ export type EventLike = {
     imageUrl?: string
     announcementChannelId?: string
     eventInfoChannelId?: string
+    eventResultsChannelId?: string
     meetingChannelId?: string
     createSquadVoiceChannels?: boolean
     squadVoiceCategoryId?: string

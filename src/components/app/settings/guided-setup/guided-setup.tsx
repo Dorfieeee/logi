@@ -63,6 +63,7 @@ const sameId = (a?: string, b?: string) => (a || undefined) === (b || undefined)
 const CHANNEL_KEYS = [
     "announcementsChannelId",
     "eventInfoChannelId",
+    "eventResultsChannelId",
     "errorsChannelId",
 ] as const
 const ROLE_KEYS = ["clanRoleId", "dashboardAdminRoleId"] as const

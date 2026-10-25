@@ -176,7 +176,10 @@ export const getContext = query({
             result: facts?.result ?? null,
             publicMatch: facts?.publicMatch ?? false,
             resultsChannelId:
-                config?.eventResultsChannelId ?? results?.channelId ?? null,
+                event.eventResultsChannelId ??
+                config?.eventResultsChannelId ??
+                results?.channelId ??
+                null,
             leagueLabel,
             imageResult: facts?.imageResult ?? null,
             resultVersion: facts?.resultVersion ?? null,

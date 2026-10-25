@@ -1023,3 +1023,158 @@ export async function postAttendanceNotice(
         })
     }
 }
+
+/** A private thread belongs to its channel, independent of any event card. */
+export async function syncPrivateDebrief(input: {
+    guild: import("discord.js").Guild
+    event: EventRecord
+    config: DiscordConfig
+    categories?: readonly EventCategory[]
+    parentChannelId?: string
+    existingThreadId?: string
+    forumChannelId?: string
+    forumContext?: MatchForumContext | null
+    participantIds: readonly string[]
+    rememberThread: (id: string) => Promise<void>
+}) {
+    if (!isMessageEnabled(input.config, "debriefPost"))
+        return input.existingThreadId
+    const { guild, event, config } = input
+    let thread = input.existingThreadId
+        ? await fetchEventChannel(guild, input.existingThreadId)
+        : null
+    if (thread?.isThread() && thread.parentId === input.forumChannelId)
+        thread = null
+    if (
+        thread &&
+        (thread.type !== ChannelType.PrivateThread ||
+            thread.guildId !== guild.id)
+    )
+        throw new Error("Stored debrief is not a private thread in this guild")
+    if (!thread) {
+        if (!input.parentChannelId)
+            throw new Error("No channel configured for the private debrief")
+        const parent = await guild.channels.fetch(input.parentChannelId)
+        if (parent?.type !== ChannelType.GuildText)
+            throw new Error("The private debrief requires a guild text channel")
+        // Stable per-event name recovers a thread when Discord succeeded but state storage failed.
+        const suffix = ` · ${event.id}`
+        const name =
+            `${getRosterMessages(config.defaultLanguage).forum.debrief} · ${event.name}`.slice(
+                0,
+                100 - suffix.length
+            ) + suffix
+        const matches = (candidate: AnyThreadChannel) =>
+            candidate.type === ChannelType.PrivateThread &&
+            candidate.name.endsWith(suffix)
+        const active = await parent.threads.fetchActive()
+        thread = [...active.threads.values()].find(matches) ?? null
+        let before: Date | undefined
+        while (!thread) {
+            const archived = await parent.threads.fetchArchived({
+                type: "private",
+                fetchAll: true,
+                limit: 100,
+                before,
+            })
+            thread = [...archived.threads.values()].find(matches) ?? null
+            if (thread || !archived.hasMore) break
+            const timestamps = [...archived.threads.values()].flatMap(
+                (candidate) =>
+                    candidate.archiveTimestamp === null
+                        ? []
+                        : [candidate.archiveTimestamp]
+            )
+            const oldest = Math.min(...timestamps)
+            if (
+                !Number.isFinite(oldest) ||
+                (before && oldest >= before.getTime())
+            )
+                throw new Error(
+                    "Private debrief archive recovery did not progress"
+                )
+            before = new Date(oldest)
+        }
+        thread ??= await parent.threads.create({
+            name: name.slice(0, 100),
+            type: ChannelType.PrivateThread,
+            invitable: false,
+            autoArchiveDuration: 10080,
+        })
+    }
+    if (thread.type !== ChannelType.PrivateThread)
+        throw new Error("Invalid debrief thread type")
+    await input.rememberThread(thread.id)
+    if (thread.archived) await thread.setArchived(false)
+    if (thread.locked) await thread.setLocked(false)
+    const forumContext =
+        input.forumContext === undefined
+            ? await loadForumContext(event.id)
+            : input.forumContext
+    const view = debriefView({
+        event: forumEventOf(config, event, input.categories),
+        result: forumContext?.result
+            ? {
+                  ...forumContext.result,
+                  matchUrl: forumContext.publicMatch
+                      ? buildPublicMatchUrl(event.id, config.defaultLanguage)
+                      : undefined,
+              }
+            : null,
+        context: forumContextOf(config),
+    })
+    const pins = await thread.messages.fetchPins()
+    const card =
+        pins.items
+            .map((pin) => pin.message)
+            .find((message) => message.author.id === guild.client.user.id) ??
+        (await thread.messages.fetch({ limit: 100 })).find(
+            (message) => message.author.id === guild.client.user.id
+        )
+    if (card) {
+        await card.edit(editPayload(view, kitOptions(config)))
+        if (!card.pinned) await card.pin()
+    } else {
+        const sent = await thread.send(messagePayload(view, kitOptions(config)))
+        await sent.pin()
+    }
+    // An invitation failure leaves the forum intact and the sync pending for retry.
+    const members = await thread.members.fetch()
+    for (const id of input.participantIds) {
+        if (!members.has(id)) await thread.members.add(id)
+    }
+    return thread.id
+}
+
+/** Only a confirmed missing channel is safe to treat as already removed. */
+export async function fetchEventChannel(
+    guild: import("discord.js").Guild,
+    id: string
+) {
+    return guild.channels.fetch(id).catch((error: unknown) => {
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === 10003
+        )
+            return null
+        throw error
+    })
+}
+
+/** Preserve the original forum until its replacement and invitations succeed. */
+export async function concludeEventForum(
+    input: Parameters<typeof syncPrivateDebrief>[0]
+) {
+    const debriefId = await syncPrivateDebrief(input)
+    if (input.forumChannelId) {
+        const forum = await fetchEventChannel(input.guild, input.forumChannelId)
+        if (forum) {
+            if (forum.type !== ChannelType.GuildForum)
+                throw new Error("Stored event forum is not a forum channel")
+            await forum.delete(`Event concluded: ${input.event.name}`)
+        }
+    }
+    return debriefId
+}

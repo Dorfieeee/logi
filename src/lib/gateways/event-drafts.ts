@@ -28,6 +28,7 @@ function toArgs(input: EventDraftParsed) {
         topicPresetId: blank(input.topicPresetId),
         announcementChannelId: blank(input.announcementChannelId),
         eventInfoChannelId: blank(input.eventInfoChannelId),
+        eventResultsChannelId: blank(input.eventResultsChannelId),
         squadVoiceCategoryId: blank(input.squadVoiceCategoryId),
         // Training timelines start at the meeting.
         gameStart: input.gameStart || input.meetingStart,

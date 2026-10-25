@@ -5,6 +5,7 @@ import { ChannelFlags, ChannelType } from "discord.js"
 
 import {
     buildMatchForumName,
+    concludeEventForum,
     buildTopicMessage,
     finalizeForumAfterConclusion,
     findForumPost,
@@ -270,4 +271,238 @@ test("the Debrief is created once when the forum has none", async () => {
         calls.filter((call) => call.startsWith("create")),
         ["create Debrief"]
     )
+})
+
+function privateDebriefFixture() {
+    const calls: string[] = []
+    let saved = false
+    const card = {
+        author: { id: "bot" },
+        pinned: true,
+        edit: async () => {
+            calls.push("edit")
+        },
+        pin: async () => {
+            calls.push("pin")
+        },
+    }
+    const thread = {
+        id: "private",
+        type: ChannelType.PrivateThread,
+        guildId: concludedEvent.guildId,
+        parentId: "results",
+        name: `Debrief · Liga 4 · ${concludedEvent.id}`,
+        archived: false,
+        locked: false,
+        isThread: () => true,
+        setArchived: async () => {
+            calls.push("reopen")
+        },
+        setLocked: async () => {
+            calls.push("unlock")
+        },
+        messages: {
+            fetchPins: async () => ({
+                items: saved ? [{ message: card }] : [],
+            }),
+            fetch: async () => ({ find: () => (saved ? card : undefined) }),
+        },
+        send: async () => {
+            calls.push("send")
+            saved = true
+            return card
+        },
+        members: {
+            fetch: async () => new Map<string, unknown>(),
+            add: async (id: string) => {
+                calls.push(`invite ${id}`)
+            },
+        },
+    }
+    const parent = {
+        type: ChannelType.GuildText,
+        threads: {
+            fetchActive: async () => ({ threads: new Map() }),
+            fetchArchived: async () => ({ threads: new Map() }),
+            create: async (options: {
+                type: ChannelType
+                invitable: boolean
+            }) => {
+                assert.equal(options.type, ChannelType.PrivateThread)
+                assert.equal(options.invitable, false)
+                calls.push("create")
+                return thread
+            },
+        },
+    }
+    const guild = {
+        id: concludedEvent.guildId,
+        client: { user: { id: "bot" } },
+        channels: {
+            fetch: async (id: string) => {
+                if (id === "results") return parent
+                if (id === "private") return thread
+                if (id === "forum")
+                    return {
+                        type: ChannelType.GuildForum,
+                        delete: async () => {
+                            calls.push("delete forum")
+                        },
+                    }
+                return null
+            },
+        },
+    }
+    return {
+        calls,
+        thread,
+        parent,
+        input: {
+            guild: guild as never,
+            event: concludedEvent,
+            config: forumConfig,
+            parentChannelId: "results",
+            forumChannelId: "forum",
+            participantIds: ["player"],
+            forumContext: null,
+            rememberThread: async (id: string) => {
+                assert.equal(id, "private")
+                calls.push("remember")
+            },
+        },
+    }
+}
+
+test("private debrief is saved and invites participants before deleting the forum", async () => {
+    const f = privateDebriefFixture()
+    assert.equal(await concludeEventForum(f.input), "private")
+    assert.deepEqual(f.calls, [
+        "create",
+        "remember",
+        "send",
+        "pin",
+        "invite player",
+        "delete forum",
+    ])
+    f.calls.length = 0
+    f.thread.archived = true
+    f.thread.locked = true
+    await concludeEventForum({ ...f.input, existingThreadId: "private" })
+    assert.deepEqual(f.calls, [
+        "remember",
+        "reopen",
+        "unlock",
+        "edit",
+        "invite player",
+        "delete forum",
+    ])
+})
+
+test("failed invitation keeps the forum and retry reuses the recorded debrief", async () => {
+    const f = privateDebriefFixture()
+    f.thread.members.add = async () => {
+        throw new Error("Discord denied invitation")
+    }
+    await assert.rejects(concludeEventForum(f.input), /denied invitation/)
+    assert.ok(f.calls.includes("remember"))
+    assert.ok(!f.calls.includes("delete forum"))
+    f.calls.length = 0
+    f.thread.members.add = async () => {
+        f.calls.push("invited")
+    }
+    await concludeEventForum({ ...f.input, existingThreadId: "private" })
+    assert.ok(!f.calls.includes("create"))
+    assert.equal(f.calls.at(-1), "delete forum")
+})
+
+test("recover an unrecorded private thread without creating a duplicate", async () => {
+    const f = privateDebriefFixture()
+    f.parent.threads.fetchArchived = async () => ({
+        threads: new Map([["private", f.thread]]),
+    })
+    await concludeEventForum(f.input)
+    assert.ok(!f.calls.includes("create"))
+    assert.equal(f.calls.at(-1), "delete forum")
+})
+
+test("missing or unsupported parent preserves the forum", async () => {
+    const f = privateDebriefFixture()
+    await assert.rejects(
+        concludeEventForum({ ...f.input, parentChannelId: undefined }),
+        /No channel configured/
+    )
+    f.parent.type = ChannelType.GuildForum
+    await assert.rejects(
+        concludeEventForum(f.input),
+        /requires a guild text channel/
+    )
+    assert.deepEqual(f.calls, [])
+})
+
+test("disabled debrief still permits explicitly requested forum deletion", async () => {
+    const f = privateDebriefFixture()
+    await concludeEventForum({
+        ...f.input,
+        config: { ...forumConfig, debriefPostEnabled: false },
+    })
+    assert.deepEqual(f.calls, ["delete forum"])
+})
+
+test("existing thread members are not invited again", async () => {
+    const f = privateDebriefFixture()
+    f.thread.members.fetch = async () => new Map([["player", {}]])
+    await concludeEventForum(f.input)
+    assert.ok(!f.calls.includes("invite player"))
+    assert.equal(f.calls.at(-1), "delete forum")
+})
+
+test("debrief recovery walks older archive pages before creating anything", async () => {
+    const f = privateDebriefFixture()
+    let pages = 0
+    f.parent.threads.fetchArchived = async () => {
+        pages += 1
+        return pages === 1
+            ? {
+                  threads: new Map([
+                      [
+                          "older",
+                          {
+                              ...f.thread,
+                              name: "Other event",
+                              archiveTimestamp: 1000,
+                          },
+                      ],
+                  ]),
+                  hasMore: true,
+              }
+            : { threads: new Map([["private", f.thread]]), hasMore: false }
+    }
+    await concludeEventForum(f.input)
+    assert.equal(pages, 2)
+    assert.ok(!f.calls.includes("create"))
+})
+
+test("a stored public debrief in the disposable forum is replaced by a private thread", async () => {
+    const f = privateDebriefFixture()
+    f.thread.type = ChannelType.PublicThread
+    f.thread.parentId = "forum"
+    // Return the old public post once; newly created thread is private.
+    const fetch = f.input.guild as unknown as {
+        channels: { fetch: (id: string) => Promise<unknown> }
+    }
+    const original = fetch.channels.fetch
+    fetch.channels.fetch = async (id) => {
+        if (id === "old-debrief") return { ...f.thread }
+        return original(id)
+    }
+    f.parent.threads.create = async (options) => {
+        assert.equal(options.type, ChannelType.PrivateThread)
+        f.thread.type = ChannelType.PrivateThread
+        f.thread.parentId = "results"
+        f.calls.push("create")
+        return f.thread
+    }
+    await concludeEventForum({ ...f.input, existingThreadId: "old-debrief" })
+    assert.ok(f.calls.includes("create"))
+    assert.equal(f.calls.at(-1), "delete forum")
 })

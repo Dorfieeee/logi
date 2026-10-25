@@ -103,3 +103,51 @@ test("logo loading resolves public assets and permits only bounded Discord CDN i
         assert.equal(await load(url), null)
     assert.equal(requests.length, 1)
 })
+
+test("square logos keep their corners and no team or Logi backplate is drawn", async () => {
+    const logo = await sharp({
+        create: { width: 80, height: 80, channels: 4, background: "#ff0000" },
+    })
+        .png()
+        .toBuffer()
+    const renderer = createMatchImageRenderer({
+        publicDir: path.resolve("public"),
+        loadLogo: async () => logo,
+    })
+    const model = buildMatchImage({
+        clan: { name: "Clan" },
+        ownTeam: { name: "Clan", shortCode: "CLN", logoUrl: "square" },
+        language: "en",
+        timeZone: "UTC",
+        event: {
+            name: "Match",
+            meetingStart: "2026-10-25T18:30:00Z",
+            gameStart: "2026-10-25T19:00:00Z",
+        },
+    })
+    const png = await renderer(model)
+    const pixel = async (left: number, top: number) => [
+        ...(await sharp(png)
+            .extract({ left, top, width: 1, height: 1 })
+            .removeAlpha()
+            .raw()
+            .toBuffer()),
+    ]
+    assert.deepEqual(await pixel(526, 146), [255, 0, 0])
+    assert.deepEqual(await pixel(515, 220), [49, 51, 56])
+    assert.deepEqual(await pixel(1142, 633), [49, 51, 56])
+    const fallback = await render({
+        ...model,
+        teams: model.teams.map((t) => ({ ...t, logoUrl: null })),
+    })
+    assert.deepEqual(
+        [
+            ...(await sharp(fallback)
+                .extract({ left: 530, top: 220, width: 1, height: 1 })
+                .removeAlpha()
+                .raw()
+                .toBuffer()),
+        ],
+        [49, 51, 56]
+    )
+})

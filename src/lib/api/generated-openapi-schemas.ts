@@ -44,6 +44,9 @@ export const generatedOpenApiSchemas = {
             "eventInfoChannelId": {
                 "type": "string"
             },
+            "eventResultsChannelId": {
+                "type": "string"
+            },
             "meetingChannelId": {
                 "type": "string"
             },
@@ -371,6 +374,9 @@ export const generatedOpenApiSchemas = {
                 "type": "boolean"
             },
             "createSignupThread": {
+                "type": "boolean"
+            },
+            "deleteForumAfterConclusion": {
                 "type": "boolean"
             },
             "topicPresetId": {
@@ -763,6 +769,7 @@ export const generatedOpenApiSchemas = {
             "imageUrl": "string",
             "announcementChannelId": "string",
             "eventInfoChannelId": "string",
+            "eventResultsChannelId": "string",
             "meetingChannelId": "string",
             "createSquadVoiceChannels": true,
             "squadVoiceCategoryId": "string",
@@ -848,6 +855,7 @@ export const generatedOpenApiSchemas = {
             ],
             "createForumChannel": true,
             "createSignupThread": true,
+            "deleteForumAfterConclusion": true,
             "topicPresetId": "string",
             "stratmapIds": [
                 "string"
@@ -2583,6 +2591,9 @@ export const generatedOpenApiSchemas = {
     "ClanUsersDocument": {
         "type": "object",
         "properties": {
+            "firstSignedInAt": {
+                "type": "number"
+            },
             "sessionVersion": {
                 "type": "number"
             },
@@ -2728,6 +2739,7 @@ export const generatedOpenApiSchemas = {
             "id"
         ],
         "example": {
+            "firstSignedInAt": 0,
             "sessionVersion": 0,
             "discordId": "string",
             "id": "string",

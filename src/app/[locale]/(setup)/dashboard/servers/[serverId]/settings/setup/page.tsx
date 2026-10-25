@@ -75,6 +75,7 @@ export default async function GuidedSetupPage({
                     announcementsChannelId:
                         discordConfig?.announcementsChannelId,
                     eventInfoChannelId: discordConfig?.eventInfoChannelId,
+                    eventResultsChannelId: discordConfig?.eventResultsChannelId,
                     errorsChannelId: discordConfig?.errorsChannelId,
                 },
                 roles: {

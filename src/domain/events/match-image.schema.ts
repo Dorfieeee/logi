@@ -3,7 +3,7 @@ import { z } from "zod"
 
 const label = (max: number) => z.string().min(1).max(max)
 export const matchImageSchema = z.strictObject({
-    version: z.literal(1),
+    version: z.literal(2),
     language: z.enum(["en", "cs", "de"]),
     timeZone: z.string().max(64).refine(isValidTimeZone),
     game: label(100),

@@ -352,6 +352,7 @@ export type EventRecord = {
     imageUrl?: string
     announcementChannelId?: string
     eventInfoChannelId?: string
+    eventResultsChannelId?: string
     meetingChannelId?: string
     createSquadVoiceChannels?: boolean
     squadVoiceCategoryId?: string
@@ -383,6 +384,7 @@ export type EventRecord = {
     pingRoleIds?: string[]
     createForumChannel: boolean
     createSignupThread?: boolean
+    deleteForumAfterConclusion?: boolean
     topicPresetId?: string
     stratmapIds?: string[]
     /** Native match teams; absent or empty on legacy events. */

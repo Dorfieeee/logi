@@ -404,7 +404,7 @@ export const merge = mutation({
     },
 })
 
-/** Add-only provider import, with name/code matching in the same transaction as creation. */
+/** Provider import creates missing teams and refreshes existing logos transactionally. */
 export const importCatalogue = mutation({
     args: { ...platformAccess, gameId: v.string(), teams: v.any() },
     handler: async (ctx, args) => {
@@ -418,6 +418,12 @@ export const importCatalogue = mutation({
             .query("teamDirectory")
             .withIndex("gameId_normalizedName", (q) => q.eq("gameId", gameId))
             .take(TEAM_DIRECTORY_LIMIT + 1)
-        return await importTeams(ports, actor, gameId, existing, teams)
+        return await importTeams(
+            ports,
+            actor,
+            gameId,
+            existing.map((team) => ({ ...team, id: String(team._id) })),
+            teams
+        )
     },
 })

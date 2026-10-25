@@ -1,0 +1,22 @@
+✔ refreshes existing logos, skips source duplicates and failed logos; reports concurrent skips (1.780709ms)
+✔ provider failure does not read or write catalogue (0.195125ms)
+✔ logo failures can be retried and a fully imported source performs no uploads or commit (0.177792ms)
+✔ logo preparation limits concurrent provider requests to four (4.316583ms)
+✔ transactional import preserves existing/archived teams and skips names OR codes per game and within batch (4.927417ms)
+✔ import mutation refuses workspace admins and invalid inputs (0.627708ms)
+✔ Wardogs cards yield decoded code, name and absolute logo, excluding navigation (4.246792ms)
+✔ HeLO maps name, tag and icon and rejects malformed data (0.768542ms)
+✔ logo network access is confined to HTTPS provider paths (0.090042ms)
+✔ Wardogs selects the provider logo rather than unrelated images in a card (0.383416ms)
+✔ HeLO rendered cards use the explicit Team Icon alt marker (0.675375ms)
+✔ one, two, three team, gray and result images render real 1200 × 675 PNGs (499.611375ms)
+✔ logo loading resolves public assets and permits only bounded Discord CDN images (9.088958ms)
+✔ square logos keep their corners and no team or Logi backplate is drawn (88.691958ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 800.755042

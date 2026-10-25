@@ -18,11 +18,15 @@ import {
     type PreparedTeam,
 } from "@/application/teams/scrape-teams.use-case"
 import { normalizeImage, inspectImage } from "@/lib/api/image-normalization"
+import { createMatchLogoLoader } from "@/lib/panel-image/match-logo-source"
 import { imageAssetDtoSchema } from "@/domain/assets/image-asset.schema"
+import { createPanelAssetLoader } from "@/lib/panel-image/asset-source"
 import { fetchAction, fetchMutation, fetchQuery } from "convex/nextjs"
 import { type SuperadminAccess } from "@/lib/api/superadmin-route"
+import { IMAGE_INPUT_TYPES } from "@/domain/assets/image-asset"
 import { readBoundedBytes } from "@/lib/api/request-bytes"
 import { makeFunctionReference } from "convex/server"
+import { getInternalAuthSecret } from "@/lib/env"
 import { randomBytes } from "node:crypto"
 import { getSiteUrl } from "@/lib/env"
 import { z } from "zod"
@@ -44,7 +48,11 @@ const storedSchema = z.object({
     ok: z.literal(true),
     asset: imageAssetDtoSchema,
 })
-const resultSchema = z.object({ created: z.number(), skipped: z.number() })
+const resultSchema = z.object({
+    created: z.number(),
+    updated: z.number(),
+    skipped: z.number(),
+})
 
 export async function scrapeTeamCatalogue(
     access: SuperadminAccess,
@@ -83,7 +91,7 @@ export async function scrapeTeamCatalogue(
                 return items
             },
             key: () => randomBytes(16).toString("hex"),
-            logo: async (url) => {
+            logo: async (url, existing) => {
                 const bytes = await download(url, IMAGE_MAX_INPUT_BYTES)
                 const image = await inspectImage(bytes)
                 if (
@@ -97,6 +105,44 @@ export async function scrapeTeamCatalogue(
                     throw new Error("Invalid logo")
                 // Imported GIFs become a static first frame, using the standard stored logo format.
                 const normalized = await normalizeImage(bytes, "team-logo")
+                if (existing?.logoAssetId && existing.logoUrl) {
+                    const resolved = z
+                        .object({
+                            url: z.url(),
+                            contentType: z.enum(IMAGE_INPUT_TYPES),
+                        })
+                        .nullable()
+                    const loadAsset = createPanelAssetLoader({
+                        resolve: async (publicId) =>
+                            resolved.parse(
+                                await fetchQuery(
+                                    makeFunctionReference<"query">(
+                                        "imageAssets:resolvePublic"
+                                    ),
+                                    {
+                                        secret: getInternalAuthSecret(),
+                                        publicId,
+                                    }
+                                )
+                            ),
+                        fetchStorage: (url) =>
+                            fetch(url, {
+                                redirect: "error",
+                                signal: AbortSignal.timeout(15000),
+                            }),
+                    })
+                    const current = await createMatchLogoLoader({
+                        siteUrl: getSiteUrl(),
+                        loadAsset,
+                    })(existing.logoUrl)
+                    if (
+                        current &&
+                        Buffer.from(current).equals(
+                            Buffer.from(normalized.bytes)
+                        )
+                    )
+                        return existing.logoAssetId
+                }
                 const publicId = randomBytes(16).toString("hex")
                 const result = storedSchema.parse(
                     await fetchAction(

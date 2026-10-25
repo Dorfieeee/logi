@@ -923,6 +923,7 @@ export default defineSchema({
         // on the event prevents later setting changes from moving existing bot messages.
         announcementChannelId: v.optional(v.string()),
         eventInfoChannelId: v.optional(v.string()),
+        eventResultsChannelId: v.optional(v.string()),
         meetingChannelId: v.optional(v.string()),
         createSquadVoiceChannels: v.optional(v.boolean()),
         squadVoiceCategoryId: v.optional(v.string()),
@@ -1004,6 +1005,7 @@ export default defineSchema({
         createForumChannel: v.optional(v.boolean()),
         // Opt-in only: absent legacy events must not get a thread.
         createSignupThread: v.optional(v.boolean()),
+        deleteForumAfterConclusion: v.optional(v.boolean()),
         topicPresetId: v.optional(v.id("topicPresets")),
         stratmapIds: v.optional(v.array(v.id("stratmaps"))),
         status: v.optional(

@@ -49,6 +49,7 @@ export async function saveServerEventCommand(input: {
     imageUrl?: string
     announcementChannelId?: string
     eventInfoChannelId?: string
+    eventResultsChannelId?: string
     meetingChannelId?: string
     createSquadVoiceChannels?: boolean
     squadVoiceCategoryId?: string
@@ -88,6 +89,7 @@ export async function saveServerEventCommand(input: {
     pingRoleIds?: string[]
     createForumChannel: boolean
     createSignupThread?: boolean
+    deleteForumAfterConclusion?: boolean
     topicPresetId?: string
     stratmapIds?: string[]
     /** Forwarded unchanged; Convex resolves and snapshots the selection. */
@@ -112,6 +114,7 @@ export async function saveServerEventCommand(input: {
         imageUrl: input.imageUrl,
         announcementChannelId: input.announcementChannelId,
         eventInfoChannelId: input.eventInfoChannelId,
+        eventResultsChannelId: input.eventResultsChannelId,
         meetingChannelId: input.meetingChannelId,
         createSquadVoiceChannels: input.createSquadVoiceChannels,
         squadVoiceCategoryId: input.squadVoiceCategoryId,
@@ -142,6 +145,7 @@ export async function saveServerEventCommand(input: {
         pingRoleIds: input.pingRoleIds,
         createForumChannel: input.createForumChannel,
         createSignupThread: input.createSignupThread,
+        deleteForumAfterConclusion: input.deleteForumAfterConclusion,
         topicPresetId: input.topicPresetId as never,
         stratmapIds: input.stratmapIds,
         matchTeams: input.matchTeams,

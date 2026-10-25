@@ -12,7 +12,7 @@ export type MatchImageTeam = {
     score: number | null
 }
 export type MatchImage = {
-    version: 1
+    version: 2
     language: "en" | "cs" | "de"
     timeZone: string
     game: string
@@ -148,7 +148,7 @@ export function buildMatchImage(input: MatchImageInput): MatchImage {
             (c) => normalized(c.id) === normalized(event.matchType)
         )?.label || event.matchType
     return {
-        version: 1,
+        version: 2,
         language: input.language,
         timeZone: input.timeZone,
         game: resolveGameScope(event.gameId),

@@ -1,0 +1,40 @@
+✔ refreshes existing logos, skips source duplicates and failed logos; reports concurrent skips (0.816ms)
+✔ provider failure does not read or write catalogue (0.179208ms)
+✔ logo failures can be retried and a fully imported source performs no uploads or commit (0.160042ms)
+✔ logo preparation limits concurrent provider requests to four (2.913959ms)
+✔ a missing or failed provider logo preserves an existing catalogue logo (0.181ms)
+✔ Wardogs map, independent time, layout and team positions survive editing (5.083167ms)
+✔ base HLL map without a preset remains selectable and TBD map stays empty (0.1645ms)
+✔ a stored match reads back into the flow exactly (0.489625ms)
+✔ an untouched edit sends every stored field and nothing optional (0.15075ms)
+✔ a new start moves the whole timeline and keeps every offset (0.1845ms)
+✔ changed template settings are sent; a cap of a group no longer offered is dropped (0.150167ms)
+✔ clearing settings sends empty values; reminders read as all four when never set (0.212833ms)
+✔ a new opponent keeps your stored team in slot a and a third Wardogs team (0.274042ms)
+✔ a legacy match without teams keeps its side and an unknown map (0.362042ms)
+✔ an offensive keeps its mode and follows your side (0.204375ms)
+✔ a training edits its meeting and never carries match fields (0.193166ms)
+✔ a weekly series stops, starts and follows its match to another day (0.40175ms)
+✔ a new match payload keeps the create flow's shape (0.306458ms)
+✔ an incoherent timeline is caught before saving (0.149459ms)
+✔ creation persists the edited sign-up roles, caps and general sign-up without unrelated caps (0.133458ms)
+✔ forum cleanup is checked for new matches and legacy edits remain unchecked (0.162334ms)
+✔ new and saved matches expose the same results routing as event info (0.119542ms)
+✔ Wardogs time and planning metadata validate, persist and explicitly clear (1.868ms)
+✔ omitting a plan preserves it only while editing the same map (0.121083ms)
+✔ base payload never carries match teams; create stores only resolved assignments (0.11525ms)
+✔ update preserves saved assignments when omitted and clears them with an explicit empty list (0.684958ms)
+✔ update keeps the template settings it is not sent (0.088667ms)
+✔ update changes caps, reminder offsets, participant roles and the squad preset (0.108ms)
+✔ update clears caps, reminders and the preset with empty values (0.09ms)
+✔ a training update never stores caps or a squad preset (0.06975ms)
+✔ forum cleanup defaults on for new matches and preserves legacy values on update (0.119417ms)
+✔ results routing is a trimmed creation-time choice just like event info (0.109291ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 144.614

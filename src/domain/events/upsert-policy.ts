@@ -29,6 +29,7 @@ export type EventUpsertInput = {
     imageUrl?: string
     announcementChannelId?: string
     eventInfoChannelId?: string
+    eventResultsChannelId?: string
     meetingChannelId?: string
     createSquadVoiceChannels?: boolean
     squadVoiceCategoryId?: string
@@ -54,6 +55,7 @@ export type EventUpsertInput = {
     createForumChannel?: boolean
     /** Opt-in only. Missing also means off for existing events. */
     createSignupThread?: boolean
+    deleteForumAfterConclusion?: boolean
     topicPresetId?: string
     stratmapIds?: string[]
     signupGroupIds?: string[]
@@ -114,6 +116,8 @@ export function buildEventCreationSettings(input: EventUpsertInput) {
             input.attendanceReminderHours
         ),
         createParticipantRoles: input.createParticipantRoles,
+        deleteForumAfterConclusion:
+            kind === "match" && (input.deleteForumAfterConclusion ?? true),
         squadPresetId:
             kind === "match"
                 ? input.squadPresetId?.trim() || undefined
@@ -138,6 +142,9 @@ export function buildEventUpdateSettings(input: EventUpsertInput) {
             : {}),
         ...(input.attendanceReminderHours !== undefined
             ? { attendanceReminderHours: tidied.attendanceReminderHours }
+            : {}),
+        ...(input.deleteForumAfterConclusion !== undefined
+            ? { deleteForumAfterConclusion: tidied.deleteForumAfterConclusion }
             : {}),
         ...(input.createParticipantRoles !== undefined
             ? { createParticipantRoles: input.createParticipantRoles }
@@ -181,6 +188,10 @@ export function buildEventBasePayload(input: EventUpsertInput) {
         eventInfoChannelId:
             kind === "match"
                 ? trimOptional(input.eventInfoChannelId)
+                : undefined,
+        eventResultsChannelId:
+            kind === "match"
+                ? trimOptional(input.eventResultsChannelId)
                 : undefined,
         meetingChannelId: trimOptional(input.meetingChannelId),
         createSquadVoiceChannels: Boolean(input.createSquadVoiceChannels),
@@ -321,6 +332,7 @@ export function buildUpdateEventPatch(
     const {
         announcementChannelId: _announcementChannelId,
         eventInfoChannelId: _eventInfoChannelId,
+        eventResultsChannelId: _eventResultsChannelId,
         ...mutableBase
     } = base
     const derivedStatus: EventStatus = deriveEventStatus(
@@ -346,6 +358,7 @@ export function buildUpdateEventPatch(
         gameId: input.gameId ?? existing.gameId,
         announcementChannelId: existing.announcementChannelId,
         eventInfoChannelId: existing.eventInfoChannelId,
+        eventResultsChannelId: existing.eventResultsChannelId,
         status: derivedStatus,
         statusUpdatedAt: nowIso,
         concludedAt:

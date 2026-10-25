@@ -1,0 +1,44 @@
+convex/eventAnnouncements.ts 715ms
+convex/eventRecurrence.ts 161ms (unchanged)
+convex/eventValidators.ts 93ms (unchanged)
+convex/events.ts 366ms (unchanged)
+convex/schema.ts 1242ms (unchanged)
+convex/teams.ts 170ms
+convex/websiteEventCommands.ts 220ms (unchanged)
+discord-bot/src/events/match-result.test.ts 69ms (unchanged)
+discord-bot/src/events/match-result.ts 63ms
+discord-bot/src/sync/events.ts 242ms (unchanged)
+discord-bot/src/types.ts 113ms (unchanged)
+src/app/[locale]/(setup)/dashboard/servers/[serverId]/settings/setup/page.tsx 49ms (unchanged)
+src/application/teams/import-teams.use-case.ts 29ms
+src/application/teams/scrape-teams.use-case.test.ts 58ms
+src/application/teams/scrape-teams.use-case.ts 44ms
+src/components/app/match-detail/match-detail-page.tsx 138ms
+src/components/app/new-match/flow-values.test.ts 187ms (unchanged)
+src/components/app/new-match/flow-values.ts 242ms (unchanged)
+src/components/app/new-match/new-match-flow.tsx 787ms (unchanged)
+src/components/app/new-match/new-match-page.tsx 30ms
+src/components/app/settings/discord-messages-settings.tsx 219ms
+src/components/app/settings/guided-setup/guided-setup-steps.tsx 102ms
+src/components/app/settings/guided-setup/guided-setup.tsx 128ms (unchanged)
+src/components/app/team-scrape-button.tsx 28ms (unchanged)
+src/domain/discord-sync/render-version.ts 4ms (unchanged)
+src/domain/events/match-image.schema.ts 14ms (unchanged)
+src/domain/events/match-image.ts 76ms (unchanged)
+src/domain/events/types.ts 21ms (unchanged)
+src/domain/events/upsert-policy.test.ts 73ms (unchanged)
+src/domain/events/upsert-policy.ts 76ms (unchanged)
+src/domain/teams/team-import.ts 18ms
+src/i18n/messages/cs.ts 923ms (unchanged)
+src/i18n/messages/de.ts 611ms (unchanged)
+src/i18n/messages/en.ts 898ms (unchanged)
+src/infrastructure/convex/team-import.test.ts 41ms
+src/infrastructure/team-sources/team-source.test.ts 13ms
+src/infrastructure/team-sources/team-source.ts 27ms
+src/lib/gateways/event-commands.ts 34ms (unchanged)
+src/lib/gateways/event-drafts.ts 14ms (unchanged)
+src/lib/gateways/team-scrape.ts 32ms
+src/lib/panel-image/match-render.test.ts 28ms
+src/lib/panel-image/match-render.ts 89ms
+src/lib/validation/event.ts 70ms (unchanged)
+src/types/domain.ts 86ms (unchanged)

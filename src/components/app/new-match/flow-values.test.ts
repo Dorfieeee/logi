@@ -477,3 +477,48 @@ test("creation persists the edited sign-up roles, caps and general sign-up witho
     assert.equal(payload.useGeneralSignup, true)
     assert.deepEqual(payload.requiredRoleIds, ["discord-member"])
 })
+
+test("forum cleanup is checked for new matches and legacy edits remain unchecked", () => {
+    const values = newFlowValues({
+        kind: "match",
+        gameId: "hell_let_loose",
+        timezone: zone,
+        groups: [],
+        templates: [],
+        channelDefaults: {},
+        now: new Date("2026-10-10T10:00:00Z"),
+    })
+    assert.equal(values.deleteForumAfterConclusion, true)
+    assert.equal(
+        flowEventPayload(values, {
+            timezone: zone,
+            name: "Match",
+            ownTeamId: null,
+        }).deleteForumAfterConclusion,
+        true
+    )
+    assert.equal(
+        flowValuesFromEvent(match(), zone).deleteForumAfterConclusion,
+        false
+    )
+})
+
+test("new and saved matches expose the same results routing as event info", () => {
+    const initial = newFlowValues({
+        kind: "match",
+        gameId: "wardogs",
+        groups: [],
+        templates: [],
+        channelDefaults: {
+            wardogs: { eventResultsChannelId: "shared-results" },
+        },
+        timezone: zone,
+        now: new Date("2026-10-25T00:00:00Z"),
+    })
+    assert.equal(initial.eventResultsChannelId, "shared-results")
+    const restored = flowValuesFromEvent(
+        match({ eventResultsChannelId: "saved-results" }),
+        zone
+    )
+    assert.equal(restored.eventResultsChannelId, "saved-results")
+})

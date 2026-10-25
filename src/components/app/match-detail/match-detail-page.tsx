@@ -173,8 +173,12 @@ export async function MatchDetailPage({
                 ? getDiscordChannelNames(serverId, guildDiscordId)
                 : Promise.resolve(new Map<string, string>()),
             actor && activeTab === "result"
-                ? discordConfig?.eventResultsChannelId
-                    ? Promise.resolve(discordConfig.eventResultsChannelId)
+                ? (event.eventResultsChannelId ??
+                  discordConfig?.eventResultsChannelId)
+                    ? Promise.resolve(
+                          event.eventResultsChannelId ??
+                              discordConfig?.eventResultsChannelId
+                      )
                     : getResultsPanelChannelId({
                           guildId: guildDiscordId,
                           gameId,

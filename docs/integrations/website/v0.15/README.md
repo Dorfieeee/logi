@@ -522,3 +522,10 @@ The public wiki covers the workspace view of the catalogue and requests
 [Settings](../../../../content/configuration/settings.mdx) and the global
 administration tools in the
 [Administrator reference](../../../../content/administration.mdx).
+
+Provider scraping remains a global-admin dashboard operation under the existing
+catalogue-write API exception. It now refreshes logos on a unique active
+name/code match, retaining team identity and all other metadata. Responses add
+`updated` alongside `created`, `skipped` and `failed`; unchanged images reuse
+the existing asset, while failed/missing images preserve the old logo. Saved
+match snapshots are never rewritten by scraping.

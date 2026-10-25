@@ -1,0 +1,4 @@
+
+> logi@1.1.0 generate:openapi
+> tsx scripts/generate-openapi-schemas.ts
+

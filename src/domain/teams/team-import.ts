@@ -26,3 +26,20 @@ export function teamImportIndex(existing: readonly ImportTeamIdentity[]) {
         },
     }
 }
+
+/** Match both identities; ambiguous matches must never overwrite a different team. */
+export function matchingImportTeams<T extends ImportTeamIdentity>(
+    existing: readonly T[],
+    team: ImportTeamIdentity
+): T[] {
+    return existing.filter(
+        (item) =>
+            normalizeTeamName(item.name) === normalizeTeamName(team.name) ||
+            Boolean(
+                item.shortCode &&
+                team.shortCode &&
+                normalizeTeamName(item.shortCode) ===
+                    normalizeTeamName(team.shortCode)
+            )
+    )
+}

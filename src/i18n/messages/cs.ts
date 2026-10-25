@@ -1582,9 +1582,9 @@ export const csMessages = {
         scrapeHll: "Synchronizovat týmy z HeLO (2024)",
         scrapingTeams: "Načítání týmů…",
         scrapeDescription:
-            "Přidá chybějící týmy a jejich loga do globálního katalogu této hry. Existující názvy nebo zkratky přeskočí. Týmy do soutěže přihlaste samostatně.",
+            "Doplní chybějící týmy a aktualizuje loga existujících týmů. Chybějící nebo nedostupné logo nesmaže uložené logo. Týmy přihlaste do soutěže samostatně.",
         scrapeResult:
-            "Vytvořeno: {created}. Přeskočeno: {skipped}. Selhalo: {failed}. Neúspěšné týmy můžete zkusit znovu.",
+            "Vytvořeno: {created}. Aktualizovaná loga: {updated}. Přeskočeno: {skipped}. Chyby: {failed}. Neúspěšné týmy lze zkusit znovu.",
         scrapeError: "Import týmů selhal. Zkuste to prosím znovu.",
 
         searchLabel: "Hledat tým",
@@ -4331,6 +4331,9 @@ export const csMessages = {
                         "Vyberte kanály na svém Discordu. Pro jednotlivé hry je později můžete nastavit jinak.",
                     announcements: "Oznámení",
                     announcementsHelp: "Nové akce a změny soupisek.",
+                    eventResults: "Výsledky akcí",
+                    eventResultsHelp:
+                        "Potvrzená skóre zápasů a odkazy na statistiky. Volitelné; společné pro hry.",
                     eventInfo: "Informace o akci",
                     eventInfoHelp: "Podrobnosti a přihlášky k akci.",
                     errors: "Chyby bota",
@@ -5060,6 +5063,7 @@ export const csMessages = {
             rolesPlaceholder: "Vybrat role",
         },
         discord: {
+            results: "Výsledky akcí",
             announcement: "Ohlášení a přihlášky",
             roster: "Soupiska",
             ping: "Ping",
@@ -5068,6 +5072,9 @@ export const csMessages = {
             pingRoles: "Vybrané role",
             pingRolesLabel: "Role k pingnutí",
             forum: "Fórum k zápasu",
+            deleteForumAfterConclusion: "Smazat fórum po ukončení zápasu",
+            deleteForumAfterConclusionHint:
+                "Po ručním i automatickém ukončení pozvat účastníky do soukromého debrief vlákna v kanálu výsledků → informací → registrací a smazat fórum zápasu včetně příspěvků.",
             signupThread: "Diskuzní vlákno akce",
             signupThreadHint:
                 "Vytvoří veřejné vlákno pod oznámením a udržuje jeho členy podle přihlášek.",
