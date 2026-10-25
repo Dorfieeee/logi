@@ -13,12 +13,12 @@ export const historyReadPaths = {
         get: {
             tags: ["Clan API — Game data"],
             operationId: "readServerGameHistory",
-            summary: "Read retained completed Warcon games",
+            summary: "Read retained completed HLL or Wardogs server games",
             description:
-                "Explicit server-game-history + wardogs read grants required; legacy keys denied. Returns retained source facts even if collection is disabled. Includes provider player names and platform IDs, not verified Logi identities or clan results. Completed games only; coverage begins at the oldest successfully imported provider record. Filters use the game end time, from inclusive and until exclusive. At most 20 scanned games per page; an empty page can have a continuation. Consume all pages at one revision before publishing rankings. On 410 discard the partial scan and restart. Read id alone for one record. Capture a changes cursor before bootstrap, then reconcile server-game-history changes through sync-records. Always no-store.",
+                "Explicit server-game-history and the exact requested game read grants required; legacy keys denied. game=wardogs pairs provider=wardogs_warcon; game=hell_let_loose pairs provider=hll_crcon. Retained source facts survive disabled collection. Provider player names/platform IDs are not verified Logi identities or clan results. HLL retains allied/axis scores and observed kills/deaths/combat/offense/defense/support; no inferred winner, player result, playtime or Warcon metadata. Completed maps only; coverage begins at successfully retained provider records and may have gaps. End-time filters: from inclusive, until exclusive. At most 20 scanned native rows and a 1 MB native read budget per page, 2 MiB response bound; empty pages can continue. Finish every page at one game-scoped revision before publishing totals. On 410 discard the partial scan and restart. Cursors bind caller/workspace/game/filters. Read id alone for one record. Capture a game-scoped changes cursor before bootstrap, then reconcile server-game-history through sync-records. Always no-store.",
             "x-logi-read-access": {
                 resource: "server-game-history",
-                games: ["wardogs"],
+                games: ["wardogs", "hell_let_loose"],
                 explicitGrantRequired: true,
             },
             parameters: [
@@ -26,7 +26,10 @@ export const historyReadPaths = {
                     name: "game",
                     in: "query",
                     required: true,
-                    schema: { type: "string", enum: ["wardogs"] },
+                    schema: {
+                        type: "string",
+                        enum: ["wardogs", "hell_let_loose"],
+                    },
                 },
                 ...["id", "cursor", "sourceId", "map", "from", "until"].map(
                     (name) => ({

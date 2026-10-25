@@ -1,6 +1,8 @@
 import { historyRetentionSettingsSchema } from "@/domain/game-data/history-retention"
 import { getServerContextUncached } from "@/lib/read-models/server-context"
 import { currentDashboardActor } from "@/lib/gateways/dashboard-actor"
+import { historyBackendGameArgs } from "@/lib/api/game-history-route"
+import { historyGameSchema } from "@/domain/game-data/history"
 import { getInternalAuthSecret, getSiteUrl } from "@/lib/env"
 import { fetchMutation, fetchQuery } from "convex/nextjs"
 import { readBoundedJson } from "@/lib/api/request-json"
@@ -24,14 +26,27 @@ async function access(context: Context) {
         : null
 }
 
-export async function GET(_request: Request, context: Context) {
+function requestedGame(request: Request) {
+    const params = new URL(request.url).searchParams
+    if (
+        [...params.keys()].some((key) => key !== "game") ||
+        params.getAll("game").length > 1
+    )
+        return null
+    const parsed = historyGameSchema.safeParse(params.get("game") ?? "wardogs")
+    return parsed.success ? parsed.data : null
+}
+
+export async function GET(request: Request, context: Context) {
+    const gameId = requestedGame(request)
+    if (!gameId) return json({ error: "Invalid game." }, 400)
     const args = await access(context)
     if (!args) return json({ error: "Forbidden." }, 403)
     try {
         return json(
             await fetchQuery(
                 makeFunctionReference<"query">("gameHistoryRetention:read"),
-                args
+                { ...args, ...historyBackendGameArgs(gameId) }
             )
         )
     } catch {
@@ -40,6 +55,8 @@ export async function GET(_request: Request, context: Context) {
 }
 
 export async function POST(request: Request, context: Context) {
+    const gameId = requestedGame(request)
+    if (!gameId) return json({ error: "Invalid game." }, 400)
     if (request.headers.get("origin") !== new URL(getSiteUrl()).origin)
         return json({ error: "Forbidden." }, 403)
     const args = await access(context)
@@ -58,7 +75,11 @@ export async function POST(request: Request, context: Context) {
                 makeFunctionReference<"mutation">(
                     "gameHistoryRetention:configure"
                 ),
-                { ...args, retentionDays: input.data.retentionDays }
+                {
+                    ...args,
+                    ...historyBackendGameArgs(gameId),
+                    retentionDays: input.data.retentionDays,
+                }
             )
         )
     } catch {

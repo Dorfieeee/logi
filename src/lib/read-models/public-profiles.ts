@@ -1,6 +1,11 @@
 import { makeFunctionReference } from "convex/server"
 import { fetchQuery } from "convex/nextjs"
 
+import {
+    publicPlayerLookupArguments,
+    publicPlayerCacheKey,
+    type PublicPlayerIdentifierKind,
+} from "@/domain/player-stats/public-identity"
 import { selectPlayerMatchWindow } from "@/domain/player-stats/match-window"
 import type { CollectionFilter } from "@/domain/shared/collection-query"
 import type { GameId, GameSelection } from "@/domain/games/game"
@@ -66,9 +71,13 @@ export async function getPublicPreview(
     )
 }
 
-export async function getPublicPlayerProfile(playerId: string, game?: GameId) {
+export async function getPublicPlayerProfile(
+    playerId: string,
+    game?: GameId,
+    identifierKind?: PublicPlayerIdentifierKind
+) {
     return await cachedRead(
-        ["public-player:v4", playerId, game ?? "default"],
+        publicPlayerCacheKey(playerId, game, identifierKind),
         [
             appCacheTags.publicProfile(playerId),
             appCacheTags.player(playerId),
@@ -79,10 +88,10 @@ export async function getPublicPlayerProfile(playerId: string, game?: GameId) {
         async () =>
             (await fetchQuery(getPublicPlayerReference, {
                 secret: getInternalAuthSecret(),
-                playerId,
-                ...(game ? { game } : {}),
+                ...publicPlayerLookupArguments(playerId, game, identifierKind),
             })) as {
                 id: string
+                identityBinding?: string
                 name: string
                 avatar: string
                 clans: Array<{

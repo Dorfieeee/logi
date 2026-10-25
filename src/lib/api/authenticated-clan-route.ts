@@ -140,13 +140,34 @@ export async function authenticateClanRequestWith(
     }
     if (providerGrant) {
         headers["Cache-Control"] = "no-store"
+        const params = new URL(request.url).searchParams
+        const historyGame = params.get("game")
+        if (
+            providerGrant === "server-game-history" &&
+            (params.getAll("game").length !== 1 ||
+                (historyGame !== "wardogs" && historyGame !== "hell_let_loose"))
+        )
+            return NextResponse.json(
+                {
+                    error: {
+                        code: "invalid_query",
+                        message: "One exact history game is required.",
+                    },
+                },
+                { status: 400, headers }
+            )
         if (
             request.method !== "GET" ||
             !isApiKeyReadAccess(authenticated.readAccess) ||
             !allowsApiKeyRead(
                 authenticated.readAccess,
                 providerGrant,
-                providerGrant === "hll-live" ? "hell_let_loose" : "wardogs"
+                providerGrant === "server-game-history" &&
+                    historyGame === "hell_let_loose"
+                    ? "hell_let_loose"
+                    : providerGrant === "hll-live"
+                      ? "hell_let_loose"
+                      : "wardogs"
             )
         )
             return NextResponse.json(

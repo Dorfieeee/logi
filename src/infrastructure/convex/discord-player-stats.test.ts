@@ -106,11 +106,15 @@ test("bot history reads stay in the guild, omit other players, and reject a chan
     r.session.players[0].platformId = steamId
     ctx.db.seed("serverGameHistory", {
         ...r,
+        gameId: undefined,
+        provider: undefined,
         _id: r.id,
         endedAt: r.session.endedAt,
     })
     ctx.db.seed("serverGameHistory", {
         ...r,
+        gameId: undefined,
+        provider: undefined,
         _id: "foreign",
         guildId: "other",
         endedAt: r.session.endedAt,

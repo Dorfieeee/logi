@@ -58,6 +58,34 @@ test("retained history collection accepts the canonical explicit Wardogs game qu
     }
 })
 
+test("HLL history authorization requires its exact game grant and rejects missing or repeated games", async () => {
+    for (const [query, grantedGame, expected] of [
+        ["game=hell_let_loose", "hell_let_loose", 200],
+        ["game=hell_let_loose", "wardogs", 403],
+        ["game=wardogs", "hell_let_loose", 403],
+        ["game=all", "hell_let_loose", 400],
+        ["", "hell_let_loose", 400],
+        ["game=hell_let_loose&game=wardogs", "hell_let_loose", 400],
+    ] as const) {
+        const result = await authenticateClanRequestWith(
+            new Request(
+                `https://logi.test/api/v1/clan/server-game-history?${query}`,
+                { headers: { authorization: "Bearer fixture" } }
+            ),
+            createDependencies({
+                authenticateKey: async () => ({
+                    guildId: "guild-1",
+                    readAccess: {
+                        resources: ["server-game-history"],
+                        gameIds: [grantedGame],
+                    },
+                }),
+            })
+        )
+        assert.equal(isAuthError(result) ? result.status : 200, expected)
+    }
+})
+
 test("League reads require both explicit Wardogs grants and reject legacy/write access", async () => {
     for (const [readAccess, method, expected] of [
         [undefined, "GET", 403],

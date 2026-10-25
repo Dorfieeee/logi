@@ -9,6 +9,10 @@ export const HISTORY_METRICS = [
     "teamKills",
     "suicides",
     "vehicleKills",
+    "combat",
+    "offense",
+    "defense",
+    "support",
 ] as const
 type Metric = (typeof HISTORY_METRICS)[number]
 export type HistoryPlayer = {
@@ -36,11 +40,14 @@ export function aggregateHistory(
         throw new Error("Invalid playtime floor.")
     const latest = new Map<string, HistoryRecord>()
     let guildId: string | undefined
+    let gameId: HistoryRecord["gameId"] | undefined
     for (const candidate of input) {
         const record = historyRecordSchema.parse(candidate)
         guildId ??= record.guildId
+        gameId ??= record.gameId
         if (record.guildId !== guildId)
             throw new Error("Mixed history workspace.")
+        if (record.gameId !== gameId) throw new Error("Mixed history game.")
         const previous = latest.get(record.id)
         if (!previous || BigInt(record.revision) > BigInt(previous.revision))
             latest.set(record.id, record)
@@ -64,10 +71,10 @@ export function aggregateHistory(
     const players = new Map<string, HistoryPlayer>()
     let feedGames = 0
     for (const { session } of records) {
-        const metadata = session.warcon!
-        outcomes[metadata.outcome]++
-        if (metadata.hasFeed) feedGames++
-        for (const side of metadata.factions) {
+        const metadata = session.warcon
+        outcomes[metadata?.outcome ?? "unknown"]++
+        if (metadata?.hasFeed) feedGames++
+        for (const side of metadata?.factions ?? []) {
             const faction = factions.get(side.name) ?? {
                 name: side.name,
                 colorHex: null,
@@ -77,13 +84,16 @@ export function aggregateHistory(
             }
             faction.colorHex = side.colorHex ?? faction.colorHex
             faction.appearances++
-            if (metadata.outcome === "decided" && side.name === metadata.winner)
+            if (
+                metadata?.outcome === "decided" &&
+                side.name === metadata.winner
+            )
                 faction.wins++
             factions.set(side.name, faction)
         }
         // A provider can name a winner without retaining the final scoreboard.
         if (
-            metadata.winner &&
+            metadata?.winner &&
             !metadata.factions.some((f) => f.name === metadata.winner)
         ) {
             const winner = factions.get(metadata.winner) ?? {
@@ -131,7 +141,8 @@ export function aggregateHistory(
                 // Feed-only zeros without a feed are unknown, not observed zeros.
                 if (
                     typeof value !== "number" ||
-                    (!metadata.hasFeed &&
+                    (metadata &&
+                        !metadata.hasFeed &&
                         !["seconds", "kills", "deaths", "cashDelta"].includes(
                             metric
                         ))
@@ -147,7 +158,8 @@ export function aggregateHistory(
     for (const player of players.values()) {
         const { seconds, kills, deaths } = player.metrics
         player.eligible =
-            seconds.value !== null && seconds.value >= minMinutes * 60
+            (gameId === "hell_let_loose" && minMinutes === 0) ||
+            (seconds.value !== null && seconds.value >= minMinutes * 60)
         // A flawless record is a ratio against one death, as on the live scoreboard.
         player.kd =
             kills.knownGames === player.matches &&

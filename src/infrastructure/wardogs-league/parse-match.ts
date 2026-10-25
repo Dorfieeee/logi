@@ -1,11 +1,16 @@
 import {
+    finalPlacementScoringRule,
+    leagueTeamCode,
+    parseFinalPlacementTeams,
+    parseLeagueResults,
+} from "./parse-results"
+import {
     leagueMatchSchema,
     LeagueError,
     PARSER_VERSION,
     type LeagueMatch,
 } from "../../domain/wardogs-league/contracts"
 import { matchUrl } from "../../domain/wardogs-league/match-url"
-import { parseLeagueResults } from "./parse-results"
 // `cheerio/slim` parses with htmlparser2 only; the full entry would bundle
 // parse5, undici and the encoding sniffer into every Convex module that
 // imports this parser (ARCHITECTURE.md, "Convex hot paths").
@@ -45,10 +50,12 @@ export function parseMatchHtml(html: string, sourceUrl: string): LeagueMatch {
     )
         throw new LeagueError("invalid_html")
     const warnings: string[] = []
+    const resultLayout =
+        main.find('section[aria-labelledby="placements-title"]').length > 0
     const section = (label: string, warning: string) => {
         const node = main.find(`section[aria-labelledby="${label}"]`)
         if (node.length > 1) throw new LeagueError("invalid_html")
-        if (!node.length) warnings.push(`missing_${warning}`)
+        if (!node.length && !resultLayout) warnings.push(`missing_${warning}`)
         return node
     }
     const lineup = section("lineup-title", "lineup")
@@ -56,7 +63,7 @@ export function parseMatchHtml(html: string, sourceUrl: string): LeagueMatch {
     const vote = section("vote-title", "map_vote")
     const rules = section("rules-title", "rules")
     const where = main.find("section#where")
-    if (!where.length) warnings.push("missing_hosting")
+    if (!where.length && !resultLayout) warnings.push("missing_hosting")
     const field = (label: string) =>
         brief
             .find("dt")
@@ -85,11 +92,12 @@ export function parseMatchHtml(html: string, sourceUrl: string): LeagueMatch {
             .map(
                 (s) =>
                     s.match(
-                        /^(Scheduled|Live|Completed|Cancelled|Canceled|Disputed|Confirmed|Finished|No.show)(?:\s*·.*)?$/i
+                        /^(Scheduled|Live|Completed|Cancelled|Canceled|Disputed|Confirmed|Set by admin|Finished|No.show)(?:\s*·.*)?$/i
                     )?.[1]
             )
             .find(Boolean) ?? null
-    if (status !== "Scheduled") warnings.push("unverified_match_state")
+    if (!["Scheduled", "Confirmed", "Set by admin"].includes(status ?? ""))
+        warnings.push("unverified_match_state")
     let teams: LeagueMatch["teams"] = null
     if (lineup.length) {
         teams = []
@@ -97,7 +105,7 @@ export function parseMatchHtml(html: string, sourceUrl: string): LeagueMatch {
         for (const el of lineup.find("ul > li > a[href]").toArray()) {
             const card = $(el)
             const href = card.attr("href") ?? ""
-            const code = /^\/teams\/([A-Za-z0-9_-]{1,80})$/.exec(href)?.[1]
+            const code = leagueTeamCode(href)
             if (!code || seen.has(code)) throw new LeagueError("invalid_html")
             seen.add(code)
             const leaves = card
@@ -147,6 +155,7 @@ export function parseMatchHtml(html: string, sourceUrl: string): LeagueMatch {
             warnings.push("missing_team_cards")
         }
     }
+    if (!teams && resultLayout) teams = parseFinalPlacementTeams($)
     const choices = (node: typeof main) => {
         const entries = node
             .find("ul > li")
@@ -216,7 +225,9 @@ export function parseMatchHtml(html: string, sourceUrl: string): LeagueMatch {
             parserVersion: PARSER_VERSION,
             title,
             fixtureNumber: Number(fixture[1]),
-            type: fixture[2],
+            type: resultLayout
+                ? fixture[2].replace(/\s*·\s*Result$/, "")
+                : fixture[2],
             status,
             scheduledAt,
             request,
@@ -265,7 +276,9 @@ export function parseMatchHtml(html: string, sourceUrl: string): LeagueMatch {
                 progress?.find((step) => step.label === "Ready check")
                     ?.detail ?? null,
             progress,
-            scoringRule: value("Points"),
+            scoringRule:
+                value("Points") ??
+                (resultLayout ? finalPlacementScoringRule($) : null),
             results: placements.results,
             warnings,
         })

@@ -2,8 +2,8 @@ import {
     historyPageSchema,
     historyRecordSchema,
 } from "../../domain/game-data/history"
+import { historyRecord, hllHistoryRecord } from "../testing/game-history"
 import { read } from "../../../convex/gameHistoryReads"
-import { historyRecord } from "../testing/game-history"
 import assert from "node:assert/strict"
 import test from "node:test"
 
@@ -31,12 +31,16 @@ class Database {
         ],
         serverGameHistory: Array.from({ length: 21 }, (_, n) => {
             const r = historyRecord(`game-${n}`)
-            return {
+            const row: Row = {
                 _id: r.id,
                 ...r,
                 endedAt: r.session.endedAt,
                 map: r.session.map,
             }
+            // Faithful legacy/new Wardogs storage: game/provider are implicit.
+            delete row.gameId
+            delete row.provider
+            return row
         }),
     }
     query(table: string) {
@@ -104,6 +108,68 @@ const handler = (
         ) => Promise<unknown>
     }
 )._handler
+
+test("HLL retained pages and details require the exact game grant and keep revisions separate from legacy Wardogs", async (t) => {
+    const previous = process.env.INTERNAL_AUTH_SECRET
+    process.env.INTERNAL_AUTH_SECRET = "synthetic-history-secret"
+    t.after(() => {
+        if (previous === undefined) delete process.env.INTERNAL_AUTH_SECRET
+        else process.env.INTERNAL_AUTH_SECRET = previous
+    })
+    const db = new Database(),
+        record = hllHistoryRecord()
+    db.tables.serverGameHistory.unshift({
+        ...record,
+        _id: record.id,
+        endedAt: record.session.endedAt,
+        map: record.session.map,
+    })
+    db.tables.serverGameHistoryHeads.push({
+        _id: "hll-head",
+        guildId: record.guildId,
+        gameId: "hell_let_loose",
+        revision: "9",
+        lastCollectedAt: record.collectedAt,
+    })
+    const args = {
+        secret: "synthetic-history-secret",
+        keyHash: "hash",
+        guildId: record.guildId,
+        gameId: "hell_let_loose",
+        filters: {},
+        cursor: null,
+    }
+    assert.equal(await handler({ db }, args), null)
+    db.tables.apiKeys[0].readAccess = {
+        resources: ["server-game-history"],
+        gameIds: ["hell_let_loose", "wardogs"],
+    }
+    const first = historyPageSchema.parse(await handler({ db }, args))
+    assert.equal(first.revision, "9")
+    assert.deepEqual(
+        first.items.map((row) => row.id),
+        [record.id]
+    )
+    assert.equal(
+        historyRecordSchema.parse(
+            await handler({ db }, { ...args, id: record.id })
+        ).gameId,
+        "hell_let_loose"
+    )
+    assert.equal(await handler({ db }, { ...args, id: "game-1" }), null)
+    assert.equal(
+        await handler({ db }, { ...args, gameId: "wardogs", id: record.id }),
+        null
+    )
+    const wardogs = historyPageSchema.parse(
+        await handler({ db }, { ...args, gameId: "wardogs" })
+    )
+    assert.equal(wardogs.revision, "1")
+    assert.ok(wardogs.items.every((row) => row.gameId === "wardogs"))
+    assert.deepEqual(await handler({ db }, { ...args, revision: "1" }), {
+        resetRequired: true,
+    })
+})
 
 test("retained history enforces current explicit key/workspace and bounded revision-consistent pages", async (t) => {
     const previous = process.env.INTERNAL_AUTH_SECRET

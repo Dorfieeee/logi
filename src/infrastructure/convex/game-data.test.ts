@@ -1,4 +1,5 @@
 import { collectSessions } from "../../application/game-data/collect-sessions"
+import type { ProviderSession } from "../../domain/game-data/contracts"
 import { warconMatchDetail, warconServerId } from "../testing/warcon"
 import * as publicApiReads from "../../../convex/publicApiReads"
 import * as history from "../../../convex/gameDataHistory"
@@ -23,6 +24,7 @@ class Database {
         ],
     }
     query(table: string) {
+        let indexName = ""
         const checks: Array<(row: Row) => boolean> = []
         const index = {
             eq: (key: string, value: unknown) => {
@@ -51,14 +53,24 @@ class Database {
                 checks.every((check) => check(row))
             )
         const query = {
-            withIndex: (_name: string, fn: (q: typeof index) => unknown) => {
+            withIndex: (name: string, fn: (q: typeof index) => unknown) => {
+                indexName = name
                 fn(index)
                 return query
             },
             unique: async () => rows()[0] ?? null,
             first: async () => rows()[0] ?? null,
             collect: async () => rows(),
-            take: async (n: number) => rows().slice(0, n),
+            take: async (n: number) => {
+                const selected = rows()
+                // Convex index reads default to ascending index order, across tenants.
+                if (indexName === "nextAttemptAt")
+                    selected.sort(
+                        (a, b) =>
+                            Number(a.nextAttemptAt) - Number(b.nextAttemptAt)
+                    )
+                return selected.slice(0, n)
+            },
             paginate: async () => ({
                 page: rows(),
                 continueCursor: "",
@@ -300,6 +312,136 @@ test("atomic claim excludes a concurrent worker; disable fences the old success"
         false
     )
     assert.equal(ctx.db.tables.gameDataConnections[0].observation, null)
+})
+
+test("snapshot claims preserve oldest-due tenant order, poll/backoff boundaries and tick cutoff", async (t) => {
+    const ctx = fixture(t)
+    let now = Date.now()
+    const tickStartedAt = now
+    t.mock.method(Date, "now", () => now)
+    const sources = [
+        { ...source, ref: "a-later" },
+        { ...source, ref: "b-oldest", guildId: "guild-b" },
+        { ...source, ref: "a-backoff" },
+        { ...source, ref: "b-long-poll", guildId: "guild-b" },
+        { ...source, ref: "a-paused" },
+    ]
+    process.env.LOGI_GAME_DATA_SOURCES = JSON.stringify(sources)
+    for (const entry of sources)
+        await handler(gameData.configure)(ctx, {
+            secret: "synthetic-data-secret",
+            guildId: entry.guildId,
+            sourceRef: entry.ref,
+            enabled: true,
+        })
+    const rows = ctx.db.tables.gameDataConnections
+    Object.assign(rows[0], { nextAttemptAt: now - 10_000 })
+    Object.assign(rows[1], { nextAttemptAt: now - 30_000 })
+    Object.assign(rows[2], {
+        nextAttemptAt: now + 300_000,
+        errorCategory: "rate_limited",
+    })
+    Object.assign(rows[3], { nextAttemptAt: now + 3_600_000 })
+    Object.assign(rows[4], {
+        nextAttemptAt: null,
+        errorCategory: "unauthorized",
+    })
+    const first = (await handler(gameData.claimNext)(ctx, {
+        tickStartedAt,
+    })) as { id: string; generation: number; fence: number }
+    const second = (await handler(gameData.claimNext)(ctx, {
+        tickStartedAt,
+    })) as typeof first
+    assert.equal(
+        first.id,
+        rows[1]._id,
+        "another tenant's older source is served first"
+    )
+    assert.equal(second.id, rows[0]._id)
+    assert.equal(
+        await handler(gameData.claimNext)(ctx, { tickStartedAt }),
+        null,
+        "in-flight leases and future attempts remain excluded"
+    )
+    await handler(gameData.finishSnapshot)(ctx, {
+        ...first,
+        result: { errorCategory: null, nextAttemptAt: now + 60_000 },
+    })
+    await handler(gameData.finishSnapshot)(ctx, {
+        ...second,
+        result: { errorCategory: "timeout", nextAttemptAt: now + 5_000 },
+    })
+    now += 10_000
+    assert.equal(
+        await handler(gameData.claimNext)(ctx, { tickStartedAt }),
+        null,
+        "a five-second retry cannot repeat within its original tick"
+    )
+    const retry = (await handler(gameData.claimNext)(ctx, {})) as typeof first
+    assert.equal(
+        retry.id,
+        second.id,
+        "a later tick may honor the elapsed retry delay"
+    )
+    assert.equal(
+        await handler(gameData.claimNext)(ctx, {
+            tickStartedAt: now + 86_400_000,
+        }),
+        null,
+        "a future cutoff cannot bypass current poll/backoff or lease boundaries"
+    )
+    assert.equal(rows[2].nextAttemptAt, tickStartedAt + 300_000)
+    assert.equal(rows[3].nextAttemptAt, tickStartedAt + 3_600_000)
+    assert.equal(rows[4].nextAttemptAt, null)
+})
+
+test("snapshot storage failure leaves its claim leased for later fenced recovery", async (t) => {
+    const ctx = fixture(t)
+    let now = Date.now()
+    t.mock.method(Date, "now", () => now)
+    await handler(gameData.configure)(ctx, {
+        secret: "synthetic-data-secret",
+        guildId: source.guildId,
+        sourceRef: source.ref,
+        enabled: true,
+    })
+    const claim = (await handler(gameData.claimNext)(ctx, {})) as {
+        id: string
+        generation: number
+        fence: number
+    }
+    const row = ctx.db.tables.gameDataConnections[0]
+    const leaseUntil = row.leaseUntil
+    const failure = new Error("synthetic storage failure")
+    const failedPatch = t.mock.method(ctx.db, "patch", async () => {
+        throw failure
+    })
+    await assert.rejects(
+        handler(gameData.finishSnapshot)(ctx, {
+            ...claim,
+            result: { errorCategory: null, nextAttemptAt: Date.now() + 60_000 },
+        }),
+        (error) => error === failure
+    )
+    assert.equal(row.leaseUntil, leaseUntil)
+    assert.equal(row.fence, claim.fence)
+    assert.equal(await handler(gameData.claimNext)(ctx, {}), null)
+    failedPatch.mock.restore()
+    now = Number(leaseUntil) + 1
+    const recovered = (await handler(gameData.claimNext)(
+        ctx,
+        {}
+    )) as typeof claim
+    assert.equal(recovered.id, claim.id)
+    assert.equal(recovered.fence, claim.fence + 1)
+    assert.equal(
+        await handler(gameData.finishSnapshot)(ctx, {
+            ...claim,
+            result: { errorCategory: null, nextAttemptAt: now + 60_000 },
+        }),
+        false,
+        "the failed run cannot finish after a recovery claim supersedes it"
+    )
 })
 
 test("snapshot and health reads enforce key resource, game, tenant and revocation in Convex", async (t) => {
@@ -714,14 +856,17 @@ const hll = {
     provider: "hll_crcon",
     providerServerId: "1",
 }
-function completeSession(id: string) {
+function completeSession(id: string): ProviderSession {
     return {
         externalId: id,
         startedAt: "2026-10-01T10:00:00.000Z",
         endedAt: "2026-10-01T11:00:00.000Z",
         complete: true,
         map: "Foy" as string | null,
-        participants: [],
+        participants: [
+            { id: "allied", label: "Allies", score: 0 },
+            { id: "axis", label: "Axis", score: 5 },
+        ],
         players: [],
         sourceDigest: "b".repeat(64),
     }
@@ -747,7 +892,7 @@ async function enableHll(ctx: ReturnType<typeof fixture>) {
 /** One collector step against the Convex handlers, with a counting provider fake. */
 async function historyStep(
     ctx: ReturnType<typeof fixture>,
-    provider: { pages: string[][] },
+    provider: { pages: string[][]; sessions?: Record<string, ProviderSession> },
     calls: { pages: number[]; sessions: string[] }
 ) {
     ctx.db.tables.gameDataHistoryRuns[0].nextAttemptAt = 0
@@ -776,7 +921,7 @@ async function historyStep(
                 })) as string[],
             readSession: async (id) => {
                 calls.sessions.push(id)
-                return completeSession(id)
+                return provider.sessions?.[id] ?? completeSession(id)
             },
             commit: async (value) =>
                 (await handler(history.commit)(ctx, {
@@ -790,7 +935,7 @@ async function historyStep(
 }
 async function historyCycle(
     ctx: ReturnType<typeof fixture>,
-    provider: { pages: string[][] }
+    provider: { pages: string[][]; sessions?: Record<string, ProviderSession> }
 ) {
     const calls = { pages: [] as number[], sessions: [] as string[] }
     const modes: boolean[] = []
@@ -893,6 +1038,29 @@ test("history walks everything once, then stops at the first stored page until t
     assert.deepEqual(daily.calls.sessions, ["5", "4", "3", "2", "1"])
     assert.equal(writes.gameSessions, 2, "unchanged complete rows stay put")
     assert.ok((run().lastFullWalkAt as number) > Date.now() - 1_000)
+})
+
+test("a completed HLL map without a start remains usable in gameSessions and never stalls the collector checkpoint", async (t) => {
+    const ctx = fixture(t)
+    await enableHll(ctx)
+    const result = await historyCycle(ctx, {
+        pages: [["42", "43"]],
+        sessions: { "42": { ...completeSession("42"), startedAt: null } },
+    })
+    assert.deepEqual(result.calls.sessions, ["42", "43"])
+    assert.equal(ctx.db.tables.gameSessions.length, 2)
+    const undated = ctx.db.tables.gameSessions.find(
+        (row) => row.externalId === "42"
+    )!
+    assert.equal((undated.session as ProviderSession).startedAt, null)
+    assert.equal(undated.complete, true)
+    assert.deepEqual(
+        ctx.db.tables.serverGameHistory.map((row) => row.externalId),
+        ["43"]
+    )
+    assert.equal(ctx.db.tables.serverGameHistoryHeads[0].revision, "1")
+    assert.ok(ctx.db.tables.gameDataHistoryRuns[0].lastFullWalkAt)
+    assert.equal(ctx.db.tables.gameDataHistoryRuns[0].leaseUntil, 0)
 })
 
 test("a cycle keeps its walk mode until it ends; a new source generation walks in full", async (t) => {

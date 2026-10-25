@@ -58,3 +58,42 @@ export function historyRecord(id = "game-1"): HistoryRecord {
         },
     })
 }
+
+/** Synthetic completed CRCON map; scores do not identify a clan or player winner. */
+export function hllHistoryRecord(id = "hll-game-1"): HistoryRecord {
+    const base = historyRecord(id)
+    return historyRecordSchema.parse({
+        ...base,
+        gameId: "hell_let_loose",
+        provider: "hll_crcon",
+        serverName: "Synthetic HLL",
+        sourceId: "c".repeat(64),
+        session: {
+            externalId: "42",
+            startedAt: base.session.startedAt,
+            endedAt: base.session.endedAt,
+            complete: true,
+            map: "Foy",
+            sourceDigest: "d".repeat(64),
+            participants: [
+                { id: "allied", label: "Allies", score: 0 },
+                { id: "axis", label: "Axis", score: 5 },
+            ],
+            players: [
+                {
+                    platform: "steam",
+                    platformId: "synthetic-player",
+                    name: "Synthetic HLL player",
+                    metrics: {
+                        kills: 12,
+                        deaths: 0,
+                        combat: 400,
+                        offense: 0,
+                        defense: null,
+                        support: 20,
+                    },
+                },
+            ],
+        },
+    })
+}

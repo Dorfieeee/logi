@@ -12,23 +12,32 @@ Tests mutate this capture to remove/reorder sections, duplicate cards, change
 times or substitute an unsupported Completed label. Those are **synthetic
 regressions**, not evidence of a real completed, live, canceled or no-show page.
 
-## Capture still needed for League results
+## Verified final-result captures, 24 October 2026
 
-The WD League table and recent results are computed from League placements,
-which `../parse-results.ts` cannot read yet: no finished match page has been
-captured and wardogsleague.net is not reachable from the development sandbox.
-To add the parser (a change to `parse-results.ts` and its test only), capture
-anonymously, in the same reduced semantic form and with the same provenance
-notes:
+These are actual anonymous HTTP 200 `text/html; charset=utf-8` responses from
+the official League site. [results-provenance.json](results-provenance.json)
+records each exact URL, UTC capture time, original byte count and SHA-256,
+and the reduced fixture byte count and SHA-256. Raw scripts/RSC and media were
+discarded; only semantic main content remains. Index-tab navigation is retained
+because it establishes the index parser's fixtures/results tab contract.
 
-1. `completed.html`: a match whose header status reads "Completed" (or
-   "Confirmed") and whose "Match progress" shows "Placements 3/3" and
-   "Confirmed (done)". The page must show which team finished first, second
-   and third.
-2. If possible also a page after placements were entered but before the
-   "Confirmed" step, and one with a no-show, a tie or a dispute.
-3. `index-results.html`: the `?tab=results` index with at least one finished
-   match, to confirm the results tab lists match links like the fixtures tab.
+| Fixture | Official page | Observed meaning |
+| --- | --- | --- |
+| `completed-admin.html` | [Match #58](https://wardogsleague.net/matches/cmv520uf003glmm01f2ti157i) | `Set by admin`, Placements done with `0/3` submissions, final admin step done; explicit ranks III 1, ROG 2, HTD 3 |
+| `completed-confirmed.html` | [Match #26](https://wardogsleague.net/matches/cmuim5nu20073lf01332kozcf) | `Confirmed`, Placements `3/3`, Confirmed done; explicit ranks ROG 1, BMF 2, RCNE 3 |
+| `completed-two-ranked.html` | [Match #16](https://wardogsleague.net/matches/cmuduewpx0001o601v5we0g4e) | `Set by admin`, **two** teams; published ranks AK\| 2 and BAMC 3, without a first-place row; profile path `AK%7C` |
+| `index-results.html` | [Results index](https://wardogsleague.net/matches?tab=results) | Public match links include all three captures; no authenticated account or Team API key |
 
-Record the URL, capture time, HTTP status, content type and original byte
-size here, as for `scheduled.html`.
+Final pages replace the old `lineup-title`/`brief-title` sections with
+`section[aria-labelledby="placements-title"]`, whose direct ordered-list cards
+show a numeric rank and a team profile link/code/name/faction. The header names
+the actual team count. The scoring rule explicitly says `1st 3 pts · 2nd 2 · 3rd 1`.
+The result parser uses those ranks and identities, never list order, point totals,
+map votes or submission count. It requires exactly the stated number of cards
+and the matching Confirmed/Set by admin progress step to be done.
+
+Ties, reordered/removed/duplicated cards, foreign links, disputed/unknown statuses
+and unfinished confirmation in tests are **synthetic regressions derived from
+these captures**, not evidence of live tied, disputed, provisional or no-show
+markup. The two-ranked capture does not establish why first place is absent;
+Logi keeps the two published ranks without inventing a winner or no-show.

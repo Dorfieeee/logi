@@ -15,6 +15,7 @@ import {
     resolveSource,
     workspaceSources,
 } from "./gameDataCatalog"
+import { snapshotDueCutoff } from "../src/domain/game-data/snapshot-rules"
 import { authorizeDashboardAdmin, dashboardActor } from "./dashboardActor"
 import { gameDataError, gameDataObservation } from "./gameDataValidators"
 import { mutation, internalMutation } from "./integrationMutation"
@@ -172,13 +173,16 @@ export const listConnections = query({
 })
 
 export const claimNext = internalMutation({
-    args: {},
-    handler: async (ctx): Promise<ResolvedClaim | null> => {
+    args: { tickStartedAt: v.optional(v.number()) },
+    handler: async (ctx, args): Promise<ResolvedClaim | null> => {
         const now = Date.now()
+        const cutoff = snapshotDueCutoff(now, args.tickStartedAt)
+        // The index orders oldest due work across all tenants. A finished source's
+        // next poll/retry falls after this tick's cutoff, so it cannot consume it twice.
         const due = await ctx.db
             .query("gameDataConnections")
             .withIndex("nextAttemptAt", (q) =>
-                q.gte("nextAttemptAt", 0).lte("nextAttemptAt", now)
+                q.gte("nextAttemptAt", 0).lte("nextAttemptAt", cutoff)
             )
             .take(10)
         for (const row of due) {

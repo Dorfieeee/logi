@@ -1974,6 +1974,10 @@ export default defineSchema({
         ]),
     serverGameHistory: defineTable({
         guildId: v.string(),
+        // Wardogs keeps the original absent-field index partition. Only the HLL
+        // extension is explicit, so both reads stay indexed without a migration.
+        gameId: v.optional(v.literal("hell_let_loose")),
+        provider: v.optional(v.literal("hll_crcon")),
         sourceId: v.string(),
         externalId: v.string(),
         session: gameDataSession,
@@ -1987,12 +1991,16 @@ export default defineSchema({
     })
         .index("source_external", ["guildId", "sourceId", "externalId"])
         .index("guildId_endedAt", ["guildId", "endedAt"])
+        .index("guildId_gameId_endedAt", ["guildId", "gameId", "endedAt"])
         .index("guildId_sourceId_endedAt", ["guildId", "sourceId", "endedAt"]),
     serverGameHistoryHeads: defineTable({
         guildId: v.string(),
+        gameId: v.optional(v.literal("hell_let_loose")),
         revision: v.string(),
         lastCollectedAt: v.string(),
-    }).index("guildId", ["guildId"]),
+    })
+        .index("guildId", ["guildId"])
+        .index("guildId_gameId", ["guildId", "gameId"]),
     // Global team catalogue managed by Logi's global administrators.
     teamDirectory: defineTable({
         // Legacy workspace owner of records created before the catalogue became
@@ -2129,11 +2137,14 @@ export default defineSchema({
     discordApplicationEmoji,
     gameHistorySettings: defineTable({
         guildId: v.string(),
+        gameId: v.optional(v.literal("hell_let_loose")),
         // null keeps retained games indefinitely.
         retentionDays: v.union(v.number(), v.null()),
         updatedAt: v.string(),
         updatedBy: v.string(),
-    }).index("guildId", ["guildId"]),
+    })
+        .index("guildId", ["guildId"])
+        .index("guildId_gameId", ["guildId", "gameId"]),
     apiKeys: defineTable({
         guildId: v.string(),
         name: v.string(),

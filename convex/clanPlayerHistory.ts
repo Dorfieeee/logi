@@ -23,9 +23,12 @@ export const CLAN_PLAYER_HISTORY_GAMES = 60
 async function recentGames(ctx: Ctx, guildId: string) {
     const games = await ctx.db
         .query("serverGameHistory")
-        .withIndex("guildId_endedAt", (q) => q.eq("guildId", guildId))
+        .withIndex("guildId_gameId_endedAt", (q) =>
+            q.eq("guildId", guildId).eq("gameId", undefined)
+        )
         .order("desc")
         .take(CLAN_PLAYER_HISTORY_GAMES)
+    // This legacy lookup is Wardogs-only; HLL history has its own game-scoped API.
     return games.map((game) => ({
         endedAt: game.endedAt,
         serverName: game.serverName,

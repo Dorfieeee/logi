@@ -5,17 +5,20 @@ import type { Doc, Id } from "./_generated/dataModel"
 import { v } from "convex/values"
 
 import {
-    matchesGameScope,
-    resolveGameScope,
-    type GameId,
-    type GameSelection,
-} from "../src/domain/games/game"
+    isPublicPlayerDiscordSubject,
+    publicPlayerIdentityBinding,
+} from "../src/domain/player-stats/public-identity"
 import {
     getGuildByDiscordId,
     getGuildDiscordId,
     getUserByIdentifier,
     getUserStableId,
 } from "./identity"
+import {
+    matchesGameScope,
+    resolveGameScope,
+    type GameSelection,
+} from "../src/domain/games/game"
 import {
     filterCollection,
     paginateCollection,
@@ -118,10 +121,19 @@ export const getPlayer = query({
         secret: v.string(),
         playerId: v.string(),
         game: v.optional(v.string()),
+        identifierKind: v.optional(v.literal("discord")),
     },
     handler: async (ctx, args) => {
         assertInternalSecret(args.secret)
-        const user = await getUserByIdentifier(ctx, args.playerId)
+        let user: Doc<"users"> | null
+        if (args.identifierKind === "discord") {
+            if (!isPublicPlayerDiscordSubject(args.playerId)) return null
+            const matches = await ctx.db
+                .query("users")
+                .withIndex("discordId", (q) => q.eq("discordId", args.playerId))
+                .take(2)
+            user = matches.length === 1 ? matches[0] : null
+        } else user = await getUserByIdentifier(ctx, args.playerId)
         if (!user) return null
 
         const userId = getUserStableId(user)
@@ -169,6 +181,14 @@ export const getPlayer = query({
         )
         return {
             id: userId,
+            ...(args.identifierKind === "discord"
+                ? {
+                      identityBinding: await publicPlayerIdentityBinding(
+                          String(user._id),
+                          args.playerId
+                      ),
+                  }
+                : {}),
             name: user.name,
             avatar: user.avatar,
             clans,
