@@ -1,3 +1,4 @@
+import type { RegistrationMode, EnrollmentStatus } from "./enrollment"
 import type { FixturePhase, FixtureStatus } from "./competition"
 import type { GameId } from "../games/game"
 
@@ -22,6 +23,8 @@ export type CompetitionSummary = {
     name: string
     season: string
     description: string | null
+    registrationMode?: RegistrationMode
+    minimumLinkedPlayers?: number | null
     published: boolean
     createdAt: string
     updatedAt: string
@@ -43,6 +46,7 @@ export type CompetitionDivisionView = {
 export type CompetitionRegistrationView = {
     id: string
     divisionId: string | null
+    status?: EnrollmentStatus
     withdrawn: boolean
     team: CompetitionTeamView
 }

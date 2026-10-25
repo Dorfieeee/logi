@@ -378,3 +378,26 @@ test("the map picture is Logi's own art, reused on edits instead of uploaded aga
         null
     )
 })
+
+test("the generated picture fills only an empty match picture slot", () => {
+    const fallback = {
+        url: "attachment://generated.png",
+        description: "Generated match",
+    }
+    const payload = boardPayload(boardEvent())
+    const empty = buildAnnouncementCard(
+        payload,
+        boardEvent({ imageUrl: undefined }),
+        { generatedImage: fallback, now: BOARD_NOW }
+    )
+    assert.ok(JSON.stringify(empty.view).includes(fallback.url))
+    const custom = buildAnnouncementCard(
+        payload,
+        boardEvent({ imageUrl: "https://example.com/custom.png" }),
+        { generatedImage: fallback, now: BOARD_NOW }
+    )
+    assert.ok(
+        JSON.stringify(custom.view).includes("https://example.com/custom.png")
+    )
+    assert.ok(!JSON.stringify(custom.view).includes(fallback.url))
+})

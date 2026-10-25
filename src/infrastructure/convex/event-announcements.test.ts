@@ -179,3 +179,130 @@ test("Zobrazit přihlášené names the clan's dashboard record for its web link
     assert.equal(data.serverId, "guilds:vlci")
     assert.equal(data.event.guildId, guildId)
 })
+
+test("the shared results channel wins for every game without a game-specific panel", async () => {
+    const ctx = fixture()
+    ctx.db.seed("guilds", {
+        _id: "guilds:clan",
+        discordId: guildId,
+        name: "Clan",
+        avatar: "",
+        eventCategories: [],
+    })
+    ctx.db.seed("discordConfigs", {
+        _id: "discordConfigs:clan",
+        guildId,
+        eventResultsChannelId: "shared-results",
+        timezone: "Europe/Prague",
+        defaultLanguage: "en",
+    })
+    ctx.db.seed("discordPublicPanels", {
+        _id: "discordPublicPanels:old",
+        guildId,
+        gameId: "hell_let_loose",
+        kind: "results",
+        enabled: true,
+        channelId: "old-results",
+    })
+    for (const game of ["hell_let_loose", "wardogs"]) {
+        await ctx.db.patch("events:card", { gameId: game })
+        const data = await invoke(eventAnnouncements.getContext, ctx, {
+            secret,
+            eventId: "events:card",
+        })
+        assert.equal(data.resultsChannelId, "shared-results")
+    }
+})
+
+test("image context enforces tenant and draft boundaries and uses catalogue art facts", async () => {
+    const ctx = fixture()
+    ctx.db.seed("guilds", {
+        _id: "guilds:clan",
+        discordId: guildId,
+        name: "Clan",
+        avatar: "",
+        eventCategories: [{ id: "league", label: "League", color: "#ffffff" }],
+    })
+    ctx.db.seed("discordConfigs", {
+        _id: "discordConfigs:clan",
+        guildId,
+        timezone: "Europe/Prague",
+        defaultLanguage: "cs",
+    })
+    ctx.db.seed("competitions", {
+        _id: "competitions:league",
+        name: "Community League",
+    })
+    ctx.db.seed("competitionFixtures", {
+        _id: "competitionFixtures:game",
+        competitionId: "competitions:league",
+        round: 4,
+    })
+    await ctx.db.patch("events:card", {
+        matchType: "league",
+        competitionFixtureId: "competitionFixtures:game",
+    })
+    const args = { secret, eventId: "events:card", guildId, result: false }
+    const data = await invoke(eventAnnouncements.getImageContext, ctx, args)
+    assert.equal(data.model.league, "Community League · 4")
+    assert.equal(data.model.category, "League")
+    assert.equal(data.model.teams[0].name, "Clan")
+    assert.equal(data.model.timeZone, "Europe/Prague")
+    assert.equal(data.model.language, "cs")
+    assert.equal(
+        await invoke(eventAnnouncements.getImageContext, ctx, {
+            ...args,
+            guildId: "different",
+        }),
+        null
+    )
+    assert.equal(
+        await invoke(eventAnnouncements.getImageContext, ctx, {
+            ...args,
+            eventId: "events:draft",
+        }),
+        null
+    )
+    assert.equal(
+        await invoke(eventAnnouncements.getImageContext, ctx, {
+            ...args,
+            result: true,
+        }),
+        null
+    )
+    await assert.rejects(
+        invoke(eventAnnouncements.getImageContext, ctx, {
+            ...args,
+            secret: "wrong",
+        })
+    )
+})
+
+test("result image facts are reviewed, game-scoped and include Wardogs public statistics", async () => {
+    const ctx = fixture()
+    await ctx.db.patch("events:card", {
+        status: "concluded",
+        gameId: "wardogs",
+        reviewedResultGameId: "wardogs",
+        wardogsReportId: "wardogsMatchReports:game",
+        reviewedResult: {
+            status: "confirmed",
+            version: 1,
+            participants: [
+                { id: "valkyra", label: "Valkyra", score: 300 },
+                { id: "lonestar", label: "Lonestar", score: 200 },
+            ],
+        },
+    })
+    const args = { secret, eventId: "events:card" }
+    const data = await invoke(eventAnnouncements.getContext, ctx, args)
+    assert.equal(data.publicMatch, true)
+    assert.equal(data.imageResult.participants[0].score, 300)
+    await ctx.db.patch("events:card", {
+        reviewedResultGameId: "hell_let_loose",
+    })
+    assert.equal(
+        (await invoke(eventAnnouncements.getContext, ctx, args)).imageResult,
+        null
+    )
+})

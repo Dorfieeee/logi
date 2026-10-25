@@ -1,3 +1,4 @@
+import { hasCompetitionHistory } from "../src/domain/competitions/enrollment"
 import { mutation, query, type QueryCtx } from "./_generated/server"
 import type { Doc, Id } from "./_generated/dataModel"
 import { v } from "convex/values"
@@ -80,7 +81,11 @@ async function competitionSlugs(
         ])
     ).flat()
     const ids = [
-        ...new Set(registrations.map((row) => String(row.competitionId))),
+        ...new Set(
+            registrations
+                .filter(hasCompetitionHistory)
+                .map((row) => String(row.competitionId))
+        ),
     ]
     const competitions = await Promise.all(
         ids.map((id) => ctx.db.get(id as Id<"competitions">))
@@ -229,7 +234,7 @@ export const competitionClanLinks = query({
             )
             .take(500)
         const links: Record<string, string> = {}
-        for (const row of registrations) {
+        for (const row of registrations.filter(hasCompetitionHistory)) {
             let key: string
             let guild: Doc<"guilds"> | null = null
             if (row.teamId) {

@@ -1,0 +1,5 @@
+
+> logi@1.1.0 check:convex-bundles
+> node scripts/check-convex-bundles.mjs
+
+Convex bundles OK: 176 V8 modules, 10 "use node" modules.

@@ -166,7 +166,7 @@ export type NewMatchFlowProps = {
     topicPresets: Array<{ id: string; name: string }>
     stratmaps: Array<{ id: string; title: string; gameId?: GameId }>
     timezone: string
-    clan: { name: string }
+    clan: { name: string; avatar?: string }
     linkedTeams: TeamDto[]
     /** Default announcement and roster channels per game. */
     channelDefaults: ChannelDefaults
@@ -517,6 +517,7 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
         intl,
         timezone,
         clanName: props.clan.name,
+        clanAvatar: props.clan.avatar,
         ownTeam: ownDisplay,
         templateName: template?.name ?? null,
         groups,
@@ -2350,6 +2351,15 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                             }
                                                             className="border-border rounded-[10px] border p-3"
                                                         />
+                                                        {field === "imageUrl" &&
+                                                        !values.imageUrl ? (
+                                                            <Hint>
+                                                                {
+                                                                    t.more
+                                                                        .automaticImage
+                                                                }
+                                                            </Hint>
+                                                        ) : null}
                                                         {values[field] ? (
                                                             <button
                                                                 type="button"
@@ -3680,6 +3690,7 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                 <div className="flex max-w-[460px] min-w-0 flex-[1_1_360px] flex-col">
                     <NewMatchPreview
                         model={previewModel}
+                        serverId={serverId}
                         step={step}
                         dictionary={dictionary}
                         copy={props.previewCopy}

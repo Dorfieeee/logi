@@ -5,6 +5,10 @@ import {
     teamNameSchema,
     type TeamGame,
 } from "../teams/team"
+import {
+    registrationModeSchema,
+    minimumLinkedPlayersSchema,
+} from "./enrollment.schema"
 import type { GameId } from "../games/game"
 import { z } from "zod"
 
@@ -86,6 +90,8 @@ export const competitionCreateSchema = z.strictObject({
     season: competitionSeasonSchema,
     description: competitionDescriptionSchema.nullable().default(null),
     published: z.boolean().default(false),
+    registrationMode: registrationModeSchema.default("closed"),
+    minimumLinkedPlayers: minimumLinkedPlayersSchema.default(null),
 })
 export type CompetitionCreateInput = z.infer<typeof competitionCreateSchema>
 
@@ -97,6 +103,8 @@ export const competitionUpdateSchema = z
         season: competitionSeasonSchema.optional(),
         description: competitionDescriptionSchema.nullable().optional(),
         published: z.boolean().optional(),
+        registrationMode: registrationModeSchema.optional(),
+        minimumLinkedPlayers: minimumLinkedPlayersSchema.optional(),
     })
     .refine((value) => Object.values(value).some((v) => v !== undefined), {
         message: "An update must change at least one field.",
@@ -141,10 +149,13 @@ export const registrationUpdateSchema = z
     .strictObject({
         divisionId: competitionRecordIdSchema.optional(),
         withdrawn: z.boolean().optional(),
+        status: z.enum(["approved", "rejected"]).optional(),
     })
     .refine(
         (value) =>
-            value.divisionId !== undefined || value.withdrawn !== undefined,
+            value.divisionId !== undefined ||
+            value.withdrawn !== undefined ||
+            value.status !== undefined,
         { message: "An update must change at least one field." }
     )
 export type RegistrationUpdateInput = z.infer<typeof registrationUpdateSchema>

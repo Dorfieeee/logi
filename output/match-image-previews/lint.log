@@ -1,0 +1,327 @@
+
+/Users/peterzatko/WebstormProjects/logi/convex/publicApi.ts
+   16:15  warning  'Doc' is defined but never used                           @typescript-eslint/no-unused-vars
+  347:37  warning  '_readOnlyMatchTeams' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/peterzatko/WebstormProjects/logi/src/app/api/v1/openapi.json/route.ts
+  322:16  warning  '_genericSuccessResponse' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx
+   370:5   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:370:5
+  368 |     const [values, setValues] = useState<FlowValues>(initial)
+  369 |     const valuesRef = useRef(values)
+> 370 |     valuesRef.current = values
+      |     ^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  371 |     const [groups, setGroups] = useState(initialGroups)
+  372 |     const gameDefinition = props.gameCatalogue.find(
+  373 |         (game) => game.id === values.gameId                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/refs
+   410:5   error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:410:5
+  408 |     const saving = useRef<Promise<unknown> | null>(null)
+  409 |     const draftIdRef = useRef(draftId)
+> 410 |     draftIdRef.current = draftId
+      |     ^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  411 |
+  412 |     // Counts edits so a save only clears "dirty" for the values it sent.
+  413 |     const edits = useRef(0)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/refs
+   643:9   error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:643:9
+  641 |
+  642 |     const write = useCallback(
+> 643 |         async (publish: boolean) => {
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 644 |             const response = await fetch(
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 645 |                 `/api/servers/${serverId}/event-drafts`,
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 668 |             return { ok: response.ok && Boolean(body?.eventId), body }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 669 |         },
+      | ^^^^^^^^^^ Could not preserve existing memoization
+  670 |         [serverId, values, name, timezone, ownTeam?.id]
+  671 |     )
+  672 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/preserve-manual-memoization
+   670:28  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:670:28
+  668 |             return { ok: response.ok && Boolean(body?.eventId), body }
+  669 |         },
+> 670 |         [serverId, values, name, timezone, ownTeam?.id]
+      |                            ^^^^ This dependency may be modified later
+  671 |     )
+  672 |
+  673 |     const rememberDraft = useCallback((eventId: string) => {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/preserve-manual-memoization
+   670:44  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:670:44
+  668 |             return { ok: response.ok && Boolean(body?.eventId), body }
+  669 |         },
+> 670 |         [serverId, values, name, timezone, ownTeam?.id]
+      |                                            ^^^^^^^ This dependency may be modified later
+  671 |     )
+  672 |
+  673 |     const rememberDraft = useCallback((eventId: string) => {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/preserve-manual-memoization
+  1680:49  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:1680:49
+  1678 |                                             {sideSelect(
+  1679 |                                                 values.ownSide,
+> 1680 |                                                 setOwnSide,
+       |                                                 ^^^^^^^^^^ Cannot access ref value during render
+  1681 |                                                 t.match.yourSide
+  1682 |                                             )}
+  1683 |                                             {storedOwn                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/refs
+  1718:57  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:1718:57
+  1716 |                                                     {sideSelect(
+  1717 |                                                         values.opponentSide,
+> 1718 |                                                         setOpponentSide,
+       |                                                         ^^^^^^^^^^^^^^^ Cannot access ref value during render
+  1719 |                                                         t.match.opponentSide
+  1720 |                                                     )}
+  1721 |                                                     {refreshButton(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/refs
+  1800:57  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:1800:57
+  1798 |                                                     {sideSelect(
+  1799 |                                                         values.extraSide,
+> 1800 |                                                         (extraSide) =>
+       |                                                         ^^^^^^^^^^^^^^
+> 1801 |                                                             update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 1802 |                                                                 extraSide,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 1803 |                                                             }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  1804 |                                                         t.match.otherSide
+  1805 |                                                     )}
+  1806 |                                                     {refreshButton(                                                                                                                                                                                                                                                                                                                             react-hooks/refs
+  2595:45  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:2595:45
+  2593 |                                             values.registrationHours,
+  2594 |                                             t.time.hoursBeforeMeeting,
+> 2595 |                                             (registrationHours) =>
+       |                                             ^^^^^^^^^^^^^^^^^^^^^^
+> 2596 |                                                 update({ registrationHours }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  2597 |                                             720,
+  2598 |                                             true
+  2599 |                                         )}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/refs
+  2606:51  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:2606:51
+  2604 |                                                   values.meetingMinutes,
+  2605 |                                                   t.time.minutesBeforeStart,
+> 2606 |                                                   (meetingMinutes) =>
+       |                                                   ^^^^^^^^^^^^^^^^^^^
+> 2607 |                                                       update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2608 |                                                           meetingMinutes,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2609 |                                                       }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Passing a ref to a function may read its value during render
+  2610 |                                                   1440
+  2611 |                                               )
+  2612 |                                             : null}                                                                                                                                                                                                                                                                                                                                                                      react-hooks/refs
+  2618:45  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:2618:45
+  2616 |                                             values.durationMinutes,
+  2617 |                                             t.time.minutes,
+> 2618 |                                             (durationMinutes) =>
+       |                                             ^^^^^^^^^^^^^^^^^^^^
+> 2619 |                                                 update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2620 |                                                     durationMinutes: Math.max(
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2621 |                                                         1,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2622 |                                                         durationMinutes
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2623 |                                                     ),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2624 |                                                 }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  2625 |                                             1440
+  2626 |                                         )}
+  2627 |                                     </div>                                               react-hooks/refs
+  3191:41  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:3191:41
+  3189 |                                         values.announcementChannelId,
+  3190 |                                         textChannels,
+> 3191 |                                         (announcementChannelId) =>
+       |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3192 |                                             update({ announcementChannelId }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  3193 |                                         t.discord.defaultChannel,
+  3194 |                                         isEdit
+  3195 |                                     )}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/refs
+  3202:47  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:3202:47
+  3200 |                                               values.eventInfoChannelId,
+  3201 |                                               textChannels,
+> 3202 |                                               (eventInfoChannelId) =>
+       |                                               ^^^^^^^^^^^^^^^^^^^^^^^
+> 3203 |                                                   update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3204 |                                                       eventInfoChannelId,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3205 |                                                   }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Passing a ref to a function may read its value during render
+  3206 |                                               t.discord.defaultChannel,
+  3207 |                                               isEdit
+  3208 |                                           )                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/refs
+  3260:49  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:3260:49
+  3258 |                                                 t.discord.signupThread,
+  3259 |                                                 values.createSignupThread,
+> 3260 |                                                 (createSignupThread) =>
+       |                                                 ^^^^^^^^^^^^^^^^^^^^^^^
+> 3261 |                                                     update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3262 |                                                         createSignupThread,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3263 |                                                     }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  3264 |                                                 t.discord.signupThreadHint
+  3265 |                                             )}
+  3266 |                                             {switchRow(                                                                                                                                                                                                                                                                                                                                                                             react-hooks/refs
+  3270:49  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:3270:49
+  3268 |                                                 t.discord.forum,
+  3269 |                                                 values.createForumChannel,
+> 3270 |                                                 (createForumChannel) =>
+       |                                                 ^^^^^^^^^^^^^^^^^^^^^^^
+> 3271 |                                                     update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3272 |                                                         createForumChannel,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3273 |                                                     })
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  3274 |                                             )}
+  3275 |                                             {values.createForumChannel ? (
+  3276 |                                                 <div className="ml-12 flex flex-col gap-2">                                                                                                                                                                                                                                                                                                                                                 react-hooks/refs
+  3411:45  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:3411:45
+  3409 |                                             t.discord.voice,
+  3410 |                                             values.createSquadVoiceChannels,
+> 3411 |                                             (createSquadVoiceChannels) =>
+       |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3412 |                                                 update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3413 |                                                     createSquadVoiceChannels,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3414 |                                                 })
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  3415 |                                         )}
+  3416 |                                         {values.createSquadVoiceChannels ? (
+  3417 |                                             <div className="ml-12">                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/refs
+  3424:53  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:3424:53
+  3422 |                                                         "",
+  3423 |                                                     categoryChannels,
+> 3424 |                                                     (squadVoiceCategoryId) =>
+       |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3425 |                                                         update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3426 |                                                             squadVoiceCategoryId:
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3427 |                                                                 squadVoiceCategoryId ||
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3428 |                                                                 undefined,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3429 |                                                         }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  3430 |                                                     t.discord
+  3431 |                                                         .voiceCategoryDefault
+  3432 |                                                 )}  react-hooks/refs
+  3464:43  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:3464:43
+  3462 |                                           t.discord.participantRoles,
+  3463 |                                           values.createParticipantRoles ?? true,
+> 3464 |                                           (createParticipantRoles) =>
+       |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3465 |                                               update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3466 |                                                   createParticipantRoles,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3467 |                                               }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Passing a ref to a function may read its value during render
+  3468 |                                           (values.createParticipantRoles ??
+  3469 |                                               true) ||
+  3470 |                                               !(                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/refs
+  3487:41  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/Users/peterzatko/WebstormProjects/logi/src/components/app/new-match/new-match-flow.tsx:3487:41
+  3485 |                                         values.meetingChannelId ?? "",
+  3486 |                                         voiceChannels,
+> 3487 |                                         (meetingChannelId) =>
+       |                                         ^^^^^^^^^^^^^^^^^^^^^
+> 3488 |                                             update({
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3489 |                                                 meetingChannelId:
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3490 |                                                     meetingChannelId ||
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3491 |                                                     undefined,
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 3492 |                                             }),
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  3493 |                                         t.discord.meetingChannelDefault
+  3494 |                                     )}
+  3495 |                                     <Hint>{t.discord.meetingChannelHint}</Hint>                                                                                                                                                                      react-hooks/refs
+
+✖ 22 problems (19 errors, 3 warnings)
+

@@ -1,3 +1,4 @@
+import { WorkspaceMode } from "@/components/app/workspace-mode"
 import type { Metadata } from "next"
 
 import { settingsSnapshot } from "@/components/app/settings/settings-snapshot"
@@ -31,16 +32,25 @@ export default async function ServerSettingsPage({
         context.discordConfig
     )
     return (
-        <SettingsOverview
-            locale={locale}
-            serverId={serverId}
-            gameId={gameId}
-            snapshot={snapshot}
-            facts={await getSettingsOverviewFacts(
-                context.server,
-                snapshot.enabledGames
-            )}
-            dictionary={dictionary}
-        />
+        <>
+            <div className="px-4 lg:px-6">
+                <WorkspaceMode
+                    serverId={serverId}
+                    mode={context.server.workspaceMode}
+                    dictionary={dictionary}
+                />
+            </div>
+            <SettingsOverview
+                locale={locale}
+                serverId={serverId}
+                gameId={gameId}
+                snapshot={snapshot}
+                facts={await getSettingsOverviewFacts(
+                    context.server,
+                    snapshot.enabledGames
+                )}
+                dictionary={dictionary}
+            />
+        </>
     )
 }

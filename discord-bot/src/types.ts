@@ -117,6 +117,7 @@ export type DiscordConfig = {
     defaultLanguage: ClanLanguage
     announcementsChannelId?: string
     eventInfoChannelId?: string
+    eventResultsChannelId?: string
     errorsChannelId?: string
     calendarChannelId?: string
     calendarCategories: string[]
@@ -505,6 +506,8 @@ export type SyncPayload = {
     }>
     /** Active global teams linked to this workspace, used to repair legacy match cards. */
     linkedTeams?: Array<{
+        id?: string
+        logoUrl?: string | null
         gameId: "hell_let_loose" | "wardogs"
         name: string
         shortCode: string | null

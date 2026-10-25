@@ -251,6 +251,7 @@ function TourController({
     )
 
     useEffect(() => {
+        if (selectedServer?.workspaceMode === "competitions") return
         const nextTour: TourKind | null = !onboarding?.dashboardSetupCompletedAt
             ? "setup"
             : selectedServerId &&
@@ -268,6 +269,7 @@ function TourController({
         return () => window.clearTimeout(timer)
     }, [
         canManageSelectedServer,
+        selectedServer?.workspaceMode,
         currentTour,
         dismissedTours,
         onboarding?.dashboardSetupCompletedAt,

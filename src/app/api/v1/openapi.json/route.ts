@@ -26,6 +26,7 @@ import {
     peopleReadPaths,
     peopleResponseSchemas,
 } from "@/lib/api/people-openapi"
+import { competitionEnrollmentPaths } from "@/lib/api/competition-enrollment-openapi"
 import { membershipObservationSchema } from "@/domain/membership/observation.schema"
 import { externalRegistrationPaths } from "@/lib/api/external-registration-openapi"
 import { wardogsMatchResponseSchemas } from "@/lib/api/wardogs-match-openapi"
@@ -687,7 +688,7 @@ for (const resource of resources) {
             ...(resource === "result-summaries"
                 ? {
                       description:
-                          "Reviewed event-result snapshots with independent result-summaries/game grants. States unknown, provisional, confirmed and corrected. Scores preserve null and zero and support 2-16 factions. Private player/reviewer identities, free-text reasons and source addresses are excluded. Confirmation/correction are account-session-only; bearer writes are unavailable. Publication remains consumer-owned.",
+                          "Reviewed event-result snapshots with independent result-summaries/game grants. States unknown, provisional, confirmed and corrected. Includes manually entered score-only results without server or statistics links; provenance.origin identifies manual results and attribution does not imply player statistics. Scores preserve null and zero and support 2-16 factions. Private player/reviewer identities, free-text reasons and source addresses are excluded. Confirmation/correction are account-session-only; bearer writes are unavailable. Publication remains consumer-owned.",
                   }
                 : {}),
             tags: [resourceTags[resource]!],
@@ -812,6 +813,54 @@ paths["/clan/articles/{id}"] = {
         responses: {
             ...responses,
             "409": { description: "Idempotency conflict" },
+        },
+    },
+}
+
+paths["/clan/events/{eventId}/image"] = {
+    get: {
+        summary: "Render a generated match or reviewed result image",
+        description:
+            "Returns a 1200 × 675 PNG using the same renderer as Discord. Requires the events read grant for the event's game and clan. Drafts, trainings and unavailable reviewed results return 404. A custom match image takes precedence and returns 409 with error.imageUrl; result cards always use reviewed scores. Artwork uses the clan language/timezone, team snapshots and available map art. No server credentials are rendered.",
+        tags: ["Clan API — Events"],
+        security: [{ clanApiKey: [] }],
+        parameters: [
+            {
+                name: "eventId",
+                in: "path",
+                required: true,
+                schema: { type: "string" },
+            },
+            {
+                name: "view",
+                in: "query",
+                schema: {
+                    type: "string",
+                    enum: ["match", "result"],
+                    default: "match",
+                },
+            },
+        ],
+        responses: {
+            ...responses,
+            "200": {
+                description: "Generated image",
+                content: {
+                    "image/png": {
+                        schema: { type: "string", format: "binary" },
+                    },
+                },
+            },
+            "404": {
+                description:
+                    "Event or reviewed result not available in this scope",
+            },
+            "409": {
+                description:
+                    "Custom match image configured; use error.imageUrl",
+            },
+            "422": { description: "Invalid stored image facts" },
+            "503": { description: "Image render temporarily unavailable" },
         },
     },
 }
@@ -2439,6 +2488,7 @@ Article, group, calendar-item, roster, assignment, event, signup, stratmap, and 
             paths: {
                 ...paths,
                 ...websiteEventCommandPaths,
+                ...competitionEnrollmentPaths,
                 ...externalRegistrationPaths,
             },
         },

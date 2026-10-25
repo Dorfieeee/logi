@@ -36,7 +36,7 @@ export async function getRecentMatchSummary(
     gameScope: GameScope = "all"
 ): Promise<RecentMatchSummary | null> {
     return await cachedRead(
-        ["server-recent-match-summary:v5", serverId, gameScope],
+        ["server-recent-match-summary:v6", serverId, gameScope],
         [appCacheTags.serverContext(serverId), appCacheTags.matches(serverId)],
         async () =>
             (await fetchQuery(getRecentMatchSummaryReference, {

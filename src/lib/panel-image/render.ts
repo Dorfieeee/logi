@@ -1,3 +1,4 @@
+import { createMatchImageRenderer } from "./match-render"
 import { readFile } from "node:fs/promises"
 import { ImageResponse } from "next/og"
 import path from "node:path"
@@ -37,6 +38,7 @@ export type PanelImageRenderPorts = {
      * ID, or null when it is unknown or not live. Never a caller URL.
      */
     loadAsset(publicId: string): Promise<Uint8Array | null>
+    loadLogo?(url: string): Promise<Uint8Array | null>
 }
 type Background = Exclude<
     Extract<PanelImageRequest, { kind: "score" }>["model"]["background"],
@@ -60,6 +62,10 @@ function dataUrl(type: string, bytes: Uint8Array | Buffer) {
  * art is several megabytes, so it is decoded once per map and look.
  */
 export function createPanelImageRenderer(ports: PanelImageRenderPorts) {
+    const match = createMatchImageRenderer({
+        publicDir: ports.publicDir,
+        loadLogo: ports.loadLogo ?? (async () => null),
+    })
     let fonts: Promise<
         {
             name: string
@@ -197,6 +203,7 @@ export function createPanelImageRenderer(ports: PanelImageRenderPorts) {
     return {
         /** PNG bytes of one validated request; at most 1200 × 400. */
         async render(request: PanelImageRequest): Promise<Uint8Array> {
+            if (request.kind === "match") return match(request.model)
             const element =
                 request.kind === "score"
                     ? scoreImageElement(

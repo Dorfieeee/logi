@@ -1,4 +1,45 @@
 export const csMessages = {
+    competitionEnrollment: {
+        title: "Soutěže",
+        description:
+            "Přihlaste propojené týmy klanu, sledujte schválení nebo odstupte se zachováním historie zápasů.",
+        noTeams:
+            "S klanem není propojen žádný tým. Požádejte o tým nebo o propojení existujícího týmu správce Logi.",
+        teamsLink: "Spravovat týmy",
+        noCompetitions: "Zatím nejsou dostupné žádné soutěže.",
+        players: "Členové klanu přihlášení do Logi: {count}",
+        minimum: "Minimum přihlášených hráčů: {count}",
+        noMinimum: "Bez minimálního počtu hráčů",
+        closed: "Přihlašování uzavřeno",
+        approval: "Vyžaduje schválení správce",
+        automatic: "Automatické přihlášení",
+        enroll: "Přihlásit tým",
+        withdraw: "Odstoupit",
+        pending: "Čeká na schválení",
+        approved: "Přihlášen",
+        rejected: "Neschváleno",
+        withdrawn: "Odstoupil",
+        saved: "Uloženo",
+        error: "Uložení se nezdařilo. Zkuste to znovu.",
+        registration_closed: "Přihlašování do této soutěže je uzavřeno.",
+        minimum_players:
+            "Klan nesplňuje minimální počet hráčů přihlášených do Logi.",
+        team_not_owned: "Tento tým není propojen s vaším klanem.",
+        modeTitle: "Jak chcete Logi používat?",
+        modeDescription:
+            "Vyberte všechny nástroje pro správu klanu, nebo jednodušší nabídku pro soutěže a hráče. Volbu můžete později změnit v nastavení klanu.",
+        full: "Plné Logi",
+        competitions: "Pouze soutěže",
+        modeSave: "Uložit režim",
+        modeLabel: "Režim pracovního prostoru",
+        policy: "Přihlašování týmů",
+        minimumLabel: "Minimum členů klanu přihlášených do Logi",
+        minimumHelp:
+            "Prázdné pole znamená bez minima. Počítají se jedineční členové klanu, kteří se přihlásili do Logi; ověření Steamu není nutné.",
+        approve: "Schválit",
+        reject: "Zamítnout",
+        publicLink: "Zobrazit soutěž",
+    },
     wardogsMatchDetails: {
         ourTeam: "Tvůj tým",
         players: "Hráči",
@@ -3349,6 +3390,9 @@ export const csMessages = {
             announcements: "Oznámení",
             required: "povinné",
             announcementsHelp: "Nové akce a změny soupisek.",
+            eventResults: "Výsledky akcí",
+            eventResultsHelp:
+                "Potvrzené výsledky zápasů se skóre, výsledkem klanu a dostupnými statistikami. Jeden kanál pro všechny hry.",
             eventInfo: "Informace o akci",
             eventInfoHelp: "Podrobnosti a přihlášky k akci.",
             calendar: "Kalendář",
@@ -5097,6 +5141,8 @@ export const csMessages = {
             },
         },
         more: {
+            automaticImage:
+                "Bez obrázku Logi vytvoří grafiku s týmy, mapou a místním časem srazu. Vlastní obrázek ji nahradí.",
             title: "Další možnosti",
             summary: "Popis, obrázky, poznámky a taktické mapy",
             description: "Popis",

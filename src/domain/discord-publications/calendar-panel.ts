@@ -74,6 +74,8 @@ export type CalendarPanelInput = {
     timeZone: string
     clanName: string
     entries: readonly CalendarEntry[]
+    /** Configured categories in dashboard order, after the panel filter. */
+    categories?: readonly { label: string; color?: string | null }[]
     now: number
     /** The Logi calendar page ("Otevřít kalendář"). */
     calendarUrl: string | null
@@ -131,7 +133,7 @@ function rowTime(entry: CalendarEntry, input: CalendarPanelInput) {
         : start
 }
 
-function rowMarker(entry: CalendarEntry) {
+function categoryMarker(color: string | null | undefined) {
     const markers = {
         success: "🟢",
         warning: "🟡",
@@ -139,7 +141,7 @@ function rowMarker(entry: CalendarEntry) {
         neutral: "⚪",
         info: "🔵",
     } as const
-    return markers[categoryChipTone(entry.categoryColor)]
+    return markers[categoryChipTone(color)]
 }
 
 function groupedRows(
@@ -163,7 +165,7 @@ function groupedRows(
             `**${escapeMarkdownText(group.label)}**`,
             ...group.entries.map(
                 (entry) =>
-                    `${rowMarker(entry)} **${eventTitle(entry.title)}** · ${rowTime(entry, input)}`
+                    `${categoryMarker(entry.categoryColor)} **${eventTitle(entry.title)}** · ${rowTime(entry, input)}`
             ),
         ].join("\n"),
     }))
@@ -172,7 +174,20 @@ function groupedRows(
 export function calendarPanelView(input: CalendarPanelInput): MessageView {
     const { copy } = input
     const entries = input.entries
-    const content: MessageBlock[] = groupedRows(entries, input)
+    const content: MessageBlock[] = []
+    const categories =
+        input.categories?.filter((category) => category.label.trim()) ?? []
+    if (categories.length)
+        content.push({
+            kind: "text",
+            markdown: categories
+                .map(
+                    (category) =>
+                        `${categoryMarker(category.color)} ${escapeMarkdownText(category.label)}`
+                )
+                .join("\n"),
+        })
+    content.push(...groupedRows(entries, input))
     if (!entries.length) content.push({ kind: "text", markdown: copy.empty })
     return panelFrame({
         accentColor: input.accentColor,

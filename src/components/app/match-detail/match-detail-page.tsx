@@ -173,11 +173,13 @@ export async function MatchDetailPage({
                 ? getDiscordChannelNames(serverId, guildDiscordId)
                 : Promise.resolve(new Map<string, string>()),
             actor && activeTab === "result"
-                ? getResultsPanelChannelId({
-                      guildId: guildDiscordId,
-                      gameId,
-                      actor,
-                  })
+                ? discordConfig?.eventResultsChannelId
+                    ? Promise.resolve(discordConfig.eventResultsChannelId)
+                    : getResultsPanelChannelId({
+                          guildId: guildDiscordId,
+                          gameId,
+                          actor,
+                      })
                 : Promise.resolve(undefined),
         ])
     const resultState: MatchResultState =

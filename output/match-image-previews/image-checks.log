@@ -1,0 +1,43 @@
+◇ injected env (20) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+✔ confirmed results publish in the shared channel, with scores, a stats link and no ping (2.43725ms)
+✔ a corrected result changes the outcome on the same publication key (0.415459ms)
+✔ unreviewed or reopened matches withdraw their result; context failures preserve it (0.166417ms)
+✔ a render failure leaves the existing result intact and propagates for retry (0.069ms)
+✔ custom announcement pictures do not replace a scored result card (0.170333ms)
+✔ statistics links never expose credentials or non-web protocols (0.112583ms)
+✔ the review rows describe a stored match (5.633ms)
+✔ nothing changed lists nothing (0.733959ms)
+✔ changes read old to new, never show the password and follow the steps (0.559584ms)
+✔ a long text edited past its excerpt still reads as edited (0.440792ms)
+✔ the preview shows the current sign-ups against the caps (0.604209ms)
+✔ the preview keeps the home clan while its linked team is unavailable (0.199709ms)
+✔ no assigned teams centres the clan, preferring its linked catalogue identity (0.50625ms)
+✔ team snapshots keep slot order and historical logos; HLL has at most two teams (11.274417ms)
+✔ scores follow side labels even when participant ordering differs; a three-team clan beats every opponent (0.261333ms)
+✔ unknown clan side and missing scores never invent a victory (0.072958ms)
+✔ an imported outcome stops applying once reviewed scores have changed (0.075583ms)
+✔ alt text uses the clan timezone including daylight-saving changes (0.569333ms)
+✔ unsafe or malformed renderer inputs are refused (0.301042ms)
+✔ an opponent-only legacy match still includes the home clan (0.060875ms)
+✔ editable participant labels do not break score matching by stable side IDs (0.085417ms)
+✔ the one-time redraw also covers matches with only a roster card or forum post (L1-147, L1-B20) (1.852333ms)
+✔ each match is redrawn once: the card's layout or the migration marker takes it off the list (0.406209ms)
+✔ the list reads the matches through the gameEnd index from the window's start, never the whole table (0.437625ms)
+✔ the list and the records need the internal secret (0.211583ms)
+✔ Zobrazit přihlášené names the clan's dashboard record for its web link (L1-85) (0.579792ms)
+✔ the shared results channel wins for every game without a game-specific panel (0.326041ms)
+✔ image context enforces tenant and draft boundaries and uses catalogue art facts (1.904584ms)
+✔ result image facts are reviewed, game-scoped and include Wardogs public statistics (0.390875ms)
+✔ unavailable and custom images never render a replacement (9.011291ms)
+✔ simultaneous identical renders are coalesced and retain rate-limit headers (14.929333ms)
+✔ one, two, three team, gray and result images render real 1200 × 675 PNGs (468.914917ms)
+✔ logo loading resolves public assets and permits only bounded Discord CDN images (8.560958ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 613.9215

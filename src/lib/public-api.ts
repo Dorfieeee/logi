@@ -266,6 +266,7 @@ export async function mutateClanApiSettings(input: {
     defaultLanguage?: "en" | "cs" | "de"
     announcementsChannelId?: string | null
     eventInfoChannelId?: string | null
+    eventResultsChannelId?: string | null
     errorsChannelId?: string | null
     calendarChannelId?: string | null
     forumCategoryId?: string | null

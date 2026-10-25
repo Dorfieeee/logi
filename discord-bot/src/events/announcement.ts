@@ -345,6 +345,7 @@ export type AnnouncementOptions = {
     hideSignupRoster?: boolean
     /** The roster picture, when this card doubles as the roster (L1-43). */
     rosterImage?: MessageMedia | null
+    generatedImage?: MessageMedia | null
     thumbnail?: MessageMedia | null
     /** The announcement channel, for the calendar's link back (L1-142). */
     announcementChannelId?: string | null
@@ -443,7 +444,7 @@ export function buildAnnouncementCard(
         thumbnail: options.thumbnail ?? null,
         image: /^https?:\/\//i.test(event.imageUrl?.trim() ?? "")
             ? { url: event.imageUrl!.trim(), description: event.name }
-            : null,
+            : (options.generatedImage ?? null),
         links: {
             calendar: buildCalendarLink({
                 kind: event.kind,

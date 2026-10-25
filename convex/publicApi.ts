@@ -1456,6 +1456,7 @@ export const mutateClanSettings = mutation({
         ),
         announcementsChannelId: v.optional(v.union(v.string(), v.null())),
         eventInfoChannelId: v.optional(v.union(v.string(), v.null())),
+        eventResultsChannelId: v.optional(v.union(v.string(), v.null())),
         errorsChannelId: v.optional(v.union(v.string(), v.null())),
         calendarChannelId: v.optional(v.union(v.string(), v.null())),
         forumCategoryId: v.optional(v.union(v.string(), v.null())),
@@ -1528,6 +1529,7 @@ export const mutateClanSettings = mutation({
                 args.defaultLanguage,
                 args.announcementsChannelId,
                 args.eventInfoChannelId,
+                args.eventResultsChannelId,
                 args.errorsChannelId,
                 args.calendarChannelId,
                 args.forumCategoryId,
@@ -1586,6 +1588,7 @@ export const mutateClanSettings = mutation({
             const fields = [
                 "announcementsChannelId",
                 "eventInfoChannelId",
+                "eventResultsChannelId",
                 "errorsChannelId",
                 "calendarChannelId",
                 "forumCategoryId",

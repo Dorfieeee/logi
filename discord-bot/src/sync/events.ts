@@ -4,6 +4,8 @@ import {
     type Guild,
     type TextChannel,
 } from "discord.js"
+import { matchImageAttachment } from "../events/match-image"
+import { syncMatchResult } from "../events/match-result"
 import { makeFunctionReference } from "convex/server"
 
 import {
@@ -145,6 +147,11 @@ async function syncEventDetailsMessage(input: {
               )
             : undefined
     const context = await loadAnnouncementContext(input.event.id)
+    const generatedImage = !input.event.imageUrl?.trim()
+        ? await matchImageAttachment(input.payload, input.event, {
+              league: context.leagueLabel,
+          })
+        : null
     const pingRole =
         input.roster?.discordMentionPlayers &&
         input.attendeeRoleId &&
@@ -160,6 +167,7 @@ async function syncEventDetailsMessage(input: {
             : null,
         hideSignupRoster: true,
         thumbnail: thumbnail?.media ?? null,
+        generatedImage: generatedImage?.media ?? null,
         announcementChannelId: input.channel.id,
         clanName: input.guild.name,
         meetingChannelName: meetingChannel?.name ?? null,
@@ -182,6 +190,7 @@ async function syncEventDetailsMessage(input: {
             pingRoleIds: pingRole ? [pingRole] : [],
             files: [
                 ...(thumbnail?.file ? [thumbnail.file] : []),
+                ...(generatedImage ? [generatedImage.file] : []),
                 ...(rosterImage ? [rosterImage.attachment] : []),
             ],
         }),
@@ -216,7 +225,10 @@ export async function syncPayloadEvents(
             : undefined
         const queued = queuedEventIds.has(event.id)
 
-        if (shouldWriteMinimalConcludedSyncState({ event, state, queued })) {
+        if (
+            !payload.config.eventResultsChannelId &&
+            shouldWriteMinimalConcludedSyncState({ event, state, queued })
+        ) {
             logInfo(
                 "event-sync",
                 "Writing minimal sync state for concluded event without prior state",
@@ -335,6 +347,7 @@ async function syncEvent(
         return
     }
 
+    await syncMatchResult(client, payload, event)
     const roster = payload.rosters.find((item) => item.eventId === event.id)
     const eventRoles = options.syncRoles
         ? await syncEventRoles(

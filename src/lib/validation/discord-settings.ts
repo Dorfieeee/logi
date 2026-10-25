@@ -465,6 +465,7 @@ export const discordSettingsPatchSchema = z.object({
     defaultLanguage: z.enum(supportedClanLanguages).optional(),
     announcementsChannelId: clearableDiscordIdField,
     eventInfoChannelId: clearableDiscordIdField,
+    eventResultsChannelId: clearableDiscordIdField,
     errorsChannelId: clearableDiscordIdField,
     calendarChannelId: clearableDiscordIdField,
     calendarCategories: z

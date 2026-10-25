@@ -1,6 +1,7 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
+import type { MatchImage } from "@/domain/events/match-image"
 
 import {
     buildAnnouncementView,
@@ -15,6 +16,7 @@ import { getEventMessages } from "@/lib/clan-language/events"
 import type { Dictionary } from "@/i18n/dictionaries"
 
 export type NewMatchPreviewModel = {
+    generatedImage?: MatchImage | null
     kind: "match" | "training"
     /** The clan's bot language; the message is written in it. */
     language: string
@@ -83,12 +85,14 @@ const roleId = (index: number) => String(100 + index)
  */
 export function NewMatchPreview({
     model,
+    serverId,
     dictionary,
     copy,
     hint,
     note,
 }: {
     model: NewMatchPreviewModel
+    serverId?: string
     /** The step being filled; the preview is the whole message at every step. */
     step: NewMatchStep
     dictionary: Dictionary
@@ -100,6 +104,51 @@ export function NewMatchPreview({
     note?: string | null
 }) {
     const now = useBrowserMinute()
+    const generatedRequest =
+        !model.imageUrl && model.generatedImage
+            ? JSON.stringify({ kind: "match", model: model.generatedImage })
+            : null
+    const [generated, setGenerated] = useState<{
+        key: string
+        url: string
+    } | null>(null)
+    useEffect(() => {
+        if (!serverId || !generatedRequest) return
+        const controller = new AbortController()
+        let objectUrl: string | undefined
+        const timer = setTimeout(async () => {
+            try {
+                const response = await fetch(
+                    `/api/servers/${serverId}/discord-panels/preview-image`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: generatedRequest,
+                        signal: controller.signal,
+                    }
+                )
+                if (
+                    !response.ok ||
+                    response.headers.get("content-type") !== "image/png"
+                )
+                    return
+                const blob = await response.blob()
+                if (controller.signal.aborted) return
+                objectUrl = URL.createObjectURL(blob)
+                setGenerated({ key: generatedRequest, url: objectUrl })
+            } catch {
+                /* The editable text preview remains available. */
+            }
+        }, 400)
+        return () => {
+            clearTimeout(timer)
+            controller.abort()
+            if (objectUrl) URL.revokeObjectURL(objectUrl)
+        }
+    }, [serverId, generatedRequest])
+    const imageUrl =
+        model.imageUrl ||
+        (generated?.key === generatedRequest ? generated.url : null)
     const text = dictionary.newMatch.preview
     const messages = getEventMessages(model.language)
     const announcement = getAnnouncementMessages(model.language)
@@ -179,9 +228,7 @@ export function NewMatchPreview({
                           : undefined,
                   }
                 : null,
-        image: model.imageUrl
-            ? { url: model.imageUrl, description: model.title }
-            : null,
+        image: imageUrl ? { url: imageUrl, description: model.title } : null,
         links: {
             calendar:
                 "https://calendar.google.com/calendar/render?action=TEMPLATE",

@@ -107,6 +107,7 @@ export type GuildMember = {
 }
 
 export type Guild = {
+    workspaceMode?: "full" | "competitions"
     id: string
     discordId: string
     name: string
@@ -238,6 +239,8 @@ export type DiscordConfig = {
     defaultLanguage: "en" | "cs" | "de"
     announcementsChannelId?: string
     eventInfoChannelId?: string
+    /** Clan-wide results destination, shared by all games. */
+    eventResultsChannelId?: string
     errorsChannelId?: string
     calendarChannelId?: string
     /** Opaque capability token for this clan's Google Calendar subscription. */

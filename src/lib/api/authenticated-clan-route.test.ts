@@ -442,3 +442,60 @@ test("the WD League overview requires the explicit league-fixtures Wardogs grant
             assert.equal(result.headers["Cache-Control"], "no-store")
     }
 })
+
+test("generated event images use the event read grant while other nested routes stay closed", async () => {
+    for (const [path, resource, method, expected] of [
+        ["events/one/image", "events", "GET", 200],
+        ["events/one/image?view=result", "events", "GET", 200],
+        ["events/one/image", "rosters", "GET", 403],
+        ["events/one/image", "events", "POST", 403],
+        ["events/one/image/extra", "events", "GET", 403],
+        ["rosters/one/image", "rosters", "GET", 403],
+    ] as const) {
+        const result = await authenticateClanRequestWith(
+            new Request(`https://logi.test/api/v1/clan/${path}`, {
+                method,
+                headers: { authorization: "Bearer fixture" },
+            }),
+            createDependencies({
+                authenticateKey: async () => ({
+                    guildId: "guild-1",
+                    readAccess: { resources: [resource], gameIds: ["wardogs"] },
+                }),
+            })
+        )
+        assert.equal(
+            isAuthError(result) ? result.status : 200,
+            expected,
+            `${method} ${path}`
+        )
+    }
+})
+
+test("competition reads use teams grants while restricted competition and mode writes stay denied", async () => {
+    for (const resource of ["competitions", "workspace-mode"]) {
+        for (const [method, grantedGame, expected] of [
+            ["GET", "hell_let_loose", 200],
+            ["GET", "wardogs", 403],
+            ["POST", "hell_let_loose", 403],
+            ["PATCH", "hell_let_loose", 403],
+        ] as const) {
+            const result = await authenticateClanRequestWith(
+                new Request(
+                    `https://logi.test/api/v1/clan/${resource}?game=hell_let_loose`,
+                    { method, headers: { authorization: "Bearer fixture" } }
+                ),
+                createDependencies({
+                    authenticateKey: async () => ({
+                        guildId: "guild-1",
+                        readAccess: {
+                            resources: ["teams"],
+                            gameIds: [grantedGame],
+                        },
+                    }),
+                })
+            )
+            assert.equal(isAuthError(result) ? result.status : 200, expected)
+        }
+    }
+})

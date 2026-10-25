@@ -172,6 +172,13 @@ export function buildCalendarPanelView(
         timeZone: payload.config.timezone,
         clanName: payload.guild.name,
         entries,
+        categories: (payload.guild.eventCategories ?? []).filter(
+            (category) =>
+                !input.categories.length ||
+                input.categories.some(
+                    (id) => id.toLowerCase() === category.id.toLowerCase()
+                )
+        ),
         now: input.now,
         calendarUrl,
         updatedAt: calendarUpdatedAt(payload, entries),

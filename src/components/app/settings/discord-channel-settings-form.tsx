@@ -61,6 +61,7 @@ type Exceptions = Record<
 type Values = {
     timezone: string
     defaultLanguage: ClanLanguage
+    eventResultsChannelId?: string
 } & Record<GameExceptionChannelField, string | undefined>
 
 const KINDS: Record<GameExceptionChannelField, ChannelKind> = {
@@ -170,6 +171,7 @@ export function DiscordChannelSettingsForm({
             defaultLanguage: config?.defaultLanguage ?? "en",
             announcementsChannelId: config?.announcementsChannelId,
             eventInfoChannelId: config?.eventInfoChannelId,
+            eventResultsChannelId: config?.eventResultsChannelId,
             forumCategoryId: config?.forumCategoryId,
             meetingChannelId: config?.meetingChannelId,
             squadVoiceCategoryId: config?.squadVoiceCategoryId,
@@ -379,6 +381,7 @@ export function DiscordChannelSettingsForm({
             defaultLanguage: values.defaultLanguage,
             announcementsChannelId: clearableId(values.announcementsChannelId),
             eventInfoChannelId: clearableId(values.eventInfoChannelId),
+            eventResultsChannelId: clearableId(values.eventResultsChannelId),
             forumCategoryId: clearableId(values.forumCategoryId),
             meetingChannelId: clearableId(values.meetingChannelId),
             squadVoiceCategoryId: clearableId(values.squadVoiceCategoryId),
@@ -519,6 +522,27 @@ export function DiscordChannelSettingsForm({
                     text.eventInfo,
                     text.eventInfoHelp
                 )}
+                <Row>
+                    <SettingsField
+                        label={text.eventResults}
+                        help={text.eventResultsHelp}
+                    >
+                        <DiscordChannelSelect
+                            id="channels-eventResultsChannelId"
+                            value={values.eventResultsChannelId}
+                            onChange={(value) =>
+                                setValue("eventResultsChannelId", value)
+                            }
+                            options={channelOptions(channels, "text")}
+                            kind="text"
+                            placeholder={text.selectChannel}
+                            noneLabel={text.none}
+                            loading={metadataState.status === "loading"}
+                            unavailable={metadataState.status === "failed"}
+                        />
+                        <ClanWideNote label={hub.scopeLegend.clanWideShort} />
+                    </SettingsField>
+                </Row>
                 {routingRow("forumCategoryId", text.forum, text.forumHelp)}
             </Card>
 

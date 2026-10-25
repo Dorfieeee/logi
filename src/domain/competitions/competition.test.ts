@@ -41,6 +41,8 @@ test("competition create normalizes labels and starts unpublished", () => {
         season: "2026",
         description: null,
         published: false,
+        registrationMode: "closed",
+        minimumLinkedPlayers: null,
     })
     assert.equal(
         competitionCreateSchema.parse({

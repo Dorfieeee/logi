@@ -1,3 +1,4 @@
+import { matchImageSchema } from "../events/match-image.schema"
 import { z } from "zod"
 
 import {
@@ -167,6 +168,7 @@ export const panelBannerImageSchema = z.strictObject({
 export type PanelBannerImage = z.infer<typeof panelBannerImageSchema>
 
 export const panelImageRequestSchema = z.discriminatedUnion("kind", [
+    z.strictObject({ kind: z.literal("match"), model: matchImageSchema }),
     z.strictObject({ kind: z.literal("score"), model: panelScoreImageSchema }),
     z.strictObject({
         kind: z.literal("banner"),

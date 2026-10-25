@@ -425,3 +425,37 @@ command is routed through `discord-bot/src/interactions/registry.ts`.
 The [latest local acceptance](evidence/2026-10-04-discord-workflows/README.md)
 includes an actual dashboard save of the HLL public panel and its report-category
 selection. That browser proof does not certify every other form in this inventory.
+
+### Shared event results and generated match artwork
+
+`eventResultsChannelId` is a clan-wide, nullable plain field of
+`GET/PATCH /api/v1/clan/settings`; it is deliberately absent from game overrides.
+The dashboard validates that its destination belongs to the Discord guild and
+accepts bot publications. Confirmed results of concluded matches are published
+by the normal event synchronizer under the durable `event:<id>:result` key.
+Corrections edit that publication; reopening/withdrawal/clearing the channel
+retires it. Independent results panels keep their own lifecycle.
+
+`GET /api/v1/clan/events/{eventId}/image[?view=match|result]` renders the same
+1200 × 675 PNG as Discord, using the event's clan, game and events read grant.
+It never exposes unpublished drafts. `view=result` requires a concluded match
+and a confirmed/corrected result for that game. `409 custom_image` returns the
+admin's selected `error.imageUrl` for a custom match picture; it is never fetched
+by the renderer. Missing data returns 404, malformed stored image facts 422,
+and render failures 503. Responses are private and not cached by proxies;
+identical render models are cached within the server.
+
+The bot uploads content-addressed PNG attachments, preserving custom match
+pictures and using map art or Discord gray underneath one, two or three team
+identities. Team snapshots preserve historical logos. Logos resolve only from
+Logi's public asset store or bounded Discord CDN images. Result outcomes require
+a known clan side or an unchanged imported outcome; scores follow participant
+IDs/sides rather than array positions. Existing public statistics/report pages
+and safe import share links are linked when present. Collected-only sources
+without a public statistics view link to the authenticated match Result tab.
+
+The event render version upgrade refreshes existing nonhistorical events in the
+bot's bounded startup sync. No full-table backfill or additional announcement
+ping is needed. Synthetic visual evidence can be regenerated locally with
+`node --import tsx scripts/preview-match-images.ts`; this command performs no
+Discord, Convex or provider operations.

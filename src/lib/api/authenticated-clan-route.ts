@@ -259,12 +259,38 @@ export async function authenticateClanRequestWith(
             )
         return { key, guildId: authenticated.guildId, headers }
     }
+    if (
+        /^\/api\/v1\/clan\/(competitions|workspace-mode)\/?$/.test(
+            new URL(request.url).pathname
+        )
+    ) {
+        headers["Cache-Control"] = "no-store"
+        const game = parseApiGameScope(request)
+        if (
+            authenticated.readAccess !== undefined &&
+            (request.method !== "GET" ||
+                isApiGameScopeError(game) ||
+                !allowsApiKeyRead(authenticated.readAccess, "teams", game))
+        )
+            return NextResponse.json(
+                {
+                    error: {
+                        code: "insufficient_scope",
+                        message:
+                            "A teams read grant is required; restricted keys cannot write.",
+                    },
+                },
+                { status: 403, headers }
+            )
+        // The feature rechecks the exact game, current key and SSO clan admin.
+        return { key, guildId: authenticated.guildId, headers }
+    }
     if (authenticated.readAccess !== undefined) {
         headers["Cache-Control"] = "no-store"
         const url = new URL(request.url)
-        const path = url.pathname.match(
-            /^\/api\/v1\/clan\/([^/]+)(?:\/([^/]+))?\/?$/
-        )
+        const path =
+            url.pathname.match(/^\/api\/v1\/clan\/([^/]+)(?:\/([^/]+))?\/?$/) ??
+            url.pathname.match(/^\/api\/v1\/clan\/(events)\/([^/]+)\/image\/?$/)
         const game = path?.[2] ? undefined : parseApiGameScope(request)
         const hasExplicitGame = url.searchParams
             .getAll("game")

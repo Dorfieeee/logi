@@ -222,6 +222,42 @@ function RegistrationRow({
                     ) : null}
                 </div>
             </div>
+            {row.status === "pending" || row.status === "rejected" ? (
+                <Badge variant="outline">
+                    {dictionary.competitionEnrollment[row.status]}
+                </Badge>
+            ) : null}
+            {row.status === "pending" && !row.withdrawn ? (
+                <>
+                    <Button
+                        size="sm"
+                        disabled={pending}
+                        onClick={() =>
+                            void run({
+                                action: "updateRegistration",
+                                registrationId: row.id,
+                                input: { status: "approved" },
+                            })
+                        }
+                    >
+                        {dictionary.competitionEnrollment.approve}
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={pending}
+                        onClick={() =>
+                            void run({
+                                action: "updateRegistration",
+                                registrationId: row.id,
+                                input: { status: "rejected" },
+                            })
+                        }
+                    >
+                        {dictionary.competitionEnrollment.reject}
+                    </Button>
+                </>
+            ) : null}
             <Select
                 value={row.divisionId ?? NO_DIVISION}
                 disabled={locked}

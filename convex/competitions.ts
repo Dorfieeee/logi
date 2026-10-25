@@ -40,6 +40,11 @@ import {
     currentTeam,
     teamById,
 } from "../src/infrastructure/convex/team-directory-repositories"
+import {
+    enrollmentPolicy,
+    hasCompetitionHistory,
+    isApprovedRegistration,
+} from "../src/domain/competitions/enrollment"
 import { adoptCatalogueTeam } from "../src/application/competitions/adopt-catalogue-team.use-case"
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server"
 import { dashboardActor, type DashboardActor } from "./dashboardActor"
@@ -258,7 +263,11 @@ export const getPublic = query({
                     name: division.name,
                     teams: await Promise.all(
                         registrations
-                            .filter((row) => row.divisionId === division._id)
+                            .filter(
+                                (row) =>
+                                    row.divisionId === division._id &&
+                                    hasCompetitionHistory(row)
+                            )
                             .map(async (row) => {
                                 const team = await view(registrationKey(row))
                                 return {
@@ -266,7 +275,9 @@ export const getPublic = query({
                                     name: team.name,
                                     shortCode: team.shortCode,
                                     logoUrl: team.logoUrl,
-                                    withdrawn: row.withdrawn,
+                                    withdrawn:
+                                        row.withdrawn ||
+                                        !isApprovedRegistration(row),
                                 }
                             })
                     ),
@@ -379,6 +390,7 @@ function summaryOf(competition: Doc<"competitions">): CompetitionSummary {
         name: competition.name,
         season: competition.season,
         description: competition.description ?? null,
+        ...enrollmentPolicy(competition),
         published: isCompetitionPublished(competition),
         createdAt: competition.createdAt,
         updatedAt: competition.updatedAt,
@@ -434,6 +446,7 @@ export const adminGet = query({
                 registrations.map(async (row) => ({
                     id: String(row._id),
                     divisionId: row.divisionId ? String(row.divisionId) : null,
+                    status: row.status ?? "approved",
                     withdrawn: row.withdrawn,
                     team: await view(registrationKey(row)),
                 }))
@@ -655,6 +668,8 @@ export const create = mutation({
             description: input.description ?? undefined,
             format: FORMAT,
             published: input.published,
+            registrationMode: input.registrationMode,
+            minimumLinkedPlayers: input.minimumLinkedPlayers,
             createdAt: now,
             updatedAt: now,
         })
@@ -687,6 +702,12 @@ export const update = mutation({
             ...(input.season !== undefined ? { season: input.season } : {}),
             ...(input.description !== undefined
                 ? { description: input.description ?? undefined }
+                : {}),
+            ...(input.registrationMode !== undefined
+                ? { registrationMode: input.registrationMode }
+                : {}),
+            ...(input.minimumLinkedPlayers !== undefined
+                ? { minimumLinkedPlayers: input.minimumLinkedPlayers }
                 : {}),
             ...(input.published !== undefined
                 ? { published: input.published }
@@ -947,6 +968,11 @@ export const updateRegistration = mutation({
             ? await ctx.db.get(registration.competitionId)
             : null
         if (!registration || !competition) return fail("not_found")
+        if (
+            parsed.data.status &&
+            (registration.status !== "pending" || registration.withdrawn)
+        )
+            return fail("invalid_competition")
         const target = parsed.data.divisionId
             ? await rowById(ctx, "competitionDivisions", parsed.data.divisionId)
             : null
@@ -968,6 +994,13 @@ export const updateRegistration = mutation({
         })
         if (blocked) return fail(blocked)
         await ctx.db.patch(registration._id, {
+            ...(parsed.data.status
+                ? {
+                      status: parsed.data.status,
+                      decidedBy: args.actor.subject,
+                      decidedAt: NOW(),
+                  }
+                : {}),
             ...(target ? { divisionId: target._id } : {}),
             ...(parsed.data.withdrawn !== undefined
                 ? { withdrawn: parsed.data.withdrawn }
@@ -1036,7 +1069,8 @@ async function fixtureWrite(
     ]) {
         if (!teamId) return fail("invalid_competition")
         const row = registrations.find(
-            (entry) => String(entry.teamId) === teamId
+            (entry) =>
+                String(entry.teamId) === teamId && isApprovedRegistration(entry)
         )
         const team = row?.teamId ? await ctx.db.get(row.teamId) : null
         if (row)

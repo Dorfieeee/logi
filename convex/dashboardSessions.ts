@@ -32,6 +32,8 @@ export const create = mutation({
         )
             throw new Error("Session exists.")
         const now = Date.now()
+        if (user.firstSignedInAt === undefined)
+            await ctx.db.patch(user._id, { firstSignedInAt: now })
         const expiresAt = now + DASHBOARD_SESSION_TTL_MS
         await ctx.db.insert("dashboardSessions", {
             sid: args.sid,

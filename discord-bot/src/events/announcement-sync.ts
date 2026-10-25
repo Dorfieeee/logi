@@ -7,7 +7,9 @@
  */
 
 import type { AttachmentBuilder, Client, Guild, TextChannel } from "discord.js"
+import type { MatchImageInput } from "../../../src/domain/events/match-image"
 import { makeFunctionReference } from "convex/server"
+import { matchImageAttachment } from "./match-image"
 
 import {
     ANNOUNCEMENT_LAYOUT_VERSION,
@@ -43,6 +45,12 @@ export type AnnouncementContext = {
     result: AnnouncementResult | null
     publicMatch: boolean
     resultsChannelId: string | null
+    leagueLabel?: string | null
+    imageResult?: MatchImageInput["result"]
+    resultVersion?: number | null
+    sourceUrl?: string | null
+    hasCollectedData?: boolean
+    dashboardServerId?: string | null
 }
 
 const EMPTY_CONTEXT: AnnouncementContext = {
@@ -54,7 +62,10 @@ const EMPTY_CONTEXT: AnnouncementContext = {
     resultsChannelId: null,
 }
 
-export async function loadAnnouncementContext(eventId: string) {
+export async function loadAnnouncementContext(
+    eventId: string,
+    required = false
+) {
     try {
         return (
             ((await convex.query(announcementReferences.getContext, {
@@ -63,6 +74,7 @@ export async function loadAnnouncementContext(eventId: string) {
             })) as AnnouncementContext | null) ?? EMPTY_CONTEXT
         )
     } catch (error) {
+        if (required) throw error
         // An older backend without this query: the card still renders.
         logWarn("announcement", "Announcement context is unavailable", {
             eventId,
@@ -145,6 +157,12 @@ export async function syncAnnouncement(input: {
         event,
         payload.config.defaultLanguage
     )
+    const generatedImage =
+        event.kind === "match" && !event.imageUrl?.trim()
+            ? await matchImageAttachment(payload, event, {
+                  league: context.leagueLabel,
+              })
+            : null
     const { view, state: cardState } = buildAnnouncementCard(payload, event, {
         now: input.now,
         factionEmoji: input.factionEmoji,
@@ -158,6 +176,7 @@ export async function syncAnnouncement(input: {
               }
             : null,
         thumbnail: thumbnail?.media ?? null,
+        generatedImage: generatedImage?.media ?? null,
         announcementChannelId: input.channel.id,
         clanName: guild.name,
         meetingChannelName: meetingChannel?.name ?? null,
@@ -200,6 +219,7 @@ export async function syncAnnouncement(input: {
             pingRoleIds: decision.ping ? pingRoleIds : [],
             files: [
                 ...(thumbnail?.file ? [thumbnail.file] : []),
+                ...(generatedImage ? [generatedImage.file] : []),
                 ...(input.rosterImage ? [input.rosterImage.attachment] : []),
             ],
         }),

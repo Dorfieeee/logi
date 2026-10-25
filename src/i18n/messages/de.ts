@@ -1,4 +1,46 @@
 export const deMessages = {
+    competitionEnrollment: {
+        title: "Wettbewerbe",
+        description:
+            "Verknüpfte Clanteams anmelden, Genehmigungen verfolgen oder unter Beibehaltung der Spielhistorie zurückziehen.",
+        noTeams:
+            "Kein Team ist mit diesem Clan verknüpft. Beantrage ein Team oder bitte einen Logi-Administrator, dein bestehendes Team zu verknüpfen.",
+        teamsLink: "Teams verwalten",
+        noCompetitions: "Noch keine Wettbewerbe verfügbar.",
+        players: "Bei Logi angemeldete Clanmitglieder: {count}",
+        minimum: "Mindestens angemeldete Spieler: {count}",
+        noMinimum: "Keine Mindestspielerzahl",
+        closed: "Anmeldung geschlossen",
+        approval: "Genehmigung durch Administrator erforderlich",
+        automatic: "Automatische Anmeldung",
+        enroll: "Team anmelden",
+        withdraw: "Zurückziehen",
+        pending: "Genehmigung ausstehend",
+        approved: "Angemeldet",
+        rejected: "Nicht genehmigt",
+        withdrawn: "Zurückgezogen",
+        saved: "Gespeichert",
+        error: "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+        registration_closed:
+            "Die Anmeldung für diesen Wettbewerb ist geschlossen.",
+        minimum_players:
+            "Dein Clan erreicht die Mindestzahl bei Logi angemeldeter Spieler nicht.",
+        team_not_owned: "Dieses Team ist nicht mit deinem Clan verknüpft.",
+        modeTitle: "Wie möchtest du Logi nutzen?",
+        modeDescription:
+            "Wähle alle Clanwerkzeuge oder ein einfacheres Menü für Wettbewerbe und Spieler. Du kannst dies später in den Claneinstellungen ändern.",
+        full: "Vollständiges Logi",
+        competitions: "Nur Wettbewerbe",
+        modeSave: "Modus speichern",
+        modeLabel: "Arbeitsbereichsmodus",
+        policy: "Teamanmeldung",
+        minimumLabel: "Mindestens bei Logi angemeldete Clanmitglieder",
+        minimumHelp:
+            "Leer lassen für keine Mindestzahl. Gezählt werden eindeutige Clanmitglieder, die sich bei Logi angemeldet haben; Steam-Verifizierung ist nicht erforderlich.",
+        approve: "Genehmigen",
+        reject: "Ablehnen",
+        publicLink: "Wettbewerb ansehen",
+    },
     wardogsMatchDetails: {
         ourTeam: "Dein Team",
         players: "Spieler",
@@ -3460,6 +3502,9 @@ export const deMessages = {
             announcements: "Ankündigungen",
             required: "Pflicht",
             announcementsHelp: "Neue Events und Änderungen an Aufstellungen.",
+            eventResults: "Event-Ergebnisse",
+            eventResultsHelp:
+                "Bestätigte Spielergebnisse mit Punkten, Clan-Ergebnis und verfügbaren Statistiken. Ein Kanal für alle Spiele.",
             eventInfo: "Event-Informationen",
             eventInfoHelp: "Details und Anmeldungen zum Event.",
             calendar: "Kalender",
@@ -5246,6 +5291,8 @@ export const deMessages = {
             },
         },
         more: {
+            automaticImage:
+                "Ohne eigenes Bild erstellt Logi eine Grafik mit Teams, Karte und lokaler Treffzeit. Dein eigenes Bild ersetzt sie.",
             title: "Weitere Optionen",
             summary: "Beschreibung, Bilder, Notizen und Taktikkarten",
             description: "Beschreibung",

@@ -62,6 +62,7 @@ import { apiKeyReadAccess } from "./apiKeyValidators"
 import { v } from "convex/values"
 
 const users = defineTable({
+    firstSignedInAt: v.optional(v.number()),
     sessionVersion: v.optional(v.number()),
     discordId: v.optional(v.string()),
     id: v.optional(v.string()),
@@ -727,6 +728,7 @@ export default defineSchema({
         expiresAt: v.number(),
         revokedAt: v.optional(v.number()),
     })
+        .index("userRecordId", ["userRecordId"])
         .index("sid", ["sid"])
         .index("expiresAt", ["expiresAt"]),
     ssoApplications: defineTable({
@@ -780,6 +782,9 @@ export default defineSchema({
         name: v.string(),
         avatar: v.string(),
         description: v.optional(v.string()),
+        workspaceMode: v.optional(
+            v.union(v.literal("full"), v.literal("competitions"))
+        ),
         eventCategories: v.optional(v.array(eventCategory)),
         // Create-form defaults per match or training type; events never read them.
         matchTemplates: v.optional(v.array(storedMatchTemplateValidator)),
@@ -814,6 +819,7 @@ export default defineSchema({
         ),
         announcementsChannelId: v.optional(v.string()),
         eventInfoChannelId: v.optional(v.string()),
+        eventResultsChannelId: v.optional(v.string()),
         errorsChannelId: v.optional(v.string()),
         calendarChannelId: v.optional(v.string()),
         // A random, per-clan capability token used only by the public iCalendar
@@ -1054,6 +1060,14 @@ export default defineSchema({
         .index("guildId_occurredAt", ["guildId", "occurredAt"])
         .index("occurredAt", ["occurredAt"]),
     competitions: defineTable({
+        registrationMode: v.optional(
+            v.union(
+                v.literal("closed"),
+                v.literal("approval"),
+                v.literal("automatic")
+            )
+        ),
+        minimumLinkedPlayers: v.optional(v.union(v.number(), v.null())),
         // Optional so existing ECL records remain valid; missing values are
         // treated as the legacy Hell Let Loose scope.
         gameId: v.optional(gameId),
@@ -1077,6 +1091,18 @@ export default defineSchema({
         createdAt: v.string(),
     }).index("competitionId", ["competitionId"]),
     competitionTeams: defineTable({
+        previouslyApproved: v.optional(v.boolean()),
+        status: v.optional(
+            v.union(
+                v.literal("pending"),
+                v.literal("approved"),
+                v.literal("rejected")
+            )
+        ),
+        requestedByGuildId: v.optional(v.string()),
+        requestedBy: v.optional(v.string()),
+        decidedBy: v.optional(v.string()),
+        decidedAt: v.optional(v.string()),
         competitionId: v.id("competitions"),
         // Global catalogue team; legacy rows are converted by
         // competitionMigrations:adoptGlobalTeams.

@@ -2,6 +2,7 @@
 export const DISCORD_CONFIG_ID_FIELDS = [
     "announcementsChannelId",
     "eventInfoChannelId",
+    "eventResultsChannelId",
     "errorsChannelId",
     "calendarChannelId",
     "forumCategoryId",

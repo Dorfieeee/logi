@@ -26,6 +26,7 @@ const supportedTimezones: ReadonlySet<string> = new Set(
 export const SETTINGS_DISCORD_FIELDS = [
     "announcementsChannelId",
     "eventInfoChannelId",
+    "eventResultsChannelId",
     "errorsChannelId",
     "calendarChannelId",
     "forumCategoryId",
