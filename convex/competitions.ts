@@ -19,6 +19,8 @@ import {
     isCompetitionPublished,
     legacyTeamKey,
     registrationCreateSchema,
+    registrationBatchSchema,
+    planTeamRegistrations,
     registrationUpdateSchema,
     type CompetitionCommandError,
     type FixtureInput,
@@ -862,6 +864,70 @@ export const registerTeam = mutation({
         })
         await touch(ctx, competition)
         return ok(competition, { registrationId: String(id) })
+    },
+})
+
+/** Atomically register many catalogue teams; retries preserve existing division assignments. */
+export const registerTeams = mutation({
+    args: { ...platformAccess, competitionId: v.string(), input: v.any() },
+    handler: async (ctx, args) => {
+        await admin(ctx, args)
+        const parsed = registrationBatchSchema.safeParse(args.input)
+        if (!parsed.success) return fail("invalid_competition")
+        const competition = await competitionById(ctx, args.competitionId)
+        if (!competition) return fail("not_found")
+        const division = await rowById(
+            ctx,
+            "competitionDivisions",
+            parsed.data.divisionId
+        )
+        const { registrations } = await competitionParts(ctx, competition._id)
+        const rows = await Promise.all(
+            parsed.data.teamIds.map((id) => teamById(ctx, id))
+        )
+        const plan = planTeamRegistrations({
+            gameId: resolveGameScope(competition.gameId),
+            divisionExists: division?.competitionId === competition._id,
+            registrations: registrations.length,
+            existingTeamIds: new Set(
+                registrations.flatMap((row) =>
+                    row.teamId ? [String(row.teamId)] : []
+                )
+            ),
+            teams: parsed.data.teamIds.map((id, index) => {
+                const row = rows[index]
+                return {
+                    id,
+                    facts: row
+                        ? {
+                              gameId: row.gameId,
+                              archivedAt: row.archivedAt,
+                              mergedIntoTeamId: row.mergedIntoTeamId ?? null,
+                          }
+                        : null,
+                }
+            }),
+        })
+        if ("error" in plan) return fail(plan.error)
+        if (!division) return fail("division_not_found")
+        const now = NOW()
+        for (const id of plan.teamIds) {
+            const team = rows.find((row) => row && String(row._id) === id)
+            if (!team) throw new Error("Validated team missing")
+            await ctx.db.insert("competitionTeams", {
+                competitionId: competition._id,
+                teamId: team._id,
+                divisionId: division._id,
+                withdrawn: false,
+                createdAt: now,
+                updatedAt: now,
+            })
+        }
+        if (plan.teamIds.length) await touch(ctx, competition)
+        return ok(competition, {
+            registered: plan.teamIds.length,
+            skipped: plan.skipped,
+        })
     },
 })
 

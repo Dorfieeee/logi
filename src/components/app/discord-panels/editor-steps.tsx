@@ -47,7 +47,7 @@ import {
     PANEL_STYLES,
     type PanelStyle,
 } from "@/domain/discord-publications/panel-graphics"
-import { SettingsChannelPicker } from "@/components/app/settings/settings-channel-picker"
+import { DiscordChannelSelect } from "@/components/app/discord-channel-select"
 import type { PanelKind } from "@/domain/discord-publications/settings"
 import { SettingsStep } from "@/components/app/settings/settings-step"
 import type { Dictionary } from "@/i18n/dictionaries"
@@ -754,7 +754,7 @@ export function ChannelStep({
                         <label htmlFor={id} className="sr-only">
                             {text.label}
                         </label>
-                        <SettingsChannelPicker
+                        <DiscordChannelSelect
                             id={id}
                             value={ctx.draft.channelId || undefined}
                             onChange={(channelId) =>

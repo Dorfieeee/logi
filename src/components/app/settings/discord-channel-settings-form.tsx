@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
     channelOptions,
-    SettingsChannelPicker,
+    DiscordChannelSelect,
     type ChannelKind,
-} from "@/components/app/settings/settings-channel-picker"
+} from "@/components/app/discord-channel-select"
 import {
     Select,
     SelectContent,
@@ -218,7 +218,7 @@ export function DiscordChannelSettingsForm({
         options?: { attention?: boolean; id?: string }
     ) {
         return (
-            <SettingsChannelPicker
+            <DiscordChannelSelect
                 id={options?.id}
                 value={value}
                 onChange={onChange}

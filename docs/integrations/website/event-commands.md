@@ -121,15 +121,14 @@ The required native kind is `match` or `training`. Optional bounded fields are
 assignments (see [Team catalogue](#team-catalogue)). `name` is 1–160 trimmed
 characters.
 Times satisfy `registrationStart <= registrationEnd <= meetingStart <=
-gameStart < gameEnd`; meeting start must still be in the future.
+gameStart < gameEnd`; creation requires a future meeting start; updates may correct historical schedules.
 
 Update uses `{operation:"update",eventId,expectedRevision,event}` with the same
 complete editable event shape. Cancel uses
 `{operation:"cancel",eventId,expectedRevision}`. Read the editor to obtain the
 latest revision and native schedule before editing. These commands preserve
 native Discord channels, signup settings, private notes/passwords, roles,
-recurrence and other non-owned fields on updates. Changing event kind or
-editing/cancelling after meeting start is rejected. A prior conclusion is not
+recurrence and other non-owned fields on updates. Changing event kind is rejected. Updates remain available after conclusion; cancellation after meeting start is rejected. A prior conclusion is not
 reopened.
 
 ### Template settings after creation
@@ -264,8 +263,7 @@ presentation from its active catalogue entry:
 }
 ```
 
-Unlike `update`, it stays available after meeting start until the match
-concludes. It changes only that assignment's snapshot (for a merged team it
+Like `update`, it stays available after meeting start and conclusion. It changes only that assignment's snapshot (for a merged team it
 follows the merge to the active replacement and the assignment adopts the
 replacement's ID), writes a catalogue audit entry, emits the event's normal
 change records (advancing the `event-summaries`/`match-summaries` revision)
@@ -284,11 +282,10 @@ corrected:
    `400 invalid_request`.
 2. Authorization, receipt replay, `not_found` and `revision_conflict` as for
    other commands.
-3. Event state: an `update` or `cancel` after meeting start, of a concluded
-   event or that changes `kind` is `409 invalid_state`. A
-   `refresh_match_team` of a training or of a concluded match is
-   `400 invalid_match_teams`. A match counts as concluded once it is stored as
-   concluded or 15 minutes after its game end, whichever is first.
+3. Event state: a `cancel` after meeting start or of a concluded event,
+   or an `update` that changes `kind`, is `409 invalid_state`. Updates and
+   team snapshot refreshes remain available after conclusion. A
+   `refresh_match_team` of a training is `400 invalid_match_teams`.
 4. Team rules: an unknown, archived (including merged) or cross-game team, a
    slot or side the game does not have, a duplicate team, slot or non-null
    side, teams on a training, or a refresh of a team that is not assigned to

@@ -7,6 +7,7 @@ import {
     fixtureEventLinkSchema,
     fixtureInputSchema,
     registrationCreateSchema,
+    registrationBatchSchema,
     registrationUpdateSchema,
 } from "@/domain/competitions/competition"
 import { TEAM_SEARCH_MAX } from "@/domain/teams/team"
@@ -45,6 +46,11 @@ export const competitionCommandSchema = z.discriminatedUnion("action", [
         input: divisionOrderSchema,
     }),
     z.strictObject({ action: z.literal("deleteDivision"), divisionId: id }),
+    z.strictObject({
+        action: z.literal("registerTeams"),
+        competitionId: id,
+        input: registrationBatchSchema,
+    }),
     z.strictObject({
         action: z.literal("registerTeam"),
         competitionId: id,
@@ -88,6 +94,7 @@ export const COMPETITION_MUTATION_FOR = {
     reorderDivisions: "competitions:reorderDivisions",
     deleteDivision: "competitions:deleteDivision",
     registerTeam: "competitions:registerTeam",
+    registerTeams: "competitions:registerTeams",
     updateRegistration: "competitions:updateRegistration",
     removeRegistration: "competitions:removeRegistration",
     createFixture: "competitions:createFixture",

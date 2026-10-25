@@ -328,7 +328,7 @@ export function websiteEventMembershipError(input: {
         : "membership_denied"
 }
 
-export function canEditWebsiteEvent(
+export function canCancelWebsiteEvent(
     event: {
         registrationEnd: string
         meetingStart: string
@@ -344,12 +344,14 @@ export function canEditWebsiteEvent(
     )
 }
 
-/**
- * Existing Logi pre-meeting conclusion semantics; no new cancelled status or
- * result. A team snapshot refresh stays available until the match concludes,
- * like the dashboard refresh, so it may follow meeting start; a concluded
- * match or a training is a team-assignment rule violation.
- */
+/** Historical corrections use the same update flow as current events. */
+export function canEditWebsiteEvent(
+    _event: Parameters<typeof canCancelWebsiteEvent>[0],
+    _now: number
+): boolean {
+    return true
+}
+
 export function websiteEventStateError(
     command: WebsiteEventCommand,
     existing: {
@@ -374,11 +376,11 @@ export function websiteEventStateError(
         })
             ? "invalid_match_teams"
             : null
-    if (!canEditWebsiteEvent(existing, now)) return "invalid_state"
+    if (command.operation === "cancel" && !canCancelWebsiteEvent(existing, now))
+        return "invalid_state"
     if (
         command.operation === "update" &&
-        ((existing.kind ?? "match") !== command.event.kind ||
-            Date.parse(command.event.meetingStart) <= now)
+        (existing.kind ?? "match") !== command.event.kind
     )
         return "invalid_state"
     return null

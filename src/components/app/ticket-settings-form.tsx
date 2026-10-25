@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import {
-    channelOptions,
-    SettingsChannelPicker,
-} from "@/components/app/settings/settings-channel-picker"
-import {
     layoutMessageView,
     layoutTextLength,
 } from "@/domain/discord-messages/message-layout"
+import {
+    channelOptions,
+    DiscordChannelSelect,
+} from "@/components/app/discord-channel-select"
 import {
     getIntlLocaleForClanLanguage,
     type ClanLanguage,
@@ -341,7 +341,7 @@ export function TicketSettingsForm({
                         <Label htmlFor="ticket-panel-channel">
                             {t.panelChannel}
                         </Label>
-                        <SettingsChannelPicker
+                        <DiscordChannelSelect
                             id="ticket-panel-channel"
                             value={ticketSettings.submitChannelId || undefined}
                             onChange={(value) =>
@@ -363,7 +363,7 @@ export function TicketSettingsForm({
                         <Label htmlFor="ticket-thread-channel">
                             {t.threadChannel}
                         </Label>
-                        <SettingsChannelPicker
+                        <DiscordChannelSelect
                             id="ticket-thread-channel"
                             value={
                                 ticketSettings.ticketParentChannelId ||

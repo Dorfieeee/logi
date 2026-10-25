@@ -122,6 +122,18 @@ export const registrationCreateSchema = z.strictObject({
     teamId: teamIdSchema,
     divisionId: competitionRecordIdSchema,
 })
+/** One add-only batch into one division; repeated submissions skip existing registrations. */
+export const registrationBatchSchema = z.strictObject({
+    teamIds: z
+        .array(teamIdSchema)
+        .min(1)
+        .max(COMPETITION_REGISTRATION_LIMIT)
+        .refine((ids) => new Set(ids).size === ids.length, {
+            message: "Teams may appear only once.",
+        }),
+    divisionId: competitionRecordIdSchema,
+})
+
 export type RegistrationCreateInput = z.infer<typeof registrationCreateSchema>
 
 /** Move to another division and/or withdraw or reinstate. */
@@ -314,6 +326,37 @@ export function checkRegistration(input: {
     if (input.registrations >= COMPETITION_REGISTRATION_LIMIT)
         return "limit_reached"
     return null
+}
+
+/** Validate the entire batch before persistence so an invalid team cannot leave partial registrations. */
+export function planTeamRegistrations(input: {
+    gameId: string
+    divisionExists: boolean
+    registrations: number
+    existingTeamIds: ReadonlySet<string>
+    teams: readonly { id: string; facts: CompetitionTeamFacts | null }[]
+}):
+    | { teamIds: string[]; skipped: number }
+    | { error: CompetitionCommandError } {
+    if (!input.divisionExists) return { error: "division_not_found" }
+    const teamIds: string[] = []
+    let skipped = 0
+    for (const team of input.teams) {
+        if (input.existingTeamIds.has(team.id)) {
+            skipped++
+            continue
+        }
+        const error = checkRegistration({
+            gameId: input.gameId,
+            team: team.facts,
+            divisionExists: true,
+            alreadyRegistered: false,
+            registrations: input.registrations + teamIds.length,
+        })
+        if (error) return { error }
+        teamIds.push(team.id)
+    }
+    return { teamIds, skipped }
 }
 
 /**

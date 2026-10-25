@@ -1587,6 +1587,15 @@ export const deMessages = {
         showAll: "Alle Aktivitäten anzeigen",
     },
     teamCatalogAdmin: {
+        scrapeWardogs: "Teams aus der Wardogs League importieren",
+        scrapeHll: "Teams aus HeLO synchronisieren (2024)",
+        scrapingTeams: "Teams werden importiert…",
+        scrapeDescription:
+            "Fügt fehlende Teams und Logos zum globalen Katalog dieses Spiels hinzu. Vorhandene Namen oder Kürzel werden übersprungen. Teams separat für den Wettbewerb anmelden.",
+        scrapeResult:
+            "Erstellt: {created}. Übersprungen: {skipped}. Fehlgeschlagen: {failed}. Fehlgeschlagene Teams können erneut importiert werden.",
+        scrapeError: "Teamimport fehlgeschlagen. Bitte erneut versuchen.",
+
         searchLabel: "Teams suchen",
         statesLabel: "Status",
         states: {
@@ -2101,6 +2110,14 @@ export const deMessages = {
         },
     },
     competitionAdmin: {
+        chooseTeams: "Teams auswählen",
+        selectedTeams: "{count} Teams ausgewählt",
+        registerSelected: "{count} Teams anmelden",
+        selectAllMatching: "Alle Treffer auswählen",
+        clearSelection: "Auswahl aufheben",
+        doneSelecting: "Fertig",
+        retryTeams: "Erneut versuchen",
+
         breadcrumb: "Brotkrumennavigation",
         round: "Runde",
         roundHelp: "Optional, 1–99. Spiele werden nach Runde gruppiert.",
@@ -3716,6 +3733,7 @@ export const deMessages = {
             clanRole: "Wähle die Clan-Rolle",
         },
         channelPicker: {
+            empty: "Keine Kanäle gefunden.",
             search: "Kanäle suchen",
             searchPlaceholder: "Name oder ID suchen",
             channelId: "Kanal-ID",

@@ -1537,6 +1537,15 @@ export const csMessages = {
         showAll: "Zobrazit vše",
     },
     teamCatalogAdmin: {
+        scrapeWardogs: "Načíst týmy z Wardogs League",
+        scrapeHll: "Synchronizovat týmy z HeLO (2024)",
+        scrapingTeams: "Načítání týmů…",
+        scrapeDescription:
+            "Přidá chybějící týmy a jejich loga do globálního katalogu této hry. Existující názvy nebo zkratky přeskočí. Týmy do soutěže přihlaste samostatně.",
+        scrapeResult:
+            "Vytvořeno: {created}. Přeskočeno: {skipped}. Selhalo: {failed}. Neúspěšné týmy můžete zkusit znovu.",
+        scrapeError: "Import týmů selhal. Zkuste to prosím znovu.",
+
         searchLabel: "Hledat tým",
         statesLabel: "Stav",
         states: {
@@ -2025,6 +2034,14 @@ export const csMessages = {
         },
     },
     competitionAdmin: {
+        chooseTeams: "Vybrat týmy",
+        selectedTeams: "Vybráno týmů: {count}",
+        registerSelected: "Přihlásit {count} týmů",
+        selectAllMatching: "Vybrat všechny odpovídající",
+        clearSelection: "Zrušit výběr",
+        doneSelecting: "Hotovo",
+        retryTeams: "Zkusit znovu",
+
         breadcrumb: "Drobečková navigace",
         round: "Kolo",
         roundHelp: "Nepovinné, 1–99. Zápasy se podle kola seskupí.",
@@ -3603,6 +3620,7 @@ export const csMessages = {
             clanRole: "Vyberte roli klanu",
         },
         channelPicker: {
+            empty: "Žádné kanály nenalezeny.",
             search: "Hledat kanál",
             searchPlaceholder: "Hledat název nebo ID",
             channelId: "ID kanálu",

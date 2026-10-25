@@ -23,8 +23,8 @@ export type RefreshableEvent = {
 
 /**
  * Explicit, audited re-capture of one assigned team's presentation from its
- * active catalogue entry (after following merge pointers), until the match
- * concludes by its schedule-derived status. A rejection writes nothing. Shared
+ * active catalogue entry (after following merge pointers), including historical
+ * matches. A rejection writes nothing. Shared
  * by the dashboard refresh and the website `refresh_match_team` command.
  */
 export async function refreshAssignedMatchTeam(

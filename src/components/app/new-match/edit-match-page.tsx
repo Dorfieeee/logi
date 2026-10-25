@@ -1,5 +1,5 @@
-import { Lock, SearchX } from "lucide-react"
 import { redirect } from "next/navigation"
+import { SearchX } from "lucide-react"
 import Link from "next/link"
 
 import {
@@ -93,32 +93,6 @@ export async function EditMatchPage({
     if (section === "trainings" && !isTraining)
         redirect(`${base}/matches/${event.id}/edit${query}`)
     const detailHref = `${base}/${section}/${event.id}`
-    if (editability === "concluded")
-        return (
-            <div className="px-4 lg:px-6">
-                <EmptyState
-                    icon={Lock}
-                    title={isTraining ? t.lockedTrainingTitle : t.lockedTitle}
-                    description={
-                        isTraining
-                            ? t.lockedTrainingDescription
-                            : t.lockedDescription
-                    }
-                    actions={
-                        <Button
-                            asChild
-                            variant="outline"
-                            className="rounded-xl"
-                        >
-                            <Link href={detailHref}>
-                                {isTraining ? t.backToTraining : t.backToMatch}
-                            </Link>
-                        </Button>
-                    }
-                />
-            </div>
-        )
-
     const [linkedTeams, gameCatalogue] = await Promise.all([
         getLinkedClanTeams(context.server.discordId),
         fetchQuery(makeFunctionReference<"query">("gameCatalog:list"), {}),

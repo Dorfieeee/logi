@@ -17,6 +17,8 @@ import {
     isCompetitionPublished,
     legacyTeamKey,
     registrationCreateSchema,
+    registrationBatchSchema,
+    planTeamRegistrations,
     registrationUpdateSchema,
     type RegisteredTeam,
     fixtureScoreFromEvent,
@@ -520,4 +522,77 @@ test("an imported Axis/Allies score reaches the fixture by each team's assigned 
             null,
             JSON.stringify(eventTeams)
         )
+})
+
+test("bulk registration validates the full selection, respects limits and skips already registered teams", () => {
+    const active = {
+        gameId: "wardogs" as const,
+        archivedAt: null,
+        mergedIntoTeamId: null,
+    }
+    const input = {
+        gameId: "wardogs",
+        divisionExists: true,
+        registrations: 1,
+        existingTeamIds: new Set(["existing"]),
+        teams: [
+            { id: "existing", facts: active },
+            { id: "new", facts: active },
+        ],
+    }
+    assert.deepEqual(planTeamRegistrations(input), {
+        teamIds: ["new"],
+        skipped: 1,
+    })
+    assert.deepEqual(
+        planTeamRegistrations({
+            ...input,
+            registrations: COMPETITION_REGISTRATION_LIMIT,
+        }),
+        { error: "limit_reached" }
+    )
+    assert.deepEqual(
+        planTeamRegistrations({ ...input, divisionExists: false }),
+        { error: "division_not_found" }
+    )
+    for (const [facts, error] of [
+        [null, "team_not_found"],
+        [{ ...active, gameId: "hell_let_loose" }, "team_game_mismatch"],
+        [{ ...active, archivedAt: "2026-01-01" }, "team_archived"],
+        [{ ...active, mergedIntoTeamId: "other" }, "team_archived"],
+    ] as const) {
+        assert.deepEqual(
+            planTeamRegistrations({
+                ...input,
+                teams: [
+                    { id: "valid", facts: active },
+                    { id: "invalid", facts },
+                ],
+            }),
+            { error }
+        )
+    }
+})
+
+test("bulk registration schema rejects empty, duplicated, oversized and malformed selections", () => {
+    for (const teamIds of [
+        [],
+        ["a", "a"],
+        [""],
+        Array.from({ length: 501 }, (_, i) => `team-${i}`),
+    ])
+        assert.equal(
+            registrationBatchSchema.safeParse({
+                divisionId: "division-1",
+                teamIds,
+            }).success,
+            false
+        )
+    assert.equal(
+        registrationBatchSchema.safeParse({
+            divisionId: "division-1",
+            teamIds: ["a", "b"],
+        }).success,
+        true
+    )
 })

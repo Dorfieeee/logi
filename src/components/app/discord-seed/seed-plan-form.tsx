@@ -14,7 +14,7 @@ import type {
     SeedPlanIssue,
     SeedPlanIssueCode,
 } from "@/domain/discord-seed/plan"
-import { SettingsChannelPicker } from "@/components/app/settings/settings-channel-picker"
+import { DiscordChannelSelect } from "@/components/app/discord-channel-select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import type { SeedChannelReport } from "@/domain/discord-seed/channels"
 import type { Dictionary } from "@/i18n/dictionaries"
@@ -488,7 +488,7 @@ export function SeedPlanForm({
                 >
                     {t.seedChannel}
                 </label>
-                <SettingsChannelPicker
+                <DiscordChannelSelect
                     id={`${id}-channel`}
                     value={draft.seedChannelId ?? undefined}
                     onChange={(value) =>

@@ -2,6 +2,7 @@ import {
     allowsWebsiteEventWrite,
     canonicalWebsiteCommand,
     canEditWebsiteEvent,
+    canCancelWebsiteEvent,
     websiteEventCommandSchema,
     websiteEventFieldsSchema,
     websiteEventGameSchema,
@@ -230,7 +231,7 @@ export const readEditor = query({
                 event,
                 matchTeams: projectEventMatchTeams(current),
                 canEdit: editable,
-                canCancel: editable,
+                canCancel: canCancelWebsiteEvent(current, Date.now()),
             },
         }
     },

@@ -1,3 +1,4 @@
+import type { CompetitionAdminView } from "@/domain/competitions/admin-view"
 import { actorFixture, seedDashboardActor } from "./testing/dashboard-actor"
 import * as competitions from "../../../convex/competitions"
 import { invoke, testContext } from "./testing/database"
@@ -71,12 +72,12 @@ function setup() {
 }
 type Ctx = ReturnType<typeof setup>
 
-async function competitionWithDivisions(ctx: Ctx) {
+async function competitionWithDivisions(ctx: Ctx, slug = "spring-cup") {
     const created = await invoke(competitions.create, ctx, {
         ...platform,
         input: {
             gameId: "hell_let_loose",
-            slug: "spring-cup",
+            slug,
             name: "Spring Cup",
             season: "2026",
         },
@@ -1132,4 +1133,93 @@ test("clan fixture labels name published competitions of the clan's linked match
         ["events:other-clan"]
     )
     await assert.rejects(list({ secret: "wrong" }))
+})
+
+test("bulk registration adds multiple teams once, preserves existing divisions and supports multiple competitions", async () => {
+    const ctx = setup()
+    const { competitionId, d1, d2 } = await competitionWithDivisions(ctx)
+    await register(ctx, competitionId, "teamDirectory:omen", d1)
+    const command = {
+        ...platform,
+        competitionId,
+        input: {
+            divisionId: d2,
+            teamIds: [
+                "teamDirectory:omen",
+                "teamDirectory:circle",
+                "teamDirectory:wolves",
+            ],
+        },
+    }
+    const result = await invoke(competitions.registerTeams, ctx, command)
+    assert.equal(result.ok, true)
+    assert.equal(result.registered, 2)
+    assert.equal(result.skipped, 1)
+    const replay = await invoke(competitions.registerTeams, ctx, command)
+    assert.equal(replay.registered, 0)
+    assert.equal(replay.skipped, 3)
+    const view: CompetitionAdminView = await invoke(
+        competitions.adminGet,
+        ctx,
+        {
+            ...platform,
+            competitionId,
+        }
+    )
+    assert.equal(view.registrations.length, 3)
+    assert.equal(
+        view.registrations.find((row) => row.team.id === "teamDirectory:omen")
+            ?.divisionId,
+        d1
+    )
+    const next = await competitionWithDivisions(ctx, "bulk-next-season")
+    const nextResult = await invoke(competitions.registerTeams, ctx, {
+        ...command,
+        competitionId: next.competitionId,
+        input: { ...command.input, divisionId: next.d1 },
+    })
+    assert.equal(nextResult.registered, 3)
+})
+
+test("bulk registration refuses unauthorized, invalid, wrong-game and archived selections without partial writes", async () => {
+    const ctx = setup()
+    const { competitionId, d1 } = await competitionWithDivisions(ctx)
+    const command = {
+        ...platform,
+        competitionId,
+        input: { divisionId: d1, teamIds: ["teamDirectory:circle"] },
+    }
+    await assert.rejects(
+        invoke(competitions.registerTeams, ctx, {
+            ...command,
+            ...workspaceAdmin,
+        }),
+        /Forbidden/
+    )
+    for (const [teamIds, error] of [
+        [[], "invalid_competition"],
+        [
+            ["teamDirectory:circle", "teamDirectory:circle"],
+            "invalid_competition",
+        ],
+        [["teamDirectory:circle", "teamDirectory:old"], "team_archived"],
+        [
+            ["teamDirectory:circle", "teamDirectory:lonestar"],
+            "team_game_mismatch",
+        ],
+        [["teamDirectory:circle", "teamDirectory:missing"], "team_not_found"],
+    ] as const) {
+        assert.deepEqual(
+            await invoke(competitions.registerTeams, ctx, {
+                ...command,
+                input: { ...command.input, teamIds },
+            }),
+            { error }
+        )
+        const view = await invoke(competitions.adminGet, ctx, {
+            ...platform,
+            competitionId,
+        })
+        assert.equal(view.registrations.length, 0)
+    }
 })

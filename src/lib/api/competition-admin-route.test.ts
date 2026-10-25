@@ -254,3 +254,33 @@ test("behind a proxy only the public site origin may write", async () => {
         403
     )
 })
+
+test("bulk team registration routes one validated batch and invalidates the competition", async () => {
+    const { handlers, calls, revalidated } = harness()
+    const input = { divisionId: "division-1", teamIds: ["team-1", "team-2"] }
+    const response = await handlers.command(
+        post({ action: "registerTeams", competitionId: "c1", input })
+    )
+    assert.equal(response.status, 200)
+    assert.deepEqual(calls, [
+        {
+            mutation: "competitions:registerTeams",
+            args: { competitionId: "c1", input },
+        },
+    ])
+    assert.deepEqual(revalidated, [["spring-cup"]])
+    for (const teamIds of [[], ["same", "same"]])
+        assert.equal(
+            (
+                await handlers.command(
+                    post({
+                        action: "registerTeams",
+                        competitionId: "c1",
+                        input: { divisionId: "division-1", teamIds },
+                    })
+                )
+            ).status,
+            400
+        )
+    assert.equal(calls.length, 1)
+})

@@ -174,7 +174,7 @@ test("Wardogs saves accept three slots with factions, sorted by slot", async () 
     )
 })
 
-test("concluded matches freeze assignments; trainings, cross-game, unknown and archived teams are rejected", async () => {
+test("concluded matches allow corrected assignments; trainings, cross-game, unknown and archived teams are rejected", async () => {
     const ctx = setup()
     const alpha = await createTeam(ctx, "hell_let_loose", "Alpha")
     const bravo = await createTeam(ctx, "hell_let_loose", "Bravo")
@@ -183,24 +183,19 @@ test("concluded matches freeze assignments; trainings, cross-game, unknown and a
         gameId: "hell_let_loose",
         matchTeams: [{ teamId: alpha, slot: "a", side: null }],
     })
-    const saved = structuredClone(eventRow(ctx).matchTeams)
     eventRow(ctx).status = "concluded"
-    await assert.rejects(
-        upsert(ctx, {
-            eventId,
-            matchTeams: [{ teamId: bravo, slot: "a", side: null }],
-        }),
-        /match_teams:match_concluded/
-    )
-    assert.deepEqual(eventRow(ctx).matchTeams, saved)
-    // Re-sending the frozen selection unchanged is still a valid edit of other fields.
+    await upsert(ctx, {
+        eventId,
+        matchTeams: [{ teamId: bravo, slot: "a", side: null }],
+    })
+    assert.equal(eventRow(ctx).matchTeams[0].teamId, bravo)
+    assert.equal(eventRow(ctx).status, "concluded")
     await upsert(ctx, {
         eventId,
         name: "Concluded rename",
         matchTeams: [{ teamId: alpha, slot: "a", side: null }],
     })
     assert.equal(eventRow(ctx).name, "Concluded rename")
-    assert.deepEqual(eventRow(ctx).matchTeams, saved)
 
     await assert.rejects(
         upsert(ctx, {
@@ -250,7 +245,7 @@ test("concluded matches freeze assignments; trainings, cross-game, unknown and a
     assert.equal(ctx.db.tables.events.length, 1)
 })
 
-test("a match past its end is frozen before the stored status says concluded", async () => {
+test("a match past its end permits team corrections before the bot records conclusion", async () => {
     const ctx = setup()
     const alpha = await createTeam(ctx, "hell_let_loose", "Alpha")
     const bravo = await createTeam(ctx, "hell_let_loose", "Bravo")
@@ -266,26 +261,24 @@ test("a match past its end is frozen before the stored status says concluded", a
         gameStart: "2026-01-01T18:30:00.000Z",
         gameEnd: "2026-01-01T20:00:00.000Z",
     })
-    const saved = structuredClone(eventRow(ctx).matchTeams)
-    await assert.rejects(
-        upsert(ctx, {
-            eventId,
-            matchTeams: [{ teamId: bravo, slot: "a", side: null }],
-        }),
-        /match_teams:match_concluded/
-    )
-    assert.deepEqual(
-        await invoke(matchTeams.refreshSnapshot, ctx, {
-            secret,
-            serverId: "guilds:admin",
-            eventId,
-            teamId: alpha,
-            actor: actorFixture,
-        }),
-        { error: "match_concluded" }
-    )
-    assert.deepEqual(eventRow(ctx).matchTeams, saved)
-    assert.equal(eventRow(ctx).status, "starting")
+    await upsert(ctx, {
+        eventId,
+        registrationEnd: eventRow(ctx).registrationEnd,
+        meetingStart: eventRow(ctx).meetingStart,
+        gameStart: eventRow(ctx).gameStart,
+        gameEnd: eventRow(ctx).gameEnd,
+        matchTeams: [{ teamId: bravo, slot: "a", side: null }],
+    })
+    assert.equal(eventRow(ctx).matchTeams[0].teamId, bravo)
+    const refreshed = await invoke(matchTeams.refreshSnapshot, ctx, {
+        secret,
+        serverId: "guilds:admin",
+        eventId,
+        teamId: bravo,
+        actor: actorFixture,
+    })
+    assert.equal("error" in refreshed, false)
+    assert.equal(eventRow(ctx).status, "concluded")
 })
 
 test("an explicit [] on a new match stores an empty selection; omission keeps the legacy shape", async () => {

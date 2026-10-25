@@ -4,6 +4,8 @@ import {
     TEAM_PAGE_MAX,
     TEAM_SEARCH_MAX,
     teamGameSchema,
+    teamCreateSchema,
+    TEAM_DIRECTORY_LIMIT,
     type TeamDto,
     type TeamGame,
     type TeamRecord,
@@ -34,11 +36,13 @@ import {
     type MutationCtx,
     type QueryCtx,
 } from "./_generated/server"
+import { importTeams } from "../src/application/teams/import-teams.use-case"
 import { authorizeDashboardAdmin, dashboardActor } from "./dashboardActor"
 import { authorizePlatformAdmin } from "./platformAdmin"
 import type { Doc, Id } from "./_generated/dataModel"
 import { assetPublicUrl } from "./imageAssetStore"
 import { v } from "convex/values"
+import { z } from "zod"
 
 /** Workspace-administrator reads: the catalogue is global but read in a workspace's dashboard. */
 const workspaceAccess = {
@@ -397,5 +401,23 @@ export const merge = mutation({
     handler: async (ctx, args) => {
         const { ports, actor } = await catalogueWriter(ctx, args)
         return await mergeTeam(ports, { actor }, args.teamId, args.input)
+    },
+})
+
+/** Add-only provider import, with name/code matching in the same transaction as creation. */
+export const importCatalogue = mutation({
+    args: { ...platformAccess, gameId: v.string(), teams: v.any() },
+    handler: async (ctx, args) => {
+        const { ports, actor } = await catalogueWriter(ctx, args)
+        const gameId = parseGame(args.gameId)
+        const teams = z
+            .array(teamCreateSchema.omit({ gameId: true }))
+            .max(500)
+            .parse(args.teams)
+        const existing = await ctx.db
+            .query("teamDirectory")
+            .withIndex("gameId_normalizedName", (q) => q.eq("gameId", gameId))
+            .take(TEAM_DIRECTORY_LIMIT + 1)
+        return await importTeams(ports, actor, gameId, existing, teams)
     },
 })

@@ -65,13 +65,13 @@ import type {
     SettingsPreviewKind,
 } from "@/domain/discord-messages/settings-previews"
 import {
-    channelOptions,
-    SettingsChannelPicker,
-} from "@/components/app/settings/settings-channel-picker"
-import {
     clearableId,
     saveDiscordSettings,
 } from "@/components/app/settings/save-discord-settings"
+import {
+    channelOptions,
+    DiscordChannelSelect,
+} from "@/components/app/discord-channel-select"
 import { UnsavedChangesBar } from "@/components/app/settings/unsaved-changes-bar"
 import { useDiscordMetadataState } from "@/hooks/use-discord-metadata"
 import type { Dictionary } from "@/i18n/dictionaries"
@@ -1151,7 +1151,7 @@ export function DiscordMessagesSettingsView({
                                             >
                                                 {rows.errors.selectLabel}
                                             </label>
-                                            <SettingsChannelPicker
+                                            <DiscordChannelSelect
                                                 id={`${ids}-errors`}
                                                 value={draft.errorsChannelId}
                                                 onChange={(value) =>

@@ -1541,6 +1541,15 @@ export const enMessages = {
         showAll: "Show all activity",
     },
     teamCatalogAdmin: {
+        scrapeWardogs: "Scrape teams from Wardogs League",
+        scrapeHll: "Sync teams from HeLO (2024)",
+        scrapingTeams: "Importing teams…",
+        scrapeDescription:
+            "Adds missing teams and their logos to this game’s global catalogue. Existing names or short codes are skipped. Register imported teams in the competition separately.",
+        scrapeResult:
+            "Created: {created}. Skipped: {skipped}. Failed: {failed}. You can retry failed teams.",
+        scrapeError: "Team import failed. Please try again.",
+
         searchLabel: "Search teams",
         statesLabel: "Status",
         states: {
@@ -2030,6 +2039,14 @@ export const enMessages = {
         },
     },
     competitionAdmin: {
+        chooseTeams: "Choose teams",
+        selectedTeams: "{count} teams selected",
+        registerSelected: "Register {count} teams",
+        selectAllMatching: "Select all matching",
+        clearSelection: "Clear selection",
+        doneSelecting: "Done",
+        retryTeams: "Retry",
+
         breadcrumb: "Breadcrumb",
         round: "Round",
         roundHelp: "Optional, 1–99. Matches are grouped by round.",
@@ -3613,6 +3630,7 @@ export const enMessages = {
             clanRole: "Choose the clan role",
         },
         channelPicker: {
+            empty: "No channels found.",
             search: "Search channels",
             searchPlaceholder: "Search name or ID",
             channelId: "Channel ID",

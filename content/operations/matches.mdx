@@ -232,8 +232,7 @@ details, attendee role and buttons remain.
 **Save changes** saves and returns to the match; the bot updates the
 announcement and the other Discord messages as after any edit, and players who
 signed up stay signed up. **Cancel** returns to the match and asks first when
-there are unsaved changes, as does leaving the page another way. A concluded
-match can no longer be edited, and opening a draft this way continues it in the
+there are unsaved changes, as does leaving the page another way. Concluded matches remain editable. Opening a draft this way continues it in the
 new-match flow.
 
 ## The match page
@@ -241,7 +240,7 @@ new-match flow.
 Opening a match shows its name, game, map and time (meeting and start, or when
 it was played), **View in Discord** once the bot has posted the sign-up
 announcement (until the match is played) and, for managers, a **⋯** menu with
-**Edit match** (until the match is concluded), **Open the roster page** and
+**Edit match** (including played matches), **Open the roster page** and
 **Sign-up history**. On a phone
 the top shrinks to a back arrow, the match name and the current step ("Step 3
 of 5 · Roster"), the Discord tab is left out and the ⋯ menu also holds the
@@ -378,7 +377,7 @@ a message so you can choose another team.
 A saved team that has since been archived stays on the match until you replace
 it; archived teams cannot be newly selected. To pick up catalogue changes for a
 saved team, use **Refresh snapshot** beside it while editing the match. It works
-only while the team is active in the catalogue and the match is not concluded,
+while the team is active in the catalogue, including after conclusion,
 and it updates the stored snapshot immediately without saving other changes in
 the flow.
 
@@ -386,11 +385,7 @@ When Logi administrators merge a duplicate into another team, **Refresh
 snapshot** on the merged team switches that slot to the surviving team and
 captures its details, keeping the slot and side.
 
-Once a match is concluded, its teams and snapshots are frozen: the Teams
-section becomes read-only and saving other match fields leaves them unchanged.
-A match counts as concluded from 15 minutes after its game end, even before
-Logi records the conclusion.
-Result corrections continue through the reviewed-result workflow below.
+Concluded matches allow explicit team corrections and snapshot refreshes. Existing snapshots remain unchanged until a manager edits or refreshes them.
 
 ## Competition links
 
@@ -415,7 +410,7 @@ is titled with their short codes ("VLK vs ROG") and its sides row shows each
 team's code as a chip with its side and faction emblem in slot order (for
 example `VLK` Allies ★ vs `ROG` Axis ✚). The separate team logo cards are gone.
 Codes come from the snapshot saved when the team was assigned; later catalogue
-edits change them only if that snapshot is refreshed before the match concludes.
+edits change them only if that snapshot is refreshed explicitly.
 Matches without assigned teams keep their name as the title and show the
 clan's side.
 
@@ -599,3 +594,16 @@ does not queue another DM and suppresses any original recap still waiting.
 Historical report recovery does not send retrospective DMs. Delivery uses the
 same recipient and opt-out checks as HLL; a crash between Discord accepting a
 DM and saving its sent marker can still cause a retry, as with HLL.
+
+### Correcting a played match
+
+Managers can use **Edit** on a played match to correct its details and selected
+teams, including Wardogs Team C. Editing preserves the concluded status and
+saved result. Catalogue changes still do not silently replace captured team
+names or logos; use **Refresh snapshot** explicitly when needed, including after
+conclusion. The authenticated event update API follows the same rules.
+
+For manual results without selected teams, Wardogs starts with three score
+fields. Use **Add participant** to include a missing team, including on an
+existing two-team result, and remove an extra participant for a two-team game.
+Confirmed results still require a correction reason.

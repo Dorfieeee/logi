@@ -9,7 +9,7 @@ const schedule = {
     gameEnd: "2026-10-11T19:30:00.000Z",
 }
 
-test("a published event stays editable until it concludes", () => {
+test("a published event stays editable after it concludes", () => {
     const before = new Date("2026-10-09T10:00:00.000Z")
     assert.equal(
         eventEditability({ ...schedule, status: "registration" }, before),
@@ -25,7 +25,7 @@ test("a published event stays editable until it concludes", () => {
     )
     assert.equal(
         eventEditability({ ...schedule, status: "concluded" }, before),
-        "concluded"
+        "editable"
     )
     // 15 minutes after the end it counts as concluded before the bot says so.
     assert.equal(
@@ -33,7 +33,7 @@ test("a published event stays editable until it concludes", () => {
             { ...schedule, status: "starting" },
             new Date("2026-10-11T19:45:00.000Z")
         ),
-        "concluded"
+        "editable"
     )
     assert.equal(
         eventEditability({ ...schedule, isDraft: true }, before),
