@@ -1,0 +1,526 @@
+[
+  {
+    "title": "HLL · No assigned teams · Map",
+    "group": "Layouts",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "0",
+      "background": "map"
+    },
+    "file": "01.png"
+  },
+  {
+    "title": "HLL · No assigned teams · Gray",
+    "group": "Layouts",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "0",
+      "background": "none"
+    },
+    "file": "02.png"
+  },
+  {
+    "title": "HLL · 1 assigned team · Map",
+    "group": "Layouts",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "1",
+      "background": "map"
+    },
+    "file": "03.png"
+  },
+  {
+    "title": "HLL · 1 assigned team · Gray",
+    "group": "Layouts",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "1",
+      "background": "none"
+    },
+    "file": "04.png"
+  },
+  {
+    "title": "HLL · 2 assigned teams · Map",
+    "group": "Layouts",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "2",
+      "background": "map"
+    },
+    "file": "05.png"
+  },
+  {
+    "title": "HLL · 2 assigned teams · Gray",
+    "group": "Layouts",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "2",
+      "background": "none"
+    },
+    "file": "06.png"
+  },
+  {
+    "title": "Wardogs · No assigned teams · Map",
+    "group": "Layouts",
+    "options": {
+      "game": "wardogs",
+      "teams": "0",
+      "background": "map"
+    },
+    "file": "07.png"
+  },
+  {
+    "title": "Wardogs · No assigned teams · Gray",
+    "group": "Layouts",
+    "options": {
+      "game": "wardogs",
+      "teams": "0",
+      "background": "none"
+    },
+    "file": "08.png"
+  },
+  {
+    "title": "Wardogs · 1 assigned team · Map",
+    "group": "Layouts",
+    "options": {
+      "game": "wardogs",
+      "teams": "1",
+      "background": "map"
+    },
+    "file": "09.png"
+  },
+  {
+    "title": "Wardogs · 1 assigned team · Gray",
+    "group": "Layouts",
+    "options": {
+      "game": "wardogs",
+      "teams": "1",
+      "background": "none"
+    },
+    "file": "10.png"
+  },
+  {
+    "title": "Wardogs · 2 assigned teams · Map",
+    "group": "Layouts",
+    "options": {
+      "game": "wardogs",
+      "teams": "2",
+      "background": "map"
+    },
+    "file": "11.png"
+  },
+  {
+    "title": "Wardogs · 2 assigned teams · Gray",
+    "group": "Layouts",
+    "options": {
+      "game": "wardogs",
+      "teams": "2",
+      "background": "none"
+    },
+    "file": "12.png"
+  },
+  {
+    "title": "Wardogs · 3 assigned teams · Map",
+    "group": "Layouts",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "background": "map"
+    },
+    "file": "13.png"
+  },
+  {
+    "title": "Wardogs · 3 assigned teams · Gray",
+    "group": "Layouts",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "background": "none"
+    },
+    "file": "14.png"
+  },
+  {
+    "title": "HLL · 2 teams · victory",
+    "group": "Results",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "2",
+      "state": "victory",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "15.png"
+  },
+  {
+    "title": "HLL · 2 teams · defeat",
+    "group": "Results",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "2",
+      "state": "defeat",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "16.png"
+  },
+  {
+    "title": "HLL · 2 teams · draw",
+    "group": "Results",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "2",
+      "state": "draw",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "17.png"
+  },
+  {
+    "title": "HLL · 2 teams · unknown",
+    "group": "Results",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "2",
+      "state": "unknown",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "18.png"
+  },
+  {
+    "title": "HLL · 2 teams · missing-score",
+    "group": "Results",
+    "options": {
+      "game": "hell_let_loose",
+      "teams": "2",
+      "state": "missing-score",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "19.png"
+  },
+  {
+    "title": "Wardogs · 3 teams · victory",
+    "group": "Results",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "state": "victory",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "20.png"
+  },
+  {
+    "title": "Wardogs · 3 teams · defeat",
+    "group": "Results",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "state": "defeat",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "21.png"
+  },
+  {
+    "title": "Wardogs · 3 teams · draw",
+    "group": "Results",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "state": "draw",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "22.png"
+  },
+  {
+    "title": "Wardogs · 3 teams · unknown",
+    "group": "Results",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "state": "unknown",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "23.png"
+  },
+  {
+    "title": "Wardogs · 3 teams · missing-score",
+    "group": "Results",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "state": "missing-score",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "24.png"
+  },
+  {
+    "title": "League · 2 teams · map",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "25.png"
+  },
+  {
+    "title": "League · 3 teams · gray",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "background": "none",
+      "league": "on",
+      "category": "league"
+    },
+    "file": "26.png"
+  },
+  {
+    "title": "Category without league heading",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "category": "league"
+    },
+    "file": "27.png"
+  },
+  {
+    "title": "No category",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "category": "none"
+    },
+    "file": "28.png"
+  },
+  {
+    "title": "League heading without category",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "league": "on",
+      "category": "none"
+    },
+    "file": "29.png"
+  },
+  {
+    "title": "Missing all logos · initials",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "logos": "none"
+    },
+    "file": "30.png"
+  },
+  {
+    "title": "Only clan has a logo",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "logos": "mixed"
+    },
+    "file": "31.png"
+  },
+  {
+    "title": "No short codes · full names",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "codes": "off"
+    },
+    "file": "32.png"
+  },
+  {
+    "title": "No logos or short codes",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "logos": "none",
+      "codes": "off"
+    },
+    "file": "33.png"
+  },
+  {
+    "title": "No catalogue identity · clan fallback",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "0",
+      "logos": "none",
+      "codes": "off"
+    },
+    "file": "34.png"
+  },
+  {
+    "title": "Opponent-only legacy record",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "opponent-only"
+    },
+    "file": "35.png"
+  },
+  {
+    "title": "Unknown map · gray fallback",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "background": "unknown"
+    },
+    "file": "36.png"
+  },
+  {
+    "title": "Czech · meeting time",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "language": "cs"
+    },
+    "file": "37.png"
+  },
+  {
+    "title": "German · meeting time",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "language": "de"
+    },
+    "file": "38.png"
+  },
+  {
+    "title": "Czech · victory",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "language": "cs",
+      "state": "victory"
+    },
+    "file": "39.png"
+  },
+  {
+    "title": "German · defeat",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "language": "de",
+      "state": "defeat"
+    },
+    "file": "40.png"
+  },
+  {
+    "title": "Summer daylight saving · Prague",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "timing": "summer"
+    },
+    "file": "41.png"
+  },
+  {
+    "title": "Winter · New York",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "timezone": "America/New_York"
+    },
+    "file": "42.png"
+  },
+  {
+    "title": "Next calendar day · Sydney",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "timezone": "Australia/Sydney"
+    },
+    "file": "43.png"
+  },
+  {
+    "title": "Meeting and game on different days",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "2",
+      "timing": "midnight"
+    },
+    "file": "44.png"
+  },
+  {
+    "title": "Long names and league heading",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "names": "long",
+      "codes": "off",
+      "league": "on"
+    },
+    "file": "45.png"
+  },
+  {
+    "title": "Clan is third team · victory",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "home": "last",
+      "state": "victory"
+    },
+    "file": "46.png"
+  },
+  {
+    "title": "Clan is third team · defeat",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "wardogs",
+      "teams": "3",
+      "home": "last",
+      "state": "defeat"
+    },
+    "file": "47.png"
+  },
+  {
+    "title": "Clan-only result · known side",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "0",
+      "state": "victory"
+    },
+    "file": "48.png"
+  },
+  {
+    "title": "Clan-only result · unknown side",
+    "group": "Fallbacks and details",
+    "options": {
+      "teams": "0",
+      "state": "unknown"
+    },
+    "file": "49.png"
+  },
+  {
+    "title": "HLL Vietnam · unavailable map art",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "hell_let_loose_vietnam",
+      "teams": "2"
+    },
+    "file": "50.png"
+  },
+  {
+    "title": "Other supported game · gray",
+    "group": "Fallbacks and details",
+    "options": {
+      "game": "world_of_warcraft_forever",
+      "teams": "0"
+    },
+    "file": "51.png"
+  }
+]
