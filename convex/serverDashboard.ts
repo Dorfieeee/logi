@@ -7,6 +7,7 @@ import {
     getUserDiscordId,
     getUserStableId,
 } from "./identity"
+import { hasRecentMatchResult } from "../src/domain/match-results/recent-result"
 import { resultFaction } from "../src/domain/match-results/result-sides"
 import { matchesGameScope } from "../src/domain/games/game"
 import { internalAuthSecret } from "./discord_shared"
@@ -61,12 +62,7 @@ export const getRecentMatchSummaryInternal = query({
         )
             .filter(
                 (event) =>
-                    event.kind !== "training" &&
-                    ((event.matchStatsId && event.eventResult) ||
-                        (event.gameId === "wardogs" &&
-                            event.wardogsReportId &&
-                            event.reviewedResult &&
-                            event.reviewedResult.status !== "provisional")) &&
+                    hasRecentMatchResult(event) &&
                     matchesGameScope(event.gameId, args.gameScope)
             )
             .sort(
@@ -84,11 +80,14 @@ export const getRecentMatchSummaryInternal = query({
         )
         const recentMatches = recentEvents.map((event) => {
             const reviewed = event.reviewedResult
-            const scores = event.eventResult
-                ? [event.eventResult.score.sideA, event.eventResult.score.sideB]
-                : (reviewed?.participants.map(
-                      (participant) => participant.score
-                  ) ?? [])
+            const scores = reviewed
+                ? reviewed.participants.map((participant) => participant.score)
+                : event.eventResult
+                  ? [
+                        event.eventResult.score.sideA,
+                        event.eventResult.score.sideB,
+                    ]
+                  : []
             return {
                 id: String(event._id),
                 name: event.name,
@@ -96,7 +95,9 @@ export const getRecentMatchSummaryInternal = query({
                     event.eventResult?.endedAt ??
                     reviewed?.reviewedAt ??
                     event.gameEnd,
-                outcome: event.eventResult?.outcome ?? reviewedOutcome(event),
+                outcome: reviewed
+                    ? reviewedOutcome(event)
+                    : (event.eventResult?.outcome ?? "draw"),
                 scores,
             }
         })

@@ -10,6 +10,7 @@ type Routing = {
 }
 export function invalidPublicationDestination(
     settings: Routing & {
+        eventResultsChannelId?: string
         errorsChannelId?: string
         calendarChannelId?: string
         ticketSettings?: {
@@ -43,6 +44,7 @@ export function invalidPublicationDestination(
             )
         }
     }
+    add(settings.eventResultsChannelId)
     add(settings.errorsChannelId)
     add(settings.calendarChannelId)
     if (settings.ticketSettings?.enabled) {

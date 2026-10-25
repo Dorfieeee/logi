@@ -34,6 +34,13 @@ export function CompetitionDetailsForm({
     const [season, setSeason] = useState(saved.season)
     const [description, setDescription] = useState(saved.description ?? "")
     const [published, setPublished] = useState(saved.published)
+    const [registrationMode, setRegistrationMode] = useState(
+        saved.registrationMode ?? "closed"
+    )
+    const [minimum, setMinimum] = useState(
+        saved.minimumLinkedPlayers?.toString() ?? ""
+    )
+    const enrollment = dictionary.competitionEnrollment
     const [failure, setFailure] = useState<string | null>(null)
 
     async function submit(event: FormEvent<HTMLFormElement>) {
@@ -45,6 +52,12 @@ export function CompetitionDetailsForm({
         if (description.trim() !== (saved.description ?? ""))
             changes.description = description.trim() || null
         if (published !== saved.published) changes.published = published
+        if (registrationMode !== (saved.registrationMode ?? "closed"))
+            changes.registrationMode = registrationMode
+        const minimumLinkedPlayers =
+            minimum.trim() === "" ? null : Number(minimum)
+        if (minimumLinkedPlayers !== (saved.minimumLinkedPlayers ?? null))
+            changes.minimumLinkedPlayers = minimumLinkedPlayers
         if (!Object.keys(changes).length) return
         const input = competitionUpdateSchema.safeParse(changes)
         if (!input.success) {
@@ -157,6 +170,60 @@ export function CompetitionDetailsForm({
                                 className="text-muted-foreground text-xs"
                             >
                                 {t.publishedHelp}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor={`${id}-policy`}>
+                                {enrollment.policy}
+                            </Label>
+                            <select
+                                id={`${id}-policy`}
+                                className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                                value={registrationMode}
+                                disabled={pending}
+                                onChange={(event) => {
+                                    const value = event.target.value
+                                    if (
+                                        value === "closed" ||
+                                        value === "approval" ||
+                                        value === "automatic"
+                                    )
+                                        setRegistrationMode(value)
+                                }}
+                            >
+                                {(
+                                    ["closed", "approval", "automatic"] as const
+                                ).map((mode) => (
+                                    <option key={mode} value={mode}>
+                                        {enrollment[mode]}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor={`${id}-minimum`}>
+                                {enrollment.minimumLabel}
+                            </Label>
+                            <Input
+                                id={`${id}-minimum`}
+                                type="number"
+                                min={1}
+                                max={1000}
+                                step={1}
+                                value={minimum}
+                                disabled={pending}
+                                onChange={(event) =>
+                                    setMinimum(event.target.value)
+                                }
+                                aria-describedby={`${id}-minimum-help`}
+                            />
+                            <p
+                                id={`${id}-minimum-help`}
+                                className="text-muted-foreground text-xs"
+                            >
+                                {enrollment.minimumHelp}
                             </p>
                         </div>
                     </div>

@@ -58,6 +58,7 @@ The main stack is TypeScript (strict mode), React 19, Next.js, Convex, Discord.j
 - [Discord redesign kit](./docs/superpowers/specs/discord-redesign/KIT.md) — W0 developer note: Components V2 message model, bot message kit and error path, dashboard preview, clan-language copy modules, interaction registry and `/api/v1` settings slices
 - [Discord panels API](./docs/superpowers/specs/discord-redesign/PANELS-API.md) — W1 contract of "Panely v Discordu": panel kinds and states, dashboard routes, overview, test fetch with preview, bot worker and Convex functions, encrypted server password, public join page and hand-offs to the UI, seed and League workstreams
 - [Clan meta from a maintained summary](./docs/integrations/website/clan-meta.md) — what `/api/v1/clan/meta` promises per field, the once-a-minute summary refresh off the request path, the reads the endpoint makes and the operator notes
+- [Clan competition enrollment](./docs/integrations/website/competition-enrollment.md) — clan-admin signup, approval policies, signed-in member minimums, retained withdrawals, workspace modes and authenticated API restrictions
 - [Global team catalogue handoff](./docs/integrations/website/v0.15/README.md) — explicit `teams` grant, global catalogue collection/detail reads, fan-out change feed and merge semantics, immutable match snapshots, actor-backed `matchTeams` commands and the API-parity exception for catalogue writes, logo uploads and team requests
 
 - [Roster and match workflow acceptance](./docs/verification/2026-10-11-roster-match-workflows.md) — roster drag/drop, sticky reserves, tactical plans, editable signups, deletion and local browser/build evidence
@@ -269,7 +270,7 @@ Before handing work back:
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 

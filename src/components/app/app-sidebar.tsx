@@ -14,7 +14,7 @@ import {
     Ticket,
 } from "lucide-react"
 import { usePathname, useSearchParams } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import {
     Sidebar,
@@ -86,6 +86,28 @@ export function AppSidebar({
         resolvedServer &&
         (resolvedServer.botInside || pathServerId || isSuperadmin)
     )
+    const [modeOverride, setModeOverride] = useState<{
+        serverId: string
+        mode: string
+    } | null>(null)
+    useEffect(() => {
+        const listener = (event: Event) => {
+            if (
+                event instanceof CustomEvent &&
+                event.detail &&
+                typeof event.detail.serverId === "string" &&
+                (event.detail.mode === "full" ||
+                    event.detail.mode === "competitions")
+            )
+                setModeOverride(event.detail)
+        }
+        window.addEventListener("logi:workspace-mode", listener)
+        return () => window.removeEventListener("logi:workspace-mode", listener)
+    }, [])
+    const competitionOnly =
+        (modeOverride && modeOverride.serverId === resolvedServerId
+            ? modeOverride.mode
+            : resolvedServer?.workspaceMode) === "competitions"
     const settingsAttention = useSettingsAttentionCount(resolvedServerId)
     const selectedGame = searchParams.get("game")
     // Tactical maps are currently a specialised HLL/Wardogs capability. New
@@ -297,6 +319,47 @@ export function AppSidebar({
               ]
             : []
 
+    if (resolvedCanAdmin && resolvedServerId)
+        navGroups.push({
+            label: t.competitions,
+            items: [
+                {
+                    title: t.competitions,
+                    url: `${base}/competitions`,
+                    icon: Swords,
+                    isActive: within("competitions"),
+                },
+                {
+                    title: dictionary.teams.title,
+                    url: `${base}/teams`,
+                    icon: Shield,
+                    isActive: within("teams"),
+                },
+            ],
+        })
+    const visibleNavGroups = competitionOnly
+        ? navGroups
+              .map((group) => ({
+                  ...group,
+                  items: group.items
+                      .filter((item) =>
+                          [
+                              base,
+                              `${base}/competitions`,
+                              `${base}/teams`,
+                              `${base}/users`,
+                              `${base}/settings`,
+                          ].includes(item.url)
+                      )
+                      .map((item) =>
+                          item.url === `${base}/users`
+                              ? { ...item, items: undefined }
+                              : item
+                      ),
+              }))
+              .filter((group) => group.items.length)
+        : navGroups
+
     // Global administration has its own sidebar (AdminSidebar); this entry
     // leads there and is shown to Logi's administrators only.
     const footerItems: NavItem[] = isSuperadmin
@@ -359,7 +422,7 @@ export function AppSidebar({
                 // flush with the bottom border, even when nested sections are open.
                 className="gap-0"
             >
-                {navGroups.map((group) => (
+                {visibleNavGroups.map((group) => (
                     <div key={group.label} id={group.id}>
                         <NavMain label={group.label} items={group.items} />
                     </div>

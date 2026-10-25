@@ -72,7 +72,7 @@ export function clanFlowProps(input: {
             gameId: stratmap.gameId,
         })),
         timezone: config?.timezone ?? "UTC",
-        clan: { name: context.server.name },
+        clan: { name: context.server.name, avatar: context.server.avatar },
         linkedTeams: input.linkedTeams,
         channelDefaults,
         clanRoleId: config?.clanRoleId,

@@ -1,4 +1,45 @@
 export const enMessages = {
+    competitionEnrollment: {
+        title: "Competitions",
+        description:
+            "Enroll your clan’s linked teams, follow approval, or withdraw while keeping match history.",
+        noTeams:
+            "No team is linked to this clan. Request a team or ask a Logi administrator to link your existing team.",
+        teamsLink: "Manage teams",
+        noCompetitions: "No competitions are available yet.",
+        players: "Clan members signed into Logi: {count}",
+        minimum: "Minimum signed-in players: {count}",
+        noMinimum: "No minimum player count",
+        closed: "Registration closed",
+        approval: "Requires administrator approval",
+        automatic: "Automatic registration",
+        enroll: "Enroll team",
+        withdraw: "Withdraw",
+        pending: "Pending approval",
+        approved: "Enrolled",
+        rejected: "Not approved",
+        withdrawn: "Withdrawn",
+        saved: "Saved",
+        error: "Could not save. Please try again.",
+        registration_closed: "This competition is closed for registration.",
+        minimum_players:
+            "Your clan does not meet the minimum signed-in player count.",
+        team_not_owned: "This team is not linked to your clan.",
+        modeTitle: "How would you like to use Logi?",
+        modeDescription:
+            "Choose the full set of clan tools, or a simpler menu for competitions and players. You can change this later in clan settings.",
+        full: "Full Logi",
+        competitions: "Competitions only",
+        modeSave: "Save mode",
+        modeLabel: "Workspace mode",
+        policy: "Team registration",
+        minimumLabel: "Minimum signed-in clan members",
+        minimumHelp:
+            "Leave empty for no minimum. Counts distinct clan members who have signed into Logi; Steam verification is not required.",
+        approve: "Approve",
+        reject: "Reject",
+        publicLink: "View competition",
+    },
     wardogsMatchDetails: {
         ourTeam: "Your team",
         players: "Players",
@@ -1541,6 +1582,15 @@ export const enMessages = {
         showAll: "Show all activity",
     },
     teamCatalogAdmin: {
+        scrapeWardogs: "Scrape teams from Wardogs League",
+        scrapeHll: "Sync teams from HeLO (2024)",
+        scrapingTeams: "Importing teams…",
+        scrapeDescription:
+            "Adds missing teams and their logos to this game’s global catalogue. Existing names or short codes are skipped. Register imported teams in the competition separately.",
+        scrapeResult:
+            "Created: {created}. Skipped: {skipped}. Failed: {failed}. You can retry failed teams.",
+        scrapeError: "Team import failed. Please try again.",
+
         searchLabel: "Search teams",
         statesLabel: "Status",
         states: {
@@ -2030,6 +2080,14 @@ export const enMessages = {
         },
     },
     competitionAdmin: {
+        chooseTeams: "Choose teams",
+        selectedTeams: "{count} teams selected",
+        registerSelected: "Register {count} teams",
+        selectAllMatching: "Select all matching",
+        clearSelection: "Clear selection",
+        doneSelecting: "Done",
+        retryTeams: "Retry",
+
         breadcrumb: "Breadcrumb",
         round: "Round",
         roundHelp: "Optional, 1–99. Matches are grouped by round.",
@@ -3341,6 +3399,9 @@ export const enMessages = {
             announcements: "Announcements",
             required: "required",
             announcementsHelp: "New events and roster changes.",
+            eventResults: "Event results",
+            eventResultsHelp:
+                "Confirmed match results with scores, clan outcome and available statistics. One channel for all games.",
             eventInfo: "Event information",
             eventInfoHelp: "Event details and sign-ups.",
             calendar: "Calendar",
@@ -3613,6 +3674,7 @@ export const enMessages = {
             clanRole: "Choose the clan role",
         },
         channelPicker: {
+            empty: "No channels found.",
             search: "Search channels",
             searchPlaceholder: "Search name or ID",
             channelId: "Channel ID",
@@ -5103,6 +5165,8 @@ export const enMessages = {
             },
         },
         more: {
+            automaticImage:
+                "Leave empty to generate a match image with teams, map and local meeting time. Your own picture replaces it.",
             title: "More options",
             summary: "Description, pictures, notes and tactical maps",
             description: "Description",

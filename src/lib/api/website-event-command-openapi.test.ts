@@ -48,7 +48,7 @@ test("event command OpenAPI documents team selections, the refresh operation and
     assert.match(post.description, /refresh_match_team/)
     assert.match(
         post.description,
-        /after meeting start until the match concludes/
+        /Updates remain available after meeting start and conclusion/
     )
     assert.match(post.responses["200"].description, /team snapshot refresh/)
     const schema = JSON.stringify(

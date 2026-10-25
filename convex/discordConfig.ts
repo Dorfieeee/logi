@@ -116,6 +116,7 @@ export const upsertConfig = mutation({
         ),
         announcementsChannelId: clearableId,
         eventInfoChannelId: clearableId,
+        eventResultsChannelId: clearableId,
         errorsChannelId: clearableId,
         calendarChannelId: clearableId,
         calendarCategories: v.optional(calendarCategoriesValidator),

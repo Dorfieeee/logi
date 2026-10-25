@@ -35,3 +35,18 @@ test("settings patches reject unsafe fields and invalid safe values", () => {
     ])
         assert.equal(parseClanSettingsPatch(value).ok, false)
 })
+
+test("event results routing is a clan-wide, clearable API setting", () => {
+    assert.deepEqual(
+        parseClanSettingsPatch({ eventResultsChannelId: " 123 " }),
+        { ok: true, value: { eventResultsChannelId: "123" } }
+    )
+    assert.deepEqual(parseClanSettingsPatch({ eventResultsChannelId: null }), {
+        ok: true,
+        value: { eventResultsChannelId: null },
+    })
+    assert.equal(
+        parseClanSettingsPatch({ eventResultsChannelId: "channel-name" }).ok,
+        false
+    )
+})

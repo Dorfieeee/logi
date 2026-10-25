@@ -24,6 +24,18 @@ export async function deleteEventInTransaction(
         announcementChannelId: config?.announcementsChannelId,
         eventInfoChannelId: config?.eventInfoChannelId,
     })
+    // The shared results channel owns one managed card outside the old sync row.
+    const resultPublication = await ctx.db
+        .query("discordPublications")
+        .withIndex("guild_key", (q) =>
+            q.eq("guildId", guildId).eq("key", `event:${eventId}:result`)
+        )
+        .unique()
+    if (resultPublication?.channelId && resultPublication.messageId)
+        cleanup.messages.push({
+            channelId: resultPublication.channelId,
+            messageId: resultPublication.messageId,
+        })
     const now = new Date().toISOString()
     const discordCleanupQueued = await queueEventDiscordDeletion(
         ctx,

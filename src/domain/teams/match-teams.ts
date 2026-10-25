@@ -204,13 +204,12 @@ export function refreshMatchTeamSnapshot(input: {
     return { ok: true, assignment: refreshed }
 }
 
-/** Team assignments stay editable only for unconcluded matches. */
+/** Managers may correct team assignments, including historical matches. */
 export function matchTeamsEditability(event: {
     kind?: "match" | "training"
     status?: "registration" | "closed" | "starting" | "concluded"
 }): MatchTeamError | null {
     if ((event.kind ?? "match") === "training") return "training_event"
-    if (event.status === "concluded") return "match_concluded"
     return null
 }
 

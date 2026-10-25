@@ -46,6 +46,8 @@ export async function POST(
                 announcementsChannelId:
                     parsed.data.announcementsChannelId ?? undefined,
                 eventInfoChannelId: parsed.data.eventInfoChannelId ?? undefined,
+                eventResultsChannelId:
+                    parsed.data.eventResultsChannelId ?? undefined,
                 errorsChannelId: parsed.data.errorsChannelId ?? undefined,
                 calendarChannelId: parsed.data.calendarChannelId ?? undefined,
             },

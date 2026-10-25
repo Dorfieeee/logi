@@ -537,6 +537,8 @@ const editorFor = (
         revision: string
         event: Record<string, unknown>
         matchTeams: Array<Record<string, unknown>> | null
+        canEdit: boolean
+        canCancel: boolean
     }
 }> =>
     invoke(commands.readEditor, f.ctx, {
@@ -856,17 +858,19 @@ test("refresh re-captures one assigned team with audit, change feed, receipt and
     assert.equal(started.data.replayed, false)
     assert.equal(f.ctx.db.tables.teamDirectoryAudit.length, 2)
 
-    // Concluded matches keep their snapshots.
+    // Historical refreshes remain explicit, audited and revision-checked.
     event.status = "concluded"
-    assert.deepEqual(
-        await f.run({
-            idempotencyKey: "refresh-concluded01",
-            command: { ...command, expectedRevision: started.data.revision },
-        }),
-        { error: { code: "invalid_match_teams" } }
-    )
-    assert.equal(f.ctx.db.tables.teamDirectoryAudit.length, 2)
-    assert.equal(f.ctx.db.tables.websiteEventCommandReceipts.length, 3)
+    const historical = await f.run({
+        idempotencyKey: "refresh-concluded01",
+        command: { ...command, expectedRevision: started.data.revision },
+    })
+    assert.equal(historical.data.operation, "refresh_match_team")
+    assert.equal(event.status, "concluded")
+    assert.equal(f.ctx.db.tables.teamDirectoryAudit.length, 3)
+    assert.equal(f.ctx.db.tables.websiteEventCommandReceipts.length, 4)
+    const editor = await editorFor(f, String(event._id))
+    assert.equal(editor.data.canEdit, true)
+    assert.equal(editor.data.canCancel, false)
 })
 
 test("a match created with an explicit [] reads as an empty selection, not a legacy null", async (t) => {

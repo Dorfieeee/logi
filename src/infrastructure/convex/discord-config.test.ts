@@ -87,3 +87,27 @@ test("the first save creates a configuration with clan defaults", async () => {
     assert.deepEqual(config.calendarCategories, [])
     assert.equal(config.clanRoleId, "401")
 })
+
+test("the clan-wide results destination can be saved and cleared without changing game routing", async () => {
+    const ctx = fixture()
+    await invoke(configuration.upsertConfig, ctx, {
+        secret,
+        guildId: "guilds:a",
+        eventResultsChannelId: " 500 ",
+    })
+    assert.equal(ctx.db.tables.discordConfigs[0].eventResultsChannelId, "500")
+    assert.equal(
+        ctx.db.tables.discordConfigs[0].gameOverrides.wardogs
+            .announcementsChannelId,
+        "301"
+    )
+    await invoke(configuration.upsertConfig, ctx, {
+        secret,
+        guildId: "guilds:a",
+        eventResultsChannelId: null,
+    })
+    assert.equal(
+        ctx.db.tables.discordConfigs[0].eventResultsChannelId,
+        undefined
+    )
+})

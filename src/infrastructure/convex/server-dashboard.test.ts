@@ -121,3 +121,83 @@ test("the dashboard summary does not leak HLL results into Wardogs", async () =>
     )
     assert.deepEqual(result?.recentMatches, [])
 })
+
+test("score-only results count without manufacturing player statistics", async () => {
+    const ctx = testContext()
+    ctx.db.seed("guilds", {
+        _id: "guilds:one",
+        id: "guild",
+        discordId: "guild",
+        name: "Clan",
+        memberIds: [],
+        adminIds: [],
+        mercenaryIds: [],
+    })
+    const base = {
+        guildId: "guild",
+        gameId: "hell_let_loose",
+        kind: "match",
+        name: "Manual result",
+        side: "Allies",
+        gameEnd: "2026-10-10T20:00:00Z",
+    }
+    const reviewedResult = {
+        status: "confirmed",
+        reviewedAt: "2026-10-11T20:00:00Z",
+        participants: [
+            { id: "axis", label: "Axis", score: 2 },
+            { id: "allies", label: "Allies", score: 3 },
+        ],
+    }
+    ctx.db.seed("events", { ...base, _id: "events:manual", reviewedResult })
+    ctx.db.seed("events", {
+        ...base,
+        _id: "events:legacy",
+        eventResult: {
+            outcome: "defeat",
+            score: { sideA: 4, sideB: 1 },
+            endedAt: base.gameEnd,
+        },
+    })
+    ctx.db.seed("events", {
+        ...base,
+        _id: "events:corrected",
+        reviewedResult: {
+            ...reviewedResult,
+            status: "corrected",
+        },
+        eventResult: { outcome: "defeat", score: { sideA: 4, sideB: 1 } },
+    })
+    for (const [id, overrides] of Object.entries({
+        draft: { isDraft: true, reviewedResult },
+        training: { kind: "training", reviewedResult },
+        pending: {
+            reviewedResult: { ...reviewedResult, status: "provisional" },
+        },
+        unknown: {},
+        otherClan: { guildId: "other", reviewedResult },
+        otherGame: { gameId: "wardogs", reviewedResult },
+    }))
+        ctx.db.seed("events", { ...base, _id: `events:${id}`, ...overrides })
+    const result = await invoke(
+        serverDashboard.getRecentMatchSummaryInternal,
+        ctx,
+        {
+            secret,
+            serverId: "guilds:one",
+            gameScope: "hell_let_loose",
+        }
+    )
+    assert.equal(result?.recentMatches.length, 3)
+    assert.equal(result?.wins, 2)
+    assert.equal(result?.losses, 1)
+    assert.equal(result?.winRate, 2 / 3)
+    assert.deepEqual(result?.topPlayers, [])
+    assert.deepEqual(
+        result?.recentMatches.find(
+            (match: { id: string; scores: number[] }) =>
+                match.id === "events:corrected"
+        )?.scores,
+        [2, 3]
+    )
+})

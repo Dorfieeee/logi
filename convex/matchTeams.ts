@@ -37,10 +37,8 @@ const canonical = (
  * Authoritative resolution for an event save. Omitted input preserves the
  * current assignments (re-validated after a game change); an explicit list
  * is resolved against active catalogue entries, keeping existing snapshots.
- * An explicit [] on an unconcluded match stores [] ("no teams selected"); an
- * event that never stored a selection keeps none (null in summaries). Callers
- * pass the schedule-derived `currentEventStatus`, so a match past its end is
- * frozen before the stored status catches up. A training never
+ * An explicit [] clears the selection, including on historical matches.
+ * An event that never stored a selection keeps none (null in summaries). A training never
  * carries assignments: an unconcluded match that becomes one drops them, which
  * also releases their logo references.
  */
@@ -115,9 +113,9 @@ export async function resolveEventMatchTeams(
 }
 
 /**
- * Explicit, audited re-capture of one assignment's presentation before a match
- * concludes. The dashboard session and admin access are rechecked in this
- * transaction, and the audit names the authorized session subject.
+ * Explicit, audited re-capture of one assignment's presentation, including
+ * historical corrections. Dashboard session and admin access are rechecked
+ * in this transaction; the audit names the authorized session subject.
  */
 export const refreshSnapshot = mutation({
     args: {

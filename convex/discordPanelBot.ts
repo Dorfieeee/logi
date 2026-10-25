@@ -1,3 +1,4 @@
+import { isApprovedRegistration } from "../src/domain/competitions/enrollment"
 import { v } from "convex/values"
 
 import {
@@ -233,7 +234,10 @@ export const competition = query({
             .sort((a, b) => a.order - b.order)
             .map((division) => {
                 const members = registrations.filter(
-                    (row) => row.divisionId === division._id && !row.withdrawn
+                    (row) =>
+                        row.divisionId === division._id &&
+                        !row.withdrawn &&
+                        isApprovedRegistration(row)
                 )
                 const views = members.map((row) => teams.get(row._id)!)
                 const games = fixtures

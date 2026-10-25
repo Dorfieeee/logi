@@ -1,3 +1,5 @@
+import { buildMatchImage } from "../src/domain/events/match-image"
+import { assetPublicUrl } from "./imageAssetStore"
 import { v } from "convex/values"
 
 import {
@@ -12,6 +14,12 @@ import {
     normalizeEventDoc,
 } from "./discord_shared"
 import {
+    getGuildByDiscordId,
+    getGuildById,
+    getGuildDiscordId,
+    getUserByDiscordId,
+} from "./identity"
+import {
     matchesGameScope,
     resolveGameScope,
     withGameOverrides,
@@ -23,7 +31,6 @@ import {
 import { toAnnouncementResult } from "../src/domain/discord-messages/match-announcement"
 import { describeManualReminderAudience } from "../src/domain/events/manual-reminders"
 import { mutation, query, type QueryCtx } from "./_generated/server"
-import { getGuildByDiscordId, getUserByDiscordId } from "./identity"
 import { isDraftEvent } from "../src/domain/events/drafts"
 import type { Doc } from "./_generated/dataModel"
 
@@ -41,7 +48,12 @@ async function clanName(ctx: QueryCtx, userId: string, guildId: string) {
 /** The confirming admin and the public match page of a reviewed result. */
 async function reviewedResultFacts(ctx: QueryCtx, event: Doc<"events">) {
     const result = event.reviewedResult
-    if (!result || result.status === "provisional") return null
+    if (
+        !result ||
+        result.status === "provisional" ||
+        event.reviewedResultGameId !== resolveGameScope(event.gameId)
+    )
+        return null
     const [revision, stats] = await Promise.all([
         ctx.db
             .query("eventResultRevisions")
@@ -59,6 +71,24 @@ async function reviewedResultFacts(ctx: QueryCtx, event: Doc<"events">) {
             ? revision.revision.reviewerId
             : null
     return {
+        imageResult: {
+            participants: result.participants.map(({ id, label, score }) => ({
+                id,
+                label,
+                score,
+            })),
+            imported: event.eventResult
+                ? {
+                      outcome: event.eventResult.outcome,
+                      score: event.eventResult.score,
+                  }
+                : null,
+        },
+        resultVersion: result.version,
+        hasCollectedData:
+            revision?.revision.sessionLinks.some((source) => source.complete) ??
+            false,
+        sourceUrl: event.eventResult?.sourceUrl ?? null,
         result: toAnnouncementResult({
             participants: result.participants,
             clanSide: event.side,
@@ -74,7 +104,8 @@ async function reviewedResultFacts(ctx: QueryCtx, event: Doc<"events">) {
         }),
         // The public match page exists only for matches with linked stats.
         publicMatch: Boolean(
-            stats && event.matchStatsId && event.matchStatsId === stats._id
+            (stats && event.matchStatsId && event.matchStatsId === stats._id) ||
+            event.wardogsReportId
         ),
     }
 }
@@ -90,16 +121,43 @@ export const getContext = query({
         assertInternalSecret(args.secret)
         const event = await ctx.db.get(args.eventId)
         if (!event || isDraftEvent(event)) return null
-        const [row, panels] = await Promise.all([
+        const guild =
+            (await getGuildByDiscordId(ctx, event.guildId)) ??
+            (ctx.db.normalizeId("guilds", event.guildId)
+                ? await getGuildById(ctx, event.guildId)
+                : null)
+        const discordId = guild ? getGuildDiscordId(guild) : event.guildId
+        const [row, panels, config, fixture, tracked] = await Promise.all([
             ctx.db
                 .query("discordAnnouncements")
                 .withIndex("eventId", (q) => q.eq("eventId", event._id))
                 .unique(),
             ctx.db
                 .query("discordPublicPanels")
-                .withIndex("guildId", (q) => q.eq("guildId", event.guildId))
-                .collect(),
+                .withIndex("guildId", (q) => q.eq("guildId", discordId))
+                .take(20),
+            ctx.db
+                .query("discordConfigs")
+                .withIndex("guildId", (q) => q.eq("guildId", discordId))
+                .unique(),
+            event.competitionFixtureId
+                ? ctx.db.get(event.competitionFixtureId)
+                : null,
+            ctx.db
+                .query("leagueTrackedMatches")
+                .withIndex("event", (q) =>
+                    q.eq("guildId", discordId).eq("eventId", String(event._id))
+                )
+                .first(),
         ])
+        const competition = fixture
+            ? await ctx.db.get(fixture.competitionId)
+            : null
+        const leagueLabel = competition
+            ? `${competition.name}${fixture?.round ? ` · ${fixture.round}` : ""}`
+            : tracked
+              ? "Wardogs League"
+              : null
         const gameId = resolveGameScope(event.gameId)
         const results = panels.find(
             (panel) =>
@@ -117,7 +175,105 @@ export const getContext = query({
             layoutVersion: row?.layoutVersion ?? null,
             result: facts?.result ?? null,
             publicMatch: facts?.publicMatch ?? false,
-            resultsChannelId: results?.channelId ?? null,
+            resultsChannelId:
+                config?.eventResultsChannelId ?? results?.channelId ?? null,
+            leagueLabel,
+            imageResult: facts?.imageResult ?? null,
+            resultVersion: facts?.resultVersion ?? null,
+            sourceUrl: facts?.sourceUrl ?? null,
+            hasCollectedData: facts?.hasCollectedData ?? false,
+            dashboardServerId: guild ? String(guild._id) : null,
+        }
+    },
+})
+
+/** Same generated artwork for dashboard and scoped website integrations. */
+export const getImageContext = query({
+    args: {
+        secret: v.string(),
+        eventId: v.id("events"),
+        guildId: v.string(),
+        result: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        assertInternalSecret(args.secret)
+        const event = await ctx.db.get(args.eventId)
+        if (
+            !event ||
+            isDraftEvent(event) ||
+            (event.kind ?? "match") !== "match" ||
+            event.guildId !== args.guildId
+        )
+            return null
+        const [guild, config, linked, fixture] = await Promise.all([
+            getGuildByDiscordId(ctx, args.guildId),
+            ctx.db
+                .query("discordConfigs")
+                .withIndex("guildId", (q) => q.eq("guildId", args.guildId))
+                .unique(),
+            ctx.db
+                .query("teamDirectory")
+                .withIndex("linkedGuildId", (q) =>
+                    q.eq("linkedGuildId", args.guildId)
+                )
+                .take(20),
+            event.competitionFixtureId
+                ? ctx.db.get(event.competitionFixtureId)
+                : null,
+        ])
+        if (!guild) return null
+        const own = linked.find(
+            (team) =>
+                team.gameId === resolveGameScope(event.gameId) &&
+                !team.archivedAt &&
+                !team.mergedIntoTeamId
+        )
+        const competition = fixture
+            ? await ctx.db.get(fixture.competitionId)
+            : null
+        const tracked = !competition
+            ? await ctx.db
+                  .query("leagueTrackedMatches")
+                  .withIndex("event", (q) =>
+                      q
+                          .eq("guildId", args.guildId)
+                          .eq("eventId", String(event._id))
+                  )
+                  .first()
+            : null
+        const facts =
+            args.result && event.status === "concluded"
+                ? await reviewedResultFacts(ctx, event)
+                : null
+        if (args.result && !facts) return null
+        const effective = withGameOverrides(
+            config ?? { timezone: "UTC", defaultLanguage: "en" as const },
+            config?.gameOverrides,
+            event.gameId
+        )
+        return {
+            customImageUrl: args.result ? null : (event.imageUrl ?? null),
+            model: buildMatchImage({
+                event,
+                clan: guild,
+                categories: guild.eventCategories,
+                ownTeam: own
+                    ? {
+                          id: String(own._id),
+                          name: own.name,
+                          shortCode: own.shortCode,
+                          logoUrl: await assetPublicUrl(ctx, own.logoAssetId),
+                      }
+                    : null,
+                language: effective.defaultLanguage,
+                timeZone: effective.timezone,
+                league: competition
+                    ? `${competition.name}${fixture?.round ? ` · ${fixture.round}` : ""}`
+                    : tracked
+                      ? "Wardogs League"
+                      : null,
+                result: facts?.imageResult,
+            }),
         }
     },
 })

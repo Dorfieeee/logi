@@ -3,7 +3,7 @@
 import { CircleAlert, Info, Lock, SlidersHorizontal } from "lucide-react"
 import type { ReactNode } from "react"
 
-import { SettingsChannelPicker } from "@/components/app/settings/settings-channel-picker"
+import { DiscordChannelSelect } from "@/components/app/discord-channel-select"
 import type { SeedPlanIssueCode } from "@/domain/discord-seed/plan"
 import type { Dictionary } from "@/i18n/dictionaries"
 
@@ -127,7 +127,7 @@ export function SeedControlSection({
                     >
                         {t.channel}
                     </label>
-                    <SettingsChannelPicker
+                    <DiscordChannelSelect
                         id="seed-control-channel"
                         value={channelId ?? undefined}
                         onChange={(value) => onChange(value ?? null)}

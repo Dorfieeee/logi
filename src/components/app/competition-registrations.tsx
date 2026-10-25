@@ -1,17 +1,12 @@
 "use client"
 
 import {
-    CompetitionRequestError,
-    searchCompetitionTeams,
-    type CompetitionErrorCode,
-} from "@/lib/competitions/competition-client"
-import {
-    Command,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command"
+    TEAM_SEARCH_MAX,
+    TEAM_DIRECTORY_LIMIT,
+    normalizeTeamName,
+    teamGameSchema,
+    type TeamRecord,
+} from "@/domain/teams/team"
 import {
     Select,
     SelectContent,
@@ -26,16 +21,17 @@ import {
 } from "@/components/ui/popover"
 import type { CompetitionSectionProps } from "@/components/app/competition-manager"
 import type { CompetitionRegistrationView } from "@/domain/competitions/admin-view"
+import { COMPETITION_REGISTRATION_LIMIT } from "@/domain/competitions/competition"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmActionDialog } from "@/components/app/confirm-action-dialog"
-import { TEAM_SEARCH_MAX, type TeamRecord } from "@/domain/teams/team"
+import { fetchAdminTeamPage } from "@/lib/teams-admin/team-admin-client"
 import { ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react"
-import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { TeamLogo } from "@/components/app/team-logo"
 import type { Dictionary } from "@/i18n/dictionaries"
 import { useEffect, useId, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 
 const NO_DIVISION = "__none"
@@ -49,7 +45,7 @@ export function CompetitionRegistrations({
 }: CompetitionSectionProps) {
     const t = dictionary.competitionAdmin
     const id = useId()
-    const [team, setTeam] = useState<TeamRecord | null>(null)
+    const [teams, setTeams] = useState<TeamRecord[]>([])
     const [divisionId, setDivisionId] = useState(view.divisions[0]?.id ?? "")
     const registered = new Set(view.registrations.map((row) => row.team.id))
     const division =
@@ -69,13 +65,18 @@ export function CompetitionRegistrations({
         .filter((group) => group.id !== NO_DIVISION || group.rows.length)
 
     async function register() {
-        if (!team || !division) return
+        if (!teams.length || !division) return
         const result = await run({
-            action: "registerTeam",
+            action: "registerTeams",
             competitionId: view.competition.id,
-            input: { teamId: team.id, divisionId: division },
+            input: {
+                teamIds: teams
+                    .filter((team) => !registered.has(team.id))
+                    .map((team) => team.id),
+                divisionId: division,
+            },
         })
-        if (result.ok) setTeam(null)
+        if (result.ok) setTeams([])
     }
 
     return (
@@ -90,15 +91,15 @@ export function CompetitionRegistrations({
                 {view.divisions.length ? (
                     <div className="grid gap-3 rounded-xl border p-3 md:grid-cols-[minmax(0,1fr)_14rem_auto] md:items-end">
                         <div className="min-w-0 space-y-2">
-                            <Label htmlFor={`${id}-team`}>{t.team}</Label>
+                            <Label htmlFor={`${id}-team`}>{t.teamsTitle}</Label>
                             <CatalogueTeamPicker
                                 id={`${id}-team`}
-                                competitionId={view.competition.id}
+                                gameId={view.competition.gameId}
                                 dictionary={dictionary}
-                                value={team}
+                                value={teams}
                                 registered={registered}
                                 disabled={pending}
-                                onChange={setTeam}
+                                onChange={setTeams}
                             />
                         </div>
                         <div className="space-y-2">
@@ -126,11 +127,21 @@ export function CompetitionRegistrations({
                             </Select>
                         </div>
                         <Button
-                            disabled={pending || !team}
+                            disabled={
+                                pending ||
+                                !teams.some((team) => !registered.has(team.id))
+                            }
                             onClick={() => void register()}
                         >
                             <Plus className="size-4" aria-hidden />
-                            {t.register}
+                            {t.registerSelected.replace(
+                                "{count}",
+                                String(
+                                    teams.filter(
+                                        (team) => !registered.has(team.id)
+                                    ).length
+                                )
+                            )}
                         </Button>
                     </div>
                 ) : (
@@ -211,6 +222,42 @@ function RegistrationRow({
                     ) : null}
                 </div>
             </div>
+            {row.status === "pending" || row.status === "rejected" ? (
+                <Badge variant="outline">
+                    {dictionary.competitionEnrollment[row.status]}
+                </Badge>
+            ) : null}
+            {row.status === "pending" && !row.withdrawn ? (
+                <>
+                    <Button
+                        size="sm"
+                        disabled={pending}
+                        onClick={() =>
+                            void run({
+                                action: "updateRegistration",
+                                registrationId: row.id,
+                                input: { status: "approved" },
+                            })
+                        }
+                    >
+                        {dictionary.competitionEnrollment.approve}
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={pending}
+                        onClick={() =>
+                            void run({
+                                action: "updateRegistration",
+                                registrationId: row.id,
+                                input: { status: "rejected" },
+                            })
+                        }
+                    >
+                        {dictionary.competitionEnrollment.reject}
+                    </Button>
+                </>
+            ) : null}
             <Select
                 value={row.divisionId ?? NO_DIVISION}
                 disabled={locked}
@@ -289,15 +336,10 @@ function RegistrationRow({
     )
 }
 
-type SearchState =
-    | { status: "loading"; items: TeamRecord[] }
-    | { status: "ready"; items: TeamRecord[] }
-    | { status: "error"; items: TeamRecord[]; code: CompetitionErrorCode }
-
-/** Searchable picker over active catalogue teams of the competition's game. */
+/** Multi-select catalogue picker. All pages are loaded so bulk selection is not limited to search's first page. */
 function CatalogueTeamPicker({
     id,
-    competitionId,
+    gameId,
     dictionary,
     value,
     registered,
@@ -305,157 +347,256 @@ function CatalogueTeamPicker({
     onChange,
 }: {
     id: string
-    competitionId: string
+    gameId: string
     dictionary: Dictionary
-    value: TeamRecord | null
+    value: TeamRecord[]
     registered: ReadonlySet<string>
     disabled: boolean
-    onChange(team: TeamRecord | null): void
+    onChange(teams: TeamRecord[]): void
 }) {
     const t = dictionary.competitionAdmin
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState("")
-    const term = useDebouncedValue(query.trim(), 250)
-    const [state, setState] = useState<SearchState>({
-        status: "loading",
-        items: [],
-    })
-
+    const [items, setItems] = useState<TeamRecord[]>([])
+    const [status, setStatus] = useState<"loading" | "ready" | "error">(
+        "loading"
+    )
+    const [retry, setRetry] = useState(0)
     useEffect(() => {
         if (!open) return
         const controller = new AbortController()
         async function load() {
-            setState((current) => ({ status: "loading", items: current.items }))
+            setStatus("loading")
             try {
-                const items = await searchCompetitionTeams(
-                    competitionId,
-                    term,
-                    controller.signal
-                )
-                if (!controller.signal.aborted)
-                    setState({ status: "ready", items })
-            } catch (error) {
-                if (controller.signal.aborted) return
-                setState({
-                    status: "error",
-                    items: [],
-                    code:
-                        error instanceof CompetitionRequestError
-                            ? error.code
-                            : "unavailable",
-                })
+                const game = teamGameSchema.parse(gameId)
+                const loaded: TeamRecord[] = []
+                let cursor: string | null = null
+                do {
+                    const page = await fetchAdminTeamPage(
+                        { gameId: game, archived: false, cursor, limit: 100 },
+                        { signal: controller.signal }
+                    )
+                    if (controller.signal.aborted) return
+                    loaded.push(...page.items)
+                    if (loaded.length > TEAM_DIRECTORY_LIMIT)
+                        throw new Error("Catalogue exceeds limit")
+                    cursor = page.nextCursor
+                } while (cursor)
+                setItems(loaded)
+                setStatus("ready")
+            } catch {
+                if (!controller.signal.aborted) setStatus("error")
             }
         }
         void load()
         return () => controller.abort()
-    }, [open, competitionId, term])
-
-    const available = state.items.filter((team) => !registered.has(team.id))
-
+    }, [open, gameId, retry])
+    const selected = value.filter((team) => !registered.has(team.id))
+    const selectedIds = new Set(selected.map((team) => team.id))
+    const term = normalizeTeamName(query)
+    const available = items.filter(
+        (team) =>
+            !registered.has(team.id) &&
+            normalizeTeamName(`${team.name} ${team.shortCode ?? ""}`).includes(
+                term
+            )
+    )
+    const capacity = Math.max(
+        0,
+        COMPETITION_REGISTRATION_LIMIT - registered.size
+    )
+    function toggle(team: TeamRecord) {
+        onChange(
+            selectedIds.has(team.id)
+                ? selected.filter((item) => item.id !== team.id)
+                : [...selected, team]
+        )
+    }
     return (
-        <Popover
-            open={open}
-            onOpenChange={(next) => {
-                setOpen(next)
-                if (!next) setQuery("")
-            }}
-        >
-            <PopoverTrigger asChild>
-                <Button
-                    id={id}
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    disabled={disabled}
-                    className="h-auto w-full justify-between py-2"
+        <div className="space-y-2">
+            <Popover open={open && !disabled} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        id={id}
+                        type="button"
+                        variant="outline"
+                        aria-expanded={open}
+                        disabled={disabled}
+                        className="w-full justify-between"
+                    >
+                        {selected.length
+                            ? t.selectedTeams.replace(
+                                  "{count}",
+                                  String(selected.length)
+                              )
+                            : t.chooseTeams}
+                        <ChevronsUpDown
+                            className="size-4 shrink-0 opacity-50"
+                            aria-hidden
+                        />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                    className="w-[min(480px,calc(100vw-2rem))] space-y-3"
+                    align="start"
                 >
-                    {value ? (
-                        <span className="flex min-w-0 items-center gap-2">
-                            <TeamLogo
-                                name={value.name}
-                                shortCode={value.shortCode}
-                                logoUrl={value.logoUrl}
-                                className="size-6"
-                            />
-                            <span className="truncate">{value.name}</span>
-                        </span>
-                    ) : (
-                        <span className="text-muted-foreground">
-                            {t.chooseTeam}
-                        </span>
-                    )}
-                    <ChevronsUpDown
-                        className="size-4 shrink-0 opacity-50"
-                        aria-hidden
-                    />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent
-                className="w-[min(420px,calc(100vw-2rem))] p-0"
-                align="start"
-            >
-                <Command shouldFilter={false} label={t.team}>
-                    <CommandInput
+                    <Input
+                        type="search"
                         value={query}
-                        onValueChange={setQuery}
+                        onChange={(event) => setQuery(event.target.value)}
                         maxLength={TEAM_SEARCH_MAX}
                         placeholder={t.searchTeams}
+                        aria-label={t.searchTeams}
                     />
-                    <CommandList>
-                        <CommandGroup>
-                            {available.map((team) => (
-                                <CommandItem
-                                    key={team.id}
-                                    value={team.id}
-                                    onSelect={() => {
-                                        onChange(team)
-                                        setOpen(false)
-                                    }}
+                    {status === "ready" ? (
+                        <>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                        !available.length ||
+                                        selected.length >= capacity
+                                    }
+                                    onClick={() =>
+                                        onChange(
+                                            [
+                                                ...selected,
+                                                ...available.filter(
+                                                    (team) =>
+                                                        !selectedIds.has(
+                                                            team.id
+                                                        )
+                                                ),
+                                            ].slice(0, capacity)
+                                        )
+                                    }
                                 >
-                                    <TeamLogo
-                                        name={team.name}
-                                        shortCode={team.shortCode}
-                                        logoUrl={team.logoUrl}
-                                        className="size-6"
-                                    />
-                                    <span className="truncate">
-                                        {team.name}
-                                    </span>
-                                    {team.shortCode ? (
+                                    {t.selectAllMatching}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={!selected.length}
+                                    onClick={() => onChange([])}
+                                >
+                                    {t.clearSelection}
+                                </Button>
+                            </div>
+                            <fieldset className="max-h-72 space-y-1 overflow-y-auto">
+                                <legend className="sr-only">
+                                    {t.chooseTeams}
+                                </legend>
+                                {available.map((team) => (
+                                    <label
+                                        key={team.id}
+                                        className="hover:bg-accent flex cursor-pointer items-center gap-3 rounded-md p-2"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            className="accent-primary size-4"
+                                            checked={selectedIds.has(team.id)}
+                                            disabled={
+                                                !selectedIds.has(team.id) &&
+                                                selected.length >= capacity
+                                            }
+                                            onChange={() => toggle(team)}
+                                        />
+                                        <TeamLogo
+                                            name={team.name}
+                                            shortCode={team.shortCode}
+                                            logoUrl={team.logoUrl}
+                                            className="size-6"
+                                        />
+                                        <span className="min-w-0 flex-1 text-sm">
+                                            {team.name}
+                                        </span>
                                         <span className="text-muted-foreground text-xs">
                                             {team.shortCode}
                                         </span>
-                                    ) : null}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                        {state.status === "loading" ? (
-                            <p
-                                role="status"
-                                className="text-muted-foreground flex items-center justify-center gap-2 py-4 text-sm"
-                            >
-                                <Loader2
-                                    className="size-4 animate-spin"
-                                    aria-hidden
-                                />
-                                {t.loadingTeams}
-                            </p>
-                        ) : state.status === "error" ? (
+                                    </label>
+                                ))}
+                                {!available.length && (
+                                    <p className="text-muted-foreground p-2 text-sm">
+                                        {t.noTeamResults}
+                                    </p>
+                                )}
+                            </fieldset>
+                        </>
+                    ) : status === "loading" ? (
+                        <p
+                            role="status"
+                            className="flex items-center gap-2 text-sm"
+                        >
+                            <Loader2
+                                className="size-4 animate-spin"
+                                aria-hidden
+                            />
+                            {t.loadingTeams}
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
                             <p
                                 role="alert"
-                                className="text-destructive px-3 py-4 text-sm"
+                                className="text-destructive text-sm"
                             >
-                                {t.errors[state.code]}
+                                {t.errors.unavailable}
                             </p>
-                        ) : available.length === 0 ? (
-                            <p className="text-muted-foreground px-3 py-4 text-center text-sm">
-                                {t.noTeamResults}
-                            </p>
-                        ) : null}
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setRetry((value) => value + 1)}
+                            >
+                                {t.retryTeams}
+                            </Button>
+                        </div>
+                    )}
+                    <div className="flex items-center justify-between gap-2 border-t pt-3">
+                        <span role="status" className="text-sm">
+                            {t.selectedTeams.replace(
+                                "{count}",
+                                String(selected.length)
+                            )}
+                        </span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => setOpen(false)}
+                        >
+                            {t.doneSelecting}
+                        </Button>
+                    </div>
+                </PopoverContent>
+            </Popover>
+            {selected.length > 0 && (
+                <ul
+                    className="flex max-h-24 flex-wrap gap-1 overflow-y-auto"
+                    aria-label={t.chooseTeams}
+                >
+                    {selected.map((team) => (
+                        <li key={team.id}>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                disabled={disabled}
+                                onClick={() =>
+                                    onChange(
+                                        selected.filter(
+                                            (item) => item.id !== team.id
+                                        )
+                                    )
+                                }
+                                aria-label={`${t.remove}: ${team.name}`}
+                            >
+                                {team.shortCode ?? team.name} ×
+                            </Button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
     )
 }

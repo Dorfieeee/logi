@@ -399,7 +399,7 @@ test("the editor carries assignment summaries (null for trainings/legacy) withou
     )
 })
 
-test("a snapshot refresh is allowed until the match concludes, never for a training or concluded match", () => {
+test("updates and snapshot refreshes remain available after conclusion; training refreshes fail", () => {
     const beforeMeeting = Date.parse("2030-01-01T17:30:00Z")
     assert.equal(websiteEventStateError(refresh, event, beforeMeeting), null)
     // Unlike an update, a refresh stays available after meeting start.
@@ -418,7 +418,7 @@ test("a snapshot refresh is allowed until the match concludes, never for a train
             event,
             Date.parse(event.meetingStart)
         ),
-        "invalid_state"
+        null
     )
     assert.equal(
         websiteEventStateError(
@@ -434,7 +434,7 @@ test("a snapshot refresh is allowed until the match concludes, never for a train
             { ...event, status: "concluded" },
             beforeMeeting
         ),
-        "invalid_match_teams"
+        null
     )
     // Derived conclusion: the reserve after game end has passed.
     assert.equal(
@@ -443,7 +443,7 @@ test("a snapshot refresh is allowed until the match concludes, never for a train
             event,
             Date.parse(event.gameEnd) + 16 * 60_000
         ),
-        "invalid_match_teams"
+        null
     )
     assert.equal(
         websiteEventStateError(refresh, null, beforeMeeting),

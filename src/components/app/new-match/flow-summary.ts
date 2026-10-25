@@ -9,6 +9,8 @@ import {
     panelMapKey,
 } from "@/domain/discord-publications/panel-graphics"
 import type { MessageStyle } from "@/domain/discord-messages/message-style"
+import { resolveClanLanguage } from "@/lib/clan-language/core"
+import { buildMatchImage } from "@/domain/events/match-image"
 import type { EventCategory, Group } from "@/types/domain"
 import { getStratmapMapById } from "@/lib/game-stratmaps"
 import type { Dictionary } from "@/i18n/dictionaries"
@@ -35,8 +37,13 @@ export type FlowSummaryContext = {
     intl: string
     timezone: string
     clanName: string
+    clanAvatar?: string
     /** Your linked catalogue team, when the game has one. */
-    ownTeam: { name: string; shortCode: string | null } | null
+    ownTeam: {
+        name: string
+        shortCode: string | null
+        logoUrl?: string | null
+    } | null
     templateName: string | null
     groups: readonly Group[]
     categories: readonly EventCategory[]
@@ -314,6 +321,67 @@ export function flowPreviewModel(
     const game = values.gameId ?? "hell_let_loose"
     return {
         kind: values.kind,
+        generatedImage:
+            isMatch && schedule
+                ? buildMatchImage({
+                      event: {
+                          name,
+                          gameId: game,
+                          map: values.mapId || undefined,
+                          cap: values.cap || undefined,
+                          matchType: values.matchType || undefined,
+                          meetingStart: schedule.meetingStart,
+                          gameStart: schedule.gameStart,
+                          matchTeams: [
+                              ...(context.ownTeam
+                                  ? [
+                                        {
+                                            teamId: "own",
+                                            slot: "a" as const,
+                                            side: values.ownSide,
+                                            snapshot: {
+                                                name: context.ownTeam.name,
+                                                shortCode:
+                                                    context.ownTeam.shortCode,
+                                                logoUrl:
+                                                    context.ownTeam.logoUrl ??
+                                                    null,
+                                            },
+                                        },
+                                    ]
+                                  : []),
+                              ...(values.opponent
+                                  ? [
+                                        {
+                                            teamId: values.opponent.teamId,
+                                            slot: "b" as const,
+                                            side: values.opponentSide,
+                                            snapshot: values.opponent,
+                                        },
+                                    ]
+                                  : []),
+                              ...(values.extraTeam
+                                  ? [
+                                        {
+                                            teamId: values.extraTeam.teamId,
+                                            slot: "c" as const,
+                                            side: values.extraSide,
+                                            snapshot: values.extraTeam,
+                                        },
+                                    ]
+                                  : []),
+                          ],
+                      },
+                      clan: {
+                          name: context.clanName,
+                          avatar: context.clanAvatar,
+                      },
+                      ownTeam: context.ownTeam,
+                      categories: context.categories,
+                      language: resolveClanLanguage(context.botLanguage),
+                      timeZone: context.timezone,
+                  })
+                : null,
         language: context.botLanguage,
         timeZone: context.timezone,
         title: name,

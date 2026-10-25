@@ -57,6 +57,7 @@ test("the plain settings fields stay documented without any slice", () => {
         "defaultLanguage",
         "announcementsChannelId",
         "eventInfoChannelId",
+        "eventResultsChannelId",
         "errorsChannelId",
         "calendarChannelId",
         "forumCategoryId",

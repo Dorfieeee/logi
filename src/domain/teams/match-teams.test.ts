@@ -222,7 +222,7 @@ test("a kept assignment is rejected when the event moves to another game", () =>
     )
 })
 
-test("refresh re-captures only from an active entry and concluded matches are frozen", () => {
+test("refresh re-captures only from an active entry, including concluded matches", () => {
     const assignment: MatchTeamAssignment = {
         teamId: "a",
         slot: "a",
@@ -259,7 +259,7 @@ test("refresh re-captures only from an active entry and concluded matches are fr
     assert.equal(matchTeamsEditability({ kind: "training" }), "training_event")
     assert.equal(
         matchTeamsEditability({ kind: "match", status: "concluded" }),
-        "match_concluded"
+        null
     )
     assert.equal(matchTeamsEditability({ status: "registration" }), null)
     assert.equal(projectMatchTeams(undefined), null)

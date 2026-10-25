@@ -20,6 +20,7 @@ import { queueEventDiscordDeletion } from "./eventDeletionQueue"
 import { applyGatewayObservation } from "./memberObservations"
 import { query, type QueryCtx } from "./_generated/server"
 import type { Doc, Id } from "./_generated/dataModel"
+import { assetPublicUrl } from "./imageAssetStore"
 import { mutation } from "./integrationMutation"
 import { v } from "convex/values"
 
@@ -328,15 +329,23 @@ export const listSyncPayloads = query({
                     syncStates: guildSyncStates,
                     assignments:
                         assignmentsByGuild[configIndex].map(projectAssignment),
-                    linkedTeams: linkedTeams
-                        .filter(
-                            (team) => !team.archivedAt && !team.mergedIntoTeamId
-                        )
-                        .map((team) => ({
-                            gameId: team.gameId,
-                            name: team.name,
-                            shortCode: team.shortCode ?? null,
-                        })),
+                    linkedTeams: await Promise.all(
+                        linkedTeams
+                            .filter(
+                                (team) =>
+                                    !team.archivedAt && !team.mergedIntoTeamId
+                            )
+                            .map(async (team) => ({
+                                id: String(team._id),
+                                gameId: team.gameId,
+                                name: team.name,
+                                shortCode: team.shortCode ?? null,
+                                logoUrl: await assetPublicUrl(
+                                    ctx,
+                                    team.logoAssetId ?? null
+                                ),
+                            }))
+                    ),
                 }
             })
         )

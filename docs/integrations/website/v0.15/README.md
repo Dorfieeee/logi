@@ -391,6 +391,34 @@ workspace administrators to Logi to request a missing team. Assigning existing c
 teams to a native match is not part of the exception: it is available through
 the actor-backed event commands above.
 
+The add-only league directory import is part of this same global-administrator
+exception. `POST /api/superadmin/teams/scrape` accepts only
+`{ "gameId": "wardogs" | "hell_let_loose" }`, requires a current global-admin
+session and the dashboard origin, and returns `{ created, skipped, failed }`
+(`failed` lists team names). The fixed sources are Wardogs League's
+`/teams?all=1` and HeLO's public `/v3/series/2024/teams` data behind its 2024
+team page. Names or codes matching existing entries (including archived/merged
+entries) are skipped per game; existing records are never updated. New logos
+are normalized and stored with the same platform ownership, references, audit
+and website fan-out as ordinary catalogue creation. Websites see imported
+teams through the existing `/api/v1` catalogue reads with the `teams` grant;
+no bearer-key import endpoint or new write grant is exposed.
+
+Competition team registration is also session-bound global administration:
+`POST /api/competitions` supports `registerTeams` with `competitionId` and
+`input: { divisionId, teamIds }` (1–500 unique IDs). The entire batch is
+validated before insertion, existing registrations are skipped without moving
+their division, and invalid new teams reject the batch without partial writes.
+The dashboard picker reads all catalogue pages for the chosen game and supports
+multiple selections, name/code search, select-all-matching and clearing selection.
+The directory import buttons live on `/[locale]/dashboard/teams`, scoped to the
+HLL or Wardogs tab, and refresh that catalogue after success.
+
+Global competition administration, including this bulk action, deliberately has
+no bearer-key `/api/v1` write endpoint: a workspace integration key has no
+permission to change a global competition. Published competition reads already
+return the newly registered teams through the existing public API.
+
 ## Logo URL rules
 
 - `logoUrl` is an **immutable public presentation URL** of the form

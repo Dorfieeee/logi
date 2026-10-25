@@ -5,7 +5,7 @@
  * Returns null when the bound is exceeded or the body cannot be read.
  */
 export async function readBoundedBytes(
-    request: Request,
+    request: Pick<Request, "headers" | "body">,
     maxBytes: number
 ): Promise<Uint8Array | null> {
     const declared = request.headers.get("content-length")

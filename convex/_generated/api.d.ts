@@ -8,11 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
 import type * as apiHousekeeping from "../apiHousekeeping.js";
 import type * as apiIdempotency from "../apiIdempotency.js";
 import type * as apiKeyAuth from "../apiKeyAuth.js";
@@ -29,6 +24,9 @@ import type * as clanTeams from "../clanTeams.js";
 import type * as clientGrants from "../clientGrants.js";
 import type * as collectedPlayerStats from "../collectedPlayerStats.js";
 import type * as collectedPlayerStatsStore from "../collectedPlayerStatsStore.js";
+import type * as competitionEnrollment from "../competitionEnrollment.js";
+import type * as competitionEnrollmentApi from "../competitionEnrollmentApi.js";
+import type * as competitionEnrollmentStore from "../competitionEnrollmentStore.js";
 import type * as competitionMigrations from "../competitionMigrations.js";
 import type * as competitions from "../competitions.js";
 import type * as crons from "../crons.js";
@@ -197,14 +195,12 @@ import type * as webhookQueue from "../webhookQueue.js";
 import type * as webhooks from "../webhooks.js";
 import type * as websiteEventCommands from "../websiteEventCommands.js";
 
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
 declare const fullApi: ApiFromModules<{
   apiHousekeeping: typeof apiHousekeeping;
   apiIdempotency: typeof apiIdempotency;
@@ -222,6 +218,9 @@ declare const fullApi: ApiFromModules<{
   clientGrants: typeof clientGrants;
   collectedPlayerStats: typeof collectedPlayerStats;
   collectedPlayerStatsStore: typeof collectedPlayerStatsStore;
+  competitionEnrollment: typeof competitionEnrollment;
+  competitionEnrollmentApi: typeof competitionEnrollmentApi;
+  competitionEnrollmentStore: typeof competitionEnrollmentStore;
   competitionMigrations: typeof competitionMigrations;
   competitions: typeof competitions;
   crons: typeof crons;
@@ -390,10 +389,28 @@ declare const fullApi: ApiFromModules<{
   webhooks: typeof webhooks;
   websiteEventCommands: typeof websiteEventCommands;
 }>;
+
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">
 >;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
 export declare const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">

@@ -232,8 +232,7 @@ details, attendee role and buttons remain.
 **Save changes** saves and returns to the match; the bot updates the
 announcement and the other Discord messages as after any edit, and players who
 signed up stay signed up. **Cancel** returns to the match and asks first when
-there are unsaved changes, as does leaving the page another way. A concluded
-match can no longer be edited, and opening a draft this way continues it in the
+there are unsaved changes, as does leaving the page another way. Concluded matches remain editable. Opening a draft this way continues it in the
 new-match flow.
 
 ## The match page
@@ -241,7 +240,7 @@ new-match flow.
 Opening a match shows its name, game, map and time (meeting and start, or when
 it was played), **View in Discord** once the bot has posted the sign-up
 announcement (until the match is played) and, for managers, a **⋯** menu with
-**Edit match** (until the match is concluded), **Open the roster page** and
+**Edit match** (including played matches), **Open the roster page** and
 **Sign-up history**. On a phone
 the top shrinks to a back arrow, the match name and the current step ("Step 3
 of 5 · Roster"), the Discord tab is left out and the ⋯ menu also holds the
@@ -378,7 +377,7 @@ a message so you can choose another team.
 A saved team that has since been archived stays on the match until you replace
 it; archived teams cannot be newly selected. To pick up catalogue changes for a
 saved team, use **Refresh snapshot** beside it while editing the match. It works
-only while the team is active in the catalogue and the match is not concluded,
+while the team is active in the catalogue, including after conclusion,
 and it updates the stored snapshot immediately without saving other changes in
 the flow.
 
@@ -386,11 +385,7 @@ When Logi administrators merge a duplicate into another team, **Refresh
 snapshot** on the merged team switches that slot to the surviving team and
 captures its details, keeping the slot and side.
 
-Once a match is concluded, its teams and snapshots are frozen: the Teams
-section becomes read-only and saving other match fields leaves them unchanged.
-A match counts as concluded from 15 minutes after its game end, even before
-Logi records the conclusion.
-Result corrections continue through the reviewed-result workflow below.
+Concluded matches allow explicit team corrections and snapshot refreshes. Existing snapshots remain unchanged until a manager edits or refreshes them.
 
 ## Competition links
 
@@ -415,7 +410,7 @@ is titled with their short codes ("VLK vs ROG") and its sides row shows each
 team's code as a chip with its side and faction emblem in slot order (for
 example `VLK` Allies ★ vs `ROG` Axis ✚). The separate team logo cards are gone.
 Codes come from the snapshot saved when the team was assigned; later catalogue
-edits change them only if that snapshot is refreshed before the match concludes.
+edits change them only if that snapshot is refreshed explicitly.
 Matches without assigned teams keep their name as the title and show the
 clan's side.
 
@@ -599,3 +594,61 @@ does not queue another DM and suppresses any original recap still waiting.
 Historical report recovery does not send retrospective DMs. Delivery uses the
 same recipient and opt-out checks as HLL; a crash between Discord accepting a
 DM and saving its sent marker can still cause a retry, as with HLL.
+
+### Correcting a played match
+
+Managers can use **Edit** on a played match to correct its details and selected
+teams, including Wardogs Team C. Editing preserves the concluded status and
+saved result. Catalogue changes still do not silently replace captured team
+names or logos; use **Refresh snapshot** explicitly when needed, including after
+conclusion. The authenticated event update API follows the same rules.
+
+For manual results without selected teams, Wardogs starts with three score
+fields. Use **Add participant** to include a missing team, including on an
+existing two-team result, and remove an extra participant for a two-team game.
+Confirmed results still require a correction reason.
+
+### Automatic match pictures and result cards
+
+Leave **Picture** empty to let Logi generate a match card. It uses the selected
+map as its background, or Discord gray when map artwork is unavailable. Assigned
+teams appear with their captured logos and codes: two for Hell Let Loose and up
+to three for Wardogs. With no teams assigned, the clan's linked team or clan
+identity is centered instead. Missing logos use initials.
+
+The card includes the game icon/name, match category, competition heading when
+linked, and small Logi branding. The meeting time is the main time; game start is
+secondary. Both use the clan's configured timezone, including daylight-saving
+changes. The match editor previews this generated picture. Uploading your own
+picture takes precedence; removing it restores the automatic version.
+
+The bot refreshes existing unfinished match cards at its first synchronization
+after the update or restart, without sending another announcement ping. Generated
+pictures are cached by their content and uploaded directly to Discord. A changed
+team snapshot, map, schedule or language produces a new version.
+
+Set **Settings → Channels and language → Event results** to choose one channel
+for every game's results. After a match is concluded and its result is confirmed,
+the bot posts a separate scored image there. Corrections update that same post;
+reopening the match or withdrawing the reviewed result removes it. Scores are
+matched to recorded sides, not their screen position. Victory, defeat or draw
+is from this clan's recorded side; an unknown side leaves the outcome neutral.
+Custom announcement pictures do not replace these scored result images.
+
+A result includes a statistics link when there is an existing public HLL match,
+Wardogs report or imported statistics share link. Collected sources without a
+public report link back to the match's Result tab in the dashboard, which requires
+normal clan dashboard access. Manual scores alone do not invent a statistics
+link. Existing game-specific results panels remain independently configured;
+use a separate destination or disable them if you only want the shared channel.
+
+Website integrations can set or clear `eventResultsChannelId` through
+`PATCH /api/v1/clan/settings`. With the matching events read grant,
+`GET /api/v1/clan/events/{eventId}/image` returns the generated PNG and
+`?view=result` returns a confirmed result image. Drafts, trainings, unavailable
+results and other clans' matches are excluded. A custom match picture returns
+`409 custom_image` with its URL instead of replacing it.
+
+When you first enable the shared results channel, the bot also reconciles reviewed
+results still in its recent-event synchronization window. It does not scan or
+repost the entire match archive.

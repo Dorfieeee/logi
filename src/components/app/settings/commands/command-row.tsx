@@ -28,7 +28,10 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-import { ChannelChips, type ChannelOption } from "./channel-chips"
+import {
+    DiscordChannelSelect,
+    type ChannelOption,
+} from "@/components/app/discord-channel-select"
 
 type Text = Dictionary["settingsHub"]["commandsPage"]["commands"]
 
@@ -354,26 +357,19 @@ export function CommandRow({
                         aria-label={text.whereLabel.replace("{command}", name)}
                     >
                         {someChannels ? (
-                            <ChannelChips
+                            <DiscordChannelSelect
+                                multiple
                                 value={entry.channelIds}
                                 onChange={(channelIds) =>
                                     update({ channelIds })
                                 }
-                                channels={channels}
-                                labels={{
-                                    add: text.addChannel,
-                                    addAria: text.addChannelAria.replace(
-                                        "{command}",
-                                        name
-                                    ),
-                                    remove: (channel) =>
-                                        text.removeChannel.replace(
-                                            "{channel}",
-                                            channel
-                                        ),
-                                    search: text.searchChannels,
-                                    empty: text.noChannels,
-                                }}
+                                options={channels ?? []}
+                                unavailable={!channels}
+                                placeholder={text.whereLabel.replace(
+                                    "{command}",
+                                    name
+                                )}
+                                noneLabel={text.allChannels}
                             />
                         ) : (
                             <ChannelScopeSelect
@@ -417,24 +413,15 @@ function ChannelScopeSelect({
     label: string
 }) {
     return (
-        <Select
-            value="all"
-            onValueChange={(value) => {
-                if (value !== "all") onPick(value)
+        <DiscordChannelSelect
+            options={channels ?? []}
+            unavailable={!channels}
+            placeholder={label}
+            noneLabel={text.allChannels}
+            onChange={(value) => {
+                if (value) onPick(value)
             }}
-        >
-            <SelectTrigger className="bg-background w-full" aria-label={label}>
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">{text.allChannels}</SelectItem>
-                {(channels ?? []).map((channel) => (
-                    <SelectItem key={channel.id} value={channel.id}>
-                        {text.someChannels}: # {channel.name}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
+        />
     )
 }
 

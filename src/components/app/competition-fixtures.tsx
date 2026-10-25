@@ -1,5 +1,7 @@
 "use client"
 
+import { isApprovedRegistration } from "@/domain/competitions/enrollment"
+
 import {
     defaultFixturePhase,
     fixtureRowState,
@@ -166,7 +168,11 @@ export function CompetitionFixtures({
                 <Button
                     size="sm"
                     className="h-[34px]"
-                    disabled={pending || view.registrations.length < 2}
+                    disabled={
+                        pending ||
+                        view.registrations.filter(isApprovedRegistration)
+                            .length < 2
+                    }
                     onClick={() =>
                         setDialog({ kind: "fixture", fixture: null })
                     }
@@ -434,6 +440,7 @@ function FixtureForm({
     const teams = view.registrations
         .filter(
             (row) =>
+                isApprovedRegistration(row) &&
                 !row.team.legacy &&
                 (values.phase !== "league" ||
                     row.divisionId === values.divisionId)

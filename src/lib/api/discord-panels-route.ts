@@ -63,6 +63,7 @@ export const panelControlRequestSchema = z.strictObject({
  */
 export const panelPreviewImageSchema = panelImageRequestSchema.refine(
     (request) =>
+        request.kind === "match" ||
         request.model.background === null ||
         request.model.background.kind === "builtin",
     "Only built-in backgrounds."

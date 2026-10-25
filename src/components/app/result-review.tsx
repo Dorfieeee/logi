@@ -26,8 +26,8 @@ import {
     type ResultFaction,
 } from "@/domain/match-results/result-sides"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { suggestResultSession } from "@/domain/match-results/session-pick"
 import type { MatchTeamAssignment } from "@/domain/teams/match-teams"
+import { editorState, toInputs } from "@/lib/result-editor-state"
 import { resultTeamFor } from "@/lib/result-team-presentation"
 import type { Dictionary } from "@/i18n/dictionaries"
 import type { GameId } from "@/domain/games/game"
@@ -72,59 +72,6 @@ export function ResultReview(props: Props) {
             {...props}
         />
     )
-}
-
-function toInputs(
-    participants: ReadonlyArray<{
-        id: string
-        label: string
-        score: number | null
-    }>
-): ScoreInput[] {
-    return participants.map((p) => ({
-        ...p,
-        score: p.score === null ? "" : String(p.score),
-    }))
-}
-
-/** Editor fields for a review: the current result, else the server game
- * that matches the match time, else two empty participants. */
-function editorState(
-    data: ReviewData,
-    matchStart: string | undefined,
-    participantLabel: string,
-    matchTeams: MatchTeamAssignment[] | undefined,
-    matchEnd?: string
-) {
-    const suggestion =
-        !data.current && matchStart
-            ? suggestResultSession(data.sessions, matchStart, matchEnd)
-            : null
-    return {
-        scores: data.current
-            ? toInputs(data.current.participants)
-            : suggestion?.participants.length
-              ? toInputs(suggestion.participants)
-              : matchTeams?.length
-                ? [...matchTeams]
-                      .sort((left, right) =>
-                          left.slot.localeCompare(right.slot)
-                      )
-                      .map((team, index) => ({
-                          id: team.side?.trim() || `participant-${index + 1}`,
-                          label: team.snapshot.name,
-                          score: "",
-                      }))
-                : [1, 2].map((n) => ({
-                      id: `participant-${n}`,
-                      label: `${participantLabel} ${n}`,
-                      score: "",
-                  })),
-        source: data.current?.sessionLinks.length
-            ? "keep"
-            : (suggestion?.id ?? ""),
-        suggested: Boolean(suggestion),
-    }
 }
 
 function scoreText(
@@ -172,7 +119,8 @@ function Review({
                   matchStart,
                   t.participant,
                   matchTeams,
-                  matchEnd
+                  matchEnd,
+                  gameId
               )
             : null
     )
@@ -200,7 +148,8 @@ function Review({
                     matchStart,
                     t.participant,
                     matchTeams,
-                    matchEnd
+                    matchEnd,
+                    gameId
                 )
                 setData(result)
                 setScores(next.scores)
@@ -221,7 +170,15 @@ function Review({
                 if (!controller.signal.aborted) setLoading(false)
             })
         return () => controller.abort()
-    }, [endpoint, refresh, t.participant, matchStart, matchEnd, matchTeams])
+    }, [
+        endpoint,
+        refresh,
+        t.participant,
+        matchStart,
+        matchEnd,
+        matchTeams,
+        gameId,
+    ])
 
     const reload = () => {
         setLoading(true)
@@ -719,6 +676,26 @@ function Review({
                                     })}
                                 </div>
                             )}
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={!editable || scores.length >= 16}
+                                onClick={() => {
+                                    const id = `participant-${crypto.randomUUID()}`
+                                    setScores([
+                                        ...scores,
+                                        {
+                                            id,
+                                            label: `${t.participant} ${scores.length + 1}`,
+                                            score: "",
+                                        },
+                                    ])
+                                    setDirty(true)
+                                }}
+                            >
+                                {t.addParticipant}
+                            </Button>
 
                             <div className="space-y-2">
                                 <div className="text-sm font-medium">

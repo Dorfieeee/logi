@@ -5,6 +5,10 @@ import {
     teamNameSchema,
     type TeamGame,
 } from "../teams/team"
+import {
+    registrationModeSchema,
+    minimumLinkedPlayersSchema,
+} from "./enrollment.schema"
 import type { GameId } from "../games/game"
 import { z } from "zod"
 
@@ -86,6 +90,8 @@ export const competitionCreateSchema = z.strictObject({
     season: competitionSeasonSchema,
     description: competitionDescriptionSchema.nullable().default(null),
     published: z.boolean().default(false),
+    registrationMode: registrationModeSchema.default("closed"),
+    minimumLinkedPlayers: minimumLinkedPlayersSchema.default(null),
 })
 export type CompetitionCreateInput = z.infer<typeof competitionCreateSchema>
 
@@ -97,6 +103,8 @@ export const competitionUpdateSchema = z
         season: competitionSeasonSchema.optional(),
         description: competitionDescriptionSchema.nullable().optional(),
         published: z.boolean().optional(),
+        registrationMode: registrationModeSchema.optional(),
+        minimumLinkedPlayers: minimumLinkedPlayersSchema.optional(),
     })
     .refine((value) => Object.values(value).some((v) => v !== undefined), {
         message: "An update must change at least one field.",
@@ -122,6 +130,18 @@ export const registrationCreateSchema = z.strictObject({
     teamId: teamIdSchema,
     divisionId: competitionRecordIdSchema,
 })
+/** One add-only batch into one division; repeated submissions skip existing registrations. */
+export const registrationBatchSchema = z.strictObject({
+    teamIds: z
+        .array(teamIdSchema)
+        .min(1)
+        .max(COMPETITION_REGISTRATION_LIMIT)
+        .refine((ids) => new Set(ids).size === ids.length, {
+            message: "Teams may appear only once.",
+        }),
+    divisionId: competitionRecordIdSchema,
+})
+
 export type RegistrationCreateInput = z.infer<typeof registrationCreateSchema>
 
 /** Move to another division and/or withdraw or reinstate. */
@@ -129,10 +149,13 @@ export const registrationUpdateSchema = z
     .strictObject({
         divisionId: competitionRecordIdSchema.optional(),
         withdrawn: z.boolean().optional(),
+        status: z.enum(["approved", "rejected"]).optional(),
     })
     .refine(
         (value) =>
-            value.divisionId !== undefined || value.withdrawn !== undefined,
+            value.divisionId !== undefined ||
+            value.withdrawn !== undefined ||
+            value.status !== undefined,
         { message: "An update must change at least one field." }
     )
 export type RegistrationUpdateInput = z.infer<typeof registrationUpdateSchema>
@@ -314,6 +337,37 @@ export function checkRegistration(input: {
     if (input.registrations >= COMPETITION_REGISTRATION_LIMIT)
         return "limit_reached"
     return null
+}
+
+/** Validate the entire batch before persistence so an invalid team cannot leave partial registrations. */
+export function planTeamRegistrations(input: {
+    gameId: string
+    divisionExists: boolean
+    registrations: number
+    existingTeamIds: ReadonlySet<string>
+    teams: readonly { id: string; facts: CompetitionTeamFacts | null }[]
+}):
+    | { teamIds: string[]; skipped: number }
+    | { error: CompetitionCommandError } {
+    if (!input.divisionExists) return { error: "division_not_found" }
+    const teamIds: string[] = []
+    let skipped = 0
+    for (const team of input.teams) {
+        if (input.existingTeamIds.has(team.id)) {
+            skipped++
+            continue
+        }
+        const error = checkRegistration({
+            gameId: input.gameId,
+            team: team.facts,
+            divisionExists: true,
+            alreadyRegistered: false,
+            registrations: input.registrations + teamIds.length,
+        })
+        if (error) return { error }
+        teamIds.push(team.id)
+    }
+    return { teamIds, skipped }
 }
 
 /**

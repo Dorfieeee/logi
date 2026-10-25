@@ -37,6 +37,7 @@ import {
 import { TeamCatalogueDialog } from "@/components/app/team-catalogue-dialog"
 import { TeamCatalogueDetail } from "@/components/app/team-catalogue-detail"
 import type { TeamCatalogLabels } from "@/components/app/team-fields-editor"
+import { TeamScrapeButton } from "@/components/app/team-scrape-button"
 import { TeamMergeDialog } from "@/components/app/team-merge-dialog"
 import { Loader2, Plus, Search, UsersRound } from "lucide-react"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
@@ -382,6 +383,12 @@ export function TeamCatalogueAdmin({
                     </label>
                 </div>
             </div>
+            <TeamScrapeButton
+                key={game}
+                gameId={game}
+                labels={labels}
+                onImported={() => setReload((value) => value + 1)}
+            />
             <div aria-live="polite" className="min-h-0 empty:hidden">
                 {notice ? (
                     <p

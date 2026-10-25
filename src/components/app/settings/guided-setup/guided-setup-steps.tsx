@@ -13,8 +13,8 @@ import { useRef, useState, type ReactNode } from "react"
 
 import {
     channelOptions,
-    SettingsChannelPicker,
-} from "@/components/app/settings/settings-channel-picker"
+    DiscordChannelSelect,
+} from "@/components/app/discord-channel-select"
 import { RefreshBotStatusButton } from "@/components/app/refresh-bot-status-button"
 import { DiscordEntitySelect } from "@/components/app/discord-entity-select"
 import type { DiscordMetadataState } from "@/hooks/use-discord-metadata"
@@ -435,7 +435,7 @@ export function ChannelsStep({
                     optional={"optional" in field ? optional : undefined}
                     help={field.help}
                 >
-                    <SettingsChannelPicker
+                    <DiscordChannelSelect
                         id={`guided-setup-${field.key}`}
                         value={value[field.key]}
                         onChange={(next) =>

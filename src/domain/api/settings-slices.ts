@@ -77,6 +77,7 @@ export const RESERVED_SETTINGS_KEYS: ReadonlySet<string> = new Set([
     "defaultLanguage",
     "announcementsChannelId",
     "eventInfoChannelId",
+    "eventResultsChannelId",
     "errorsChannelId",
     "calendarChannelId",
     "forumCategoryId",

@@ -1,3 +1,4 @@
+import { panelImageRenderer } from "@/lib/panel-image/service"
 import path from "node:path"
 
 import {
@@ -33,5 +34,8 @@ export const discordPanelsHandlers = discordPanelsRoutes({
     saveServer: saveDiscordPanelServer,
     leaguePreview: readLeaguePanelPreview,
     refreshControl: refreshDiscordPanelControl,
-    renderPreviewImage: (request) => previewRenderer.render(request),
+    renderPreviewImage: (request) =>
+        request.kind === "match"
+            ? panelImageRenderer.render(request)
+            : previewRenderer.render(request),
 })

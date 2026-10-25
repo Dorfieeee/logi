@@ -83,31 +83,13 @@ test("a refresh re-captures the active entry, keeps slot and side, saves and aud
     ])
 })
 
-test("frozen, unassigned, archived and cross-game refreshes write nothing", async () => {
+test("training, unassigned, archived and cross-game refreshes write nothing", async () => {
     const cases: [
         Map<string, DirectoryTeamLookup>,
         Partial<RefreshableEvent>,
         string,
         string,
     ][] = [
-        [
-            new Map([["team-1", team]]),
-            { status: "concluded" },
-            "team-1",
-            "match_concluded",
-        ],
-        // Past its end plus the reserve, before the conclusion is recorded.
-        [
-            new Map([["team-1", team]]),
-            {
-                status: "starting",
-                registrationEnd: "2026-10-04T09:00:00.000Z",
-                meetingStart: "2026-10-04T10:00:00.000Z",
-                gameEnd: "2026-10-04T11:00:00.000Z",
-            },
-            "team-1",
-            "match_concluded",
-        ],
         [
             new Map([["team-1", team]]),
             { kind: "training" },

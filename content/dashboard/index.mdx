@@ -129,6 +129,12 @@ are in the footer.
 
 The clan dashboard follows the game selector. With a specific game selected,
 the statistic charts and recent results use only that game's recorded matches.
+Recent results and win/loss totals include confirmed or corrected manually entered
+scores, even without a server or statistics link. Drafts, trainings and provisional
+results are excluded. Score-only results add no player statistics. The authenticated
+API exposes these reviewed scores through `/api/v1/clan/result-summaries`, including
+their manual origin and review status.
+
 With **All games**, Logi keeps each supported game's statistics separate so
 unrelated fields are never combined. Hell Let Loose and HLL: Vietnam show
 combat effectiveness, support, K/D and points. Wardogs shows money, kills,

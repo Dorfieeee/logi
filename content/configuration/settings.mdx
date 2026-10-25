@@ -828,3 +828,26 @@ registered in it; legacy unrestricted keys never qualify. Members must also hold
 of the listed roles in a fresh Discord observation when the website issues a
 command, so a role list is a ceiling, not a guarantee. Policy administration needs
 your signed-in server administrator session; API keys cannot change it.
+
+### Choosing Discord channels
+
+All channel fields use the same searchable dropdown. Search by channel name or
+Discord channel ID; each result shows both. Fields for one destination close after
+you select a channel. Fields that allow multiple channels stay open: select a
+channel again to remove it, or choose the empty option to clear the selection.
+Only channel types supported by the setting are offered. Saved channels missing
+from Discord remain visible by ID with a reminder to check access. If the channel
+list is unavailable, paste a channel ID into the search and select it.
+
+### One results channel for every game
+
+In **Channels and language**, set **Event results** to a text or announcement
+channel. This is a clan-wide setting with no per-game exceptions. It is separate
+from registration, event information and the optional game-specific results
+panels. The bot posts a scored image for concluded matches after the result has
+been confirmed, edits it after corrections, and includes available statistics
+links. Leaving the channel empty disables these shared result posts.
+
+The same setting is exposed as the clearable `eventResultsChannelId` field in
+`GET/PATCH /api/v1/clan/settings`. See [Matches](/operations/matches) for automatic
+match pictures, result images, timezone behavior and image API access.

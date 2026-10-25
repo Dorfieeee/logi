@@ -26,6 +26,7 @@ import {
     peopleReadPaths,
     peopleResponseSchemas,
 } from "@/lib/api/people-openapi"
+import { competitionEnrollmentPaths } from "@/lib/api/competition-enrollment-openapi"
 import { membershipObservationSchema } from "@/domain/membership/observation.schema"
 import { externalRegistrationPaths } from "@/lib/api/external-registration-openapi"
 import { wardogsMatchResponseSchemas } from "@/lib/api/wardogs-match-openapi"
@@ -523,7 +524,7 @@ const paths: Record<string, unknown> = {
             summary: "Get a public competition",
             tags: ["Public API — no key required"],
             description:
-                "Public, rate-limited details of a published competition: its gameId, season, divisions with registered teams, and fixtures with results. Team IDs are global Logi team catalogue IDs, shared by every competition the team plays in (breaking change: they were Logi workspace IDs before). Teams carry name, shortCode and logoUrl (null when the team has none); fixtures reference them with teamAId and teamBId and carry an optional round number (missing on fixtures saved before rounds). An ID of the form guild:<id> marks a legacy record that has not been migrated yet. Unpublished and unknown competitions return 404. Use collection=divisions for a paginated division list.",
+                "Public, rate-limited details of a published competition: its gameId, season, divisions with registered teams, and fixtures with results. Team IDs are global Logi team catalogue IDs, shared by every competition the team plays in (breaking change: they were Logi workspace IDs before). Teams carry name, shortCode and logoUrl (null when the team has none); fixtures reference them with teamAId and teamBId and carry an optional round number (missing on fixtures saved before rounds). An ID of the form guild:<id> marks a legacy record that has not been migrated yet. Unpublished and unknown competitions return 404. Use collection=divisions for a paginated division list. Competition administration, including bulk team registration, requires a Logi global-administrator session and has no bearer-key write endpoint.",
             parameters: [
                 {
                     name: "slug",
@@ -687,7 +688,7 @@ for (const resource of resources) {
             ...(resource === "result-summaries"
                 ? {
                       description:
-                          "Reviewed event-result snapshots with independent result-summaries/game grants. States unknown, provisional, confirmed and corrected. Scores preserve null and zero and support 2-16 factions. Private player/reviewer identities, free-text reasons and source addresses are excluded. Confirmation/correction are account-session-only; bearer writes are unavailable. Publication remains consumer-owned.",
+                          "Reviewed event-result snapshots with independent result-summaries/game grants. States unknown, provisional, confirmed and corrected. Includes manually entered score-only results without server or statistics links; provenance.origin identifies manual results and attribution does not imply player statistics. Scores preserve null and zero and support 2-16 factions. Private player/reviewer identities, free-text reasons and source addresses are excluded. Confirmation/correction are account-session-only; bearer writes are unavailable. Publication remains consumer-owned.",
                   }
                 : {}),
             tags: [resourceTags[resource]!],
@@ -812,6 +813,54 @@ paths["/clan/articles/{id}"] = {
         responses: {
             ...responses,
             "409": { description: "Idempotency conflict" },
+        },
+    },
+}
+
+paths["/clan/events/{eventId}/image"] = {
+    get: {
+        summary: "Render a generated match or reviewed result image",
+        description:
+            "Returns a 1200 × 675 PNG using the same renderer as Discord. Requires the events read grant for the event's game and clan. Drafts, trainings and unavailable reviewed results return 404. A custom match image takes precedence and returns 409 with error.imageUrl; result cards always use reviewed scores. Artwork uses the clan language/timezone, team snapshots and available map art. No server credentials are rendered.",
+        tags: ["Clan API — Events"],
+        security: [{ clanApiKey: [] }],
+        parameters: [
+            {
+                name: "eventId",
+                in: "path",
+                required: true,
+                schema: { type: "string" },
+            },
+            {
+                name: "view",
+                in: "query",
+                schema: {
+                    type: "string",
+                    enum: ["match", "result"],
+                    default: "match",
+                },
+            },
+        ],
+        responses: {
+            ...responses,
+            "200": {
+                description: "Generated image",
+                content: {
+                    "image/png": {
+                        schema: { type: "string", format: "binary" },
+                    },
+                },
+            },
+            "404": {
+                description:
+                    "Event or reviewed result not available in this scope",
+            },
+            "409": {
+                description:
+                    "Custom match image configured; use error.imageUrl",
+            },
+            "422": { description: "Invalid stored image facts" },
+            "503": { description: "Image render temporarily unavailable" },
         },
     },
 }
@@ -1837,7 +1886,7 @@ paths["/clan/teams"] = {
         tags: ["Clan API — Teams"],
         summary: "List the global catalogue's active teams for one game",
         description:
-            "Requires an explicit teams grant for the requested game. The team catalogue is global: Logi's global administrators own one catalogue per game (hell_let_loose or wardogs), no workspace owns or keeps a private team list, and every workspace whose key holds the grant reads the same teams. The key supplies the workspace and must still belong to the workspace that authenticated the request; the caller cannot choose another one, and Convex rechecks key revocation, workspace and game grants on every read. Exactly one supported game is required and pagination is validated: limit 1–100 (default 50), opaque cursor at most 4,096 characters, no other parameters. Returns active teams ordered by normalized name as minimized DTOs (stable global catalogue ID, game, name, short code, public logo URL, description, up to three https links, revision, updated time) with absent optional values as null and links as an array; archived and merged teams are excluded. Use the collection as the baseline and sync-records with resource teams for current details; Logi does not retain a per-workspace change log. Legacy broad keys do not acquire this resource. Catalogue writes (create, edit, archive, restore, link, merge), logo uploads and team requests (submission, cancellation and moderation decisions) are session-bound Logi administration and deliberately have no bearer-key API (documented API-parity exception). Teams selected for a native match travel as immutable matchTeams snapshots (ClanMatchTeam) inside the event-summaries and match-summaries documents; those keep the captured ID, labels and logo after a team is archived or merged, and receiving them does not grant the catalogue. Responses are no-store.",
+            "Requires an explicit teams grant for the requested game. The team catalogue is global: Logi's global administrators own one catalogue per game (hell_let_loose or wardogs), no workspace owns or keeps a private team list, and every workspace whose key holds the grant reads the same teams. The key supplies the workspace and must still belong to the workspace that authenticated the request; the caller cannot choose another one, and Convex rechecks key revocation, workspace and game grants on every read. Exactly one supported game is required and pagination is validated: limit 1–100 (default 50), opaque cursor at most 4,096 characters, no other parameters. Returns active teams ordered by normalized name as minimized DTOs (stable global catalogue ID, game, name, short code, public logo URL, description, up to three https links, revision, updated time) with absent optional values as null and links as an array; archived and merged teams are excluded. Use the collection as the baseline and sync-records with resource teams for current details; Logi does not retain a per-workspace change log. Legacy broad keys do not acquire this resource. Catalogue writes (create, edit, archive, restore, link, merge, add-only Wardogs League/HeLO directory imports), logo uploads and team requests (submission, cancellation and moderation decisions) are session-bound Logi administration and deliberately have no bearer-key API (documented API-parity exception). Teams selected for a native match travel as immutable matchTeams snapshots (ClanMatchTeam) inside the event-summaries and match-summaries documents; those keep the captured ID, labels and logo after a team is archived or merged, and receiving them does not grant the catalogue. Responses are no-store.",
         security: [{ clanApiKey: [] }],
         "x-logi-read-access": teamReadAccess,
         parameters: [
@@ -2439,6 +2488,7 @@ Article, group, calendar-item, roster, assignment, event, signup, stratmap, and 
             paths: {
                 ...paths,
                 ...websiteEventCommandPaths,
+                ...competitionEnrollmentPaths,
                 ...externalRegistrationPaths,
             },
         },

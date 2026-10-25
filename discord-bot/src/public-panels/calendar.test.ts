@@ -182,3 +182,50 @@ test("a competition match names its round: ECL, 3. kolo (L3-14)", () => {
     )
     assert.equal(en[0]?.typeWord, "ECL, round 3")
 })
+
+test("the calendar starts with configured category colours and names, even without events", () => {
+    const view = renderedView(
+        buildCalendarPanelView(
+            {
+                ...payload,
+                guild: {
+                    ...payload.guild,
+                    eventCategories: [
+                        { id: "friendly", label: "Přátelák", color: "#ed4245" },
+                        {
+                            id: "training",
+                            label: "Výcvik *nováčků*",
+                            color: "#57f287",
+                        },
+                    ],
+                },
+                events: [],
+                calendarItems: [],
+            },
+            { now, siteUrl: "https://logi.app", categories: [] }
+        )
+    )
+    assert.deepEqual(view.validation, { ok: true, issues: [] })
+    assert.match(view.text, /🔴 Přátelák\n🟢 Výcvik \\\*nováčků\\\*/)
+    assert.ok(view.text.indexOf("Přátelák") < view.text.indexOf("Momentálně"))
+})
+
+test("the legend follows the category filter before the dated rows", () => {
+    const view = renderedView(
+        buildCalendarPanelView(payload, {
+            now,
+            siteUrl: "https://logi.app",
+            categories: ["FRIENDLY"],
+        })
+    )
+    assert.match(view.text, /🔴 Přátelák/)
+    assert.ok(view.text.indexOf("🔴 Přátelák") < view.text.indexOf("**úterý"))
+    const filtered = renderedView(
+        buildCalendarPanelView(payload, {
+            now,
+            siteUrl: "https://logi.app",
+            categories: ["training"],
+        })
+    )
+    assert.doesNotMatch(filtered.text, /Přátelák/)
+})

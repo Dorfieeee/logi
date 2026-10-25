@@ -1,14 +1,7 @@
 import type { EventParticipant, EventStatus } from "./types"
-import { currentEventStatus } from "./status"
 
-/**
- * Whether a stored event opens in the edit flow: a draft resumes in the
- * create flow instead, and a concluded event (closed by a manager or 15
- * minutes past its end) is history. Before that every field stays editable,
- * also after sign-ups close, so a manager can still fix the server password
- * or the meeting time.
- */
-export type EventEditability = "editable" | "draft" | "concluded"
+/** Published events remain editable so managers can correct historical details. */
+export type EventEditability = "editable" | "draft"
 
 export function eventEditability(
     event: {
@@ -18,12 +11,9 @@ export function eventEditability(
         meetingStart: string
         gameEnd: string
     },
-    now: Date
+    _now: Date
 ): EventEditability {
-    if (event.isDraft === true) return "draft"
-    return currentEventStatus(event, now) === "concluded"
-        ? "concluded"
-        : "editable"
+    return event.isDraft === true ? "draft" : "editable"
 }
 
 export type EventSeriesRole =

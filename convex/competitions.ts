@@ -19,6 +19,8 @@ import {
     isCompetitionPublished,
     legacyTeamKey,
     registrationCreateSchema,
+    registrationBatchSchema,
+    planTeamRegistrations,
     registrationUpdateSchema,
     type CompetitionCommandError,
     type FixtureInput,
@@ -38,6 +40,11 @@ import {
     currentTeam,
     teamById,
 } from "../src/infrastructure/convex/team-directory-repositories"
+import {
+    enrollmentPolicy,
+    hasCompetitionHistory,
+    isApprovedRegistration,
+} from "../src/domain/competitions/enrollment"
 import { adoptCatalogueTeam } from "../src/application/competitions/adopt-catalogue-team.use-case"
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server"
 import { dashboardActor, type DashboardActor } from "./dashboardActor"
@@ -256,7 +263,11 @@ export const getPublic = query({
                     name: division.name,
                     teams: await Promise.all(
                         registrations
-                            .filter((row) => row.divisionId === division._id)
+                            .filter(
+                                (row) =>
+                                    row.divisionId === division._id &&
+                                    hasCompetitionHistory(row)
+                            )
                             .map(async (row) => {
                                 const team = await view(registrationKey(row))
                                 return {
@@ -264,7 +275,9 @@ export const getPublic = query({
                                     name: team.name,
                                     shortCode: team.shortCode,
                                     logoUrl: team.logoUrl,
-                                    withdrawn: row.withdrawn,
+                                    withdrawn:
+                                        row.withdrawn ||
+                                        !isApprovedRegistration(row),
                                 }
                             })
                     ),
@@ -377,6 +390,7 @@ function summaryOf(competition: Doc<"competitions">): CompetitionSummary {
         name: competition.name,
         season: competition.season,
         description: competition.description ?? null,
+        ...enrollmentPolicy(competition),
         published: isCompetitionPublished(competition),
         createdAt: competition.createdAt,
         updatedAt: competition.updatedAt,
@@ -432,6 +446,7 @@ export const adminGet = query({
                 registrations.map(async (row) => ({
                     id: String(row._id),
                     divisionId: row.divisionId ? String(row.divisionId) : null,
+                    status: row.status ?? "approved",
                     withdrawn: row.withdrawn,
                     team: await view(registrationKey(row)),
                 }))
@@ -653,6 +668,8 @@ export const create = mutation({
             description: input.description ?? undefined,
             format: FORMAT,
             published: input.published,
+            registrationMode: input.registrationMode,
+            minimumLinkedPlayers: input.minimumLinkedPlayers,
             createdAt: now,
             updatedAt: now,
         })
@@ -685,6 +702,12 @@ export const update = mutation({
             ...(input.season !== undefined ? { season: input.season } : {}),
             ...(input.description !== undefined
                 ? { description: input.description ?? undefined }
+                : {}),
+            ...(input.registrationMode !== undefined
+                ? { registrationMode: input.registrationMode }
+                : {}),
+            ...(input.minimumLinkedPlayers !== undefined
+                ? { minimumLinkedPlayers: input.minimumLinkedPlayers }
                 : {}),
             ...(input.published !== undefined
                 ? { published: input.published }
@@ -865,6 +888,70 @@ export const registerTeam = mutation({
     },
 })
 
+/** Atomically register many catalogue teams; retries preserve existing division assignments. */
+export const registerTeams = mutation({
+    args: { ...platformAccess, competitionId: v.string(), input: v.any() },
+    handler: async (ctx, args) => {
+        await admin(ctx, args)
+        const parsed = registrationBatchSchema.safeParse(args.input)
+        if (!parsed.success) return fail("invalid_competition")
+        const competition = await competitionById(ctx, args.competitionId)
+        if (!competition) return fail("not_found")
+        const division = await rowById(
+            ctx,
+            "competitionDivisions",
+            parsed.data.divisionId
+        )
+        const { registrations } = await competitionParts(ctx, competition._id)
+        const rows = await Promise.all(
+            parsed.data.teamIds.map((id) => teamById(ctx, id))
+        )
+        const plan = planTeamRegistrations({
+            gameId: resolveGameScope(competition.gameId),
+            divisionExists: division?.competitionId === competition._id,
+            registrations: registrations.length,
+            existingTeamIds: new Set(
+                registrations.flatMap((row) =>
+                    row.teamId ? [String(row.teamId)] : []
+                )
+            ),
+            teams: parsed.data.teamIds.map((id, index) => {
+                const row = rows[index]
+                return {
+                    id,
+                    facts: row
+                        ? {
+                              gameId: row.gameId,
+                              archivedAt: row.archivedAt,
+                              mergedIntoTeamId: row.mergedIntoTeamId ?? null,
+                          }
+                        : null,
+                }
+            }),
+        })
+        if ("error" in plan) return fail(plan.error)
+        if (!division) return fail("division_not_found")
+        const now = NOW()
+        for (const id of plan.teamIds) {
+            const team = rows.find((row) => row && String(row._id) === id)
+            if (!team) throw new Error("Validated team missing")
+            await ctx.db.insert("competitionTeams", {
+                competitionId: competition._id,
+                teamId: team._id,
+                divisionId: division._id,
+                withdrawn: false,
+                createdAt: now,
+                updatedAt: now,
+            })
+        }
+        if (plan.teamIds.length) await touch(ctx, competition)
+        return ok(competition, {
+            registered: plan.teamIds.length,
+            skipped: plan.skipped,
+        })
+    },
+})
+
 /** Moves a registration to another division and/or withdraws or reinstates the team. */
 export const updateRegistration = mutation({
     args: { ...platformAccess, registrationId: v.string(), input: v.any() },
@@ -881,6 +968,11 @@ export const updateRegistration = mutation({
             ? await ctx.db.get(registration.competitionId)
             : null
         if (!registration || !competition) return fail("not_found")
+        if (
+            parsed.data.status &&
+            (registration.status !== "pending" || registration.withdrawn)
+        )
+            return fail("invalid_competition")
         const target = parsed.data.divisionId
             ? await rowById(ctx, "competitionDivisions", parsed.data.divisionId)
             : null
@@ -902,6 +994,13 @@ export const updateRegistration = mutation({
         })
         if (blocked) return fail(blocked)
         await ctx.db.patch(registration._id, {
+            ...(parsed.data.status
+                ? {
+                      status: parsed.data.status,
+                      decidedBy: args.actor.subject,
+                      decidedAt: NOW(),
+                  }
+                : {}),
             ...(target ? { divisionId: target._id } : {}),
             ...(parsed.data.withdrawn !== undefined
                 ? { withdrawn: parsed.data.withdrawn }
@@ -970,7 +1069,8 @@ async function fixtureWrite(
     ]) {
         if (!teamId) return fail("invalid_competition")
         const row = registrations.find(
-            (entry) => String(entry.teamId) === teamId
+            (entry) =>
+                String(entry.teamId) === teamId && isApprovedRegistration(entry)
         )
         const team = row?.teamId ? await ctx.db.get(row.teamId) : null
         if (row)

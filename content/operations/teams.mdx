@@ -143,3 +143,63 @@ uses the team it was merged into.
 The match editor has a **Teams** section for Hell Let Loose and Wardogs
 matches. See [Matches → Teams](/wiki/operations/matches#teams) for slots, sides,
 snapshots and when the selection is frozen.
+
+## Import teams from league directories (global administrators)
+
+Open **Administration → Team catalogue** (`/en/dashboard/teams`) and choose
+the game tab. The **Wardogs** tab offers **Scrape teams from Wardogs League**, using
+[the full Wardogs League teams page](https://wardogsleague.net/teams?all=1).
+The **Hell Let Loose** tab offers **Sync teams from HeLO (2024)**, using the
+public data behind [HeLO's 2024 team directory](https://helo-system.de/teams?series=2024).
+
+The button adds missing teams to the **global catalogue for that game**, with
+their name, short code (HeLO calls this the tag), and a stored copy of the logo.
+It does not register those teams in the competition automatically; use the
+competition's team picker afterwards.
+
+A team is skipped if its name **or** short code already exists in that game's
+catalogue, ignoring letter case and extra spaces. Archived and merged entries
+also count as existing. Existing records, names, codes and logos are preserved.
+Repeated imports are safe, including imports started at the same time.
+
+The result shows created, skipped and failed counts, and the names of failed
+teams. If a logo cannot be downloaded or normalized, that team is not created;
+retry the import after the provider recovers. Teams with no source logo are
+created without one. Imported GIF logos use a static first frame. Source
+changes can require an importer update; a failed source read creates no teams.
+This import is available only to Logi global administrators.
+
+## Register teams in a competition (global administrators)
+
+Open **Administration → Competitions → Manage → Teams**. Choose a division,
+open **Choose teams**, and tick as many catalogue teams as you need. Search
+matches names and short codes; selected teams stay selected while you search.
+**Select all matching** selects the matching unregistered teams across all
+catalogue pages, up to the competition's remaining capacity (500 teams total).
+Use **Clear selection** or remove an individual selected chip to adjust the
+selection, then select **Done** and **Register … teams** once.
+
+The complete batch is validated before any registrations are added. An archived,
+merged, missing or other-game team rejects the batch; your selection remains
+available to correct and retry. Teams already registered by another
+administrator or by a retried submission are skipped without moving them to a
+different division. The same catalogue team may be registered in several
+competitions; each competition keeps its own fixtures and results.
+
+## Participating in competitions
+
+Clan administrators enroll their linked teams from **Competitions** in the clan
+sidebar. Registration can be closed, automatic or subject to Logi administrator
+approval. A competition can require a minimum number of clan members who have
+signed into Logi; members do not need verified Steam accounts or to use the
+other clan tools. Withdrawal preserves the team's competition history. See
+[match and competition guidance](/wiki/public/matches-and-competitions).
+
+## Competitions-only workspace
+
+Administrators opening a new, unconfigured clan are asked whether to use the
+full Logi toolset or **Competitions only**. The latter keeps the sidebar focused
+on the dashboard, competitions, teams, players and settings. It changes
+navigation rather than permissions, stops no integrations and deletes no data.
+You can change the clan-wide preference at any time in **Clan settings →
+Workspace mode**, including when an existing clan wants the simpler menu.
