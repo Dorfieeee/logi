@@ -145,3 +145,10 @@ test("statistics links never expose credentials or non-web protocols", () => {
     ])
         assert.equal(publicStatsLink(url), null)
 })
+
+test("a match's own results destination takes precedence over the clan default", async () => {
+    const f = fixture()
+    f.event.eventResultsChannelId = "999999999999999999"
+    await synchronizeMatchResult(f.payload, f.event, f.ports)
+    assert.equal(f.sent[0]?.channelId, "999999999999999999")
+})

@@ -29,12 +29,47 @@ export function parseWardogsTeams(html: string): SourceTeam[] {
         const code = decodeURIComponent(
             card.attr("href")!.slice("/teams/".length)
         )
-        const src = card.find("img").attr("src")
+        const src =
+            card.find('img[src^="/api/logos/"]').first().attr("src") ??
+            card
+                .find('img[src^="https://wardogsleague.net/api/logos/"]')
+                .first()
+                .attr("src")
         teams.push({
             name,
             shortCode: code,
             logoUrl: src ? new URL(src, TEAM_SOURCES.wardogs).href : null,
         })
+    })
+    return sourceTeamsSchema.parse(teams)
+}
+
+/** Rendered HeLO rows use the provider's explicit Team Icon marker. */
+export function parseHeloTeamCards(html: string): SourceTeam[] {
+    const $ = load(html)
+    const teams: SourceTeam[] = []
+    $('img[alt="Team Icon"]').each((_, image) => {
+        const icon = $(image)
+        const row = icon.closest("tr, [data-team-name], .team-card")
+        if (!row.length) return
+        const cells = row.find("td")
+        const name =
+            row.attr("data-team-name") ||
+            row.find(".team-name").text().trim() ||
+            cells.eq(2).text().trim()
+        const code =
+            row.attr("data-team-tag") ||
+            row.find(".team-tag").text().trim() ||
+            cells.eq(1).text().trim()
+        const src = icon.attr("src")
+        if (name && code)
+            teams.push({
+                name,
+                shortCode: code,
+                logoUrl: src
+                    ? new URL(src, TEAM_SOURCES.hell_let_loose).href
+                    : null,
+            })
     })
     return sourceTeamsSchema.parse(teams)
 }
@@ -89,5 +124,7 @@ export function allowedTeamSourceUrl(url: string): boolean {
 export function parseTeamSource(game: TeamGame, text: string): SourceTeam[] {
     return game === "wardogs"
         ? parseWardogsTeams(text)
-        : parseHeloTeams(JSON.parse(text))
+        : text.trimStart().startsWith("<")
+          ? parseHeloTeamCards(text)
+          : parseHeloTeams(JSON.parse(text))
 }

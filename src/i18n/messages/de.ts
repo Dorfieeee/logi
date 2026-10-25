@@ -1633,9 +1633,9 @@ export const deMessages = {
         scrapeHll: "Teams aus HeLO synchronisieren (2024)",
         scrapingTeams: "Teams werden importiert…",
         scrapeDescription:
-            "Fügt fehlende Teams und Logos zum globalen Katalog dieses Spiels hinzu. Vorhandene Namen oder Kürzel werden übersprungen. Teams separat für den Wettbewerb anmelden.",
+            "Ergänzt fehlende Teams und aktualisiert Logos vorhandener Teams. Fehlende oder nicht erreichbare Logos entfernen kein gespeichertes Logo. Teams separat zum Wettbewerb anmelden.",
         scrapeResult:
-            "Erstellt: {created}. Übersprungen: {skipped}. Fehlgeschlagen: {failed}. Fehlgeschlagene Teams können erneut importiert werden.",
+            "Erstellt: {created}. Logos aktualisiert: {updated}. Übersprungen: {skipped}. Fehlgeschlagen: {failed}. Erneuter Versuch möglich.",
         scrapeError: "Teamimport fehlgeschlagen. Bitte erneut versuchen.",
 
         searchLabel: "Teams suchen",
@@ -4464,6 +4464,9 @@ export const deMessages = {
                         "Wähle Kanäle auf deinem Discord. Für einzelne Spiele kannst du sie später anders einstellen.",
                     announcements: "Ankündigungen",
                     announcementsHelp: "Neue Events und Kaderänderungen.",
+                    eventResults: "Event-Ergebnisse",
+                    eventResultsHelp:
+                        "Bestätigte Spielstände und Statistiklinks. Optional; für alle Spiele.",
                     eventInfo: "Event-Informationen",
                     eventInfoHelp: "Event-Details und Anmeldungen.",
                     errors: "Bot-Fehler",
@@ -5208,6 +5211,7 @@ export const deMessages = {
             rolesPlaceholder: "Rollen wählen",
         },
         discord: {
+            results: "Event-Ergebnisse",
             announcement: "Ankündigung und Anmeldungen",
             roster: "Aufstellung",
             ping: "Ping",
@@ -5216,6 +5220,9 @@ export const deMessages = {
             pingRoles: "Gewählte Rollen",
             pingRolesLabel: "Rollen zum Pingen",
             forum: "Match-Forum",
+            deleteForumAfterConclusion: "Forum nach dem Spiel löschen",
+            deleteForumAfterConclusionHint:
+                "Nach manuellem oder automatischem Abschluss Teilnehmer in einen privaten Debrief-Thread unter Ergebnisse → Event-Info → Anmeldung einladen und das Spielforum mit allen Beiträgen löschen.",
             signupThread: "Diskussions-Thread zum Event",
             signupThreadHint:
                 "Erstellt einen öffentlichen Thread unter der Ankündigung und synchronisiert seine Mitglieder mit den Anmeldungen.",

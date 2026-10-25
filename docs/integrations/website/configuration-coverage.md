@@ -459,3 +459,11 @@ bot's bounded startup sync. No full-table backfill or additional announcement
 ping is needed. Synthetic visual evidence can be regenerated locally with
 `node --import tsx scripts/preview-match-images.ts`; this command performs no
 Discord, Convex or provider operations.
+
+The match-create input and event read document now also carry the optional
+`eventResultsChannelId`, with the same creation-time routing lifecycle as
+`eventInfoChannelId`. Generic event writes validate it through the shared event
+schema. Actor-backed updates preserve the existing routing, and recurrence
+copies it. The bot prefers an event's saved destination over the clan default.
+Generated artwork v2 preserves rectangular team logos without circles or
+backplates and uses a transparent Logi footer mark.

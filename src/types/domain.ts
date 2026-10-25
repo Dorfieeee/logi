@@ -346,6 +346,7 @@ export type EventRecord = {
     imageUrl?: string
     announcementChannelId?: string
     eventInfoChannelId?: string
+    eventResultsChannelId?: string
     meetingChannelId?: string
     createSquadVoiceChannels?: boolean
     squadVoiceCategoryId?: string
@@ -371,6 +372,7 @@ export type EventRecord = {
     createForumChannel: boolean
     /** Opt-in public discussion thread attached to the announcement. */
     createSignupThread?: boolean
+    deleteForumAfterConclusion?: boolean
     topicPresetId?: string
     stratmapIds: string[]
     signupGroupIds?: string[]

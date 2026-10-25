@@ -883,3 +883,38 @@ test("a match created with an explicit [] reads as an empty selection, not a leg
     assert.deepEqual(editor.data.matchTeams, [])
     assert.deepEqual(editor.data.event.matchTeams, [])
 })
+
+test("actor API reads and writes forum cleanup and preserves it on an omitted update", async (t) => {
+    const f = fixture(t)
+    const created = await f.run({
+        command: {
+            operation: "create",
+            event: { ...fields, deleteForumAfterConclusion: false },
+        },
+    })
+    assert.equal(f.ctx.db.tables.events[0].deleteForumAfterConclusion, false)
+    const editor = await editorFor(f, created.data.eventId)
+    assert.equal(editor.data.event.deleteForumAfterConclusion, false)
+    const updated = await f.run({
+        idempotencyKey: "enable-cleanup-0001",
+        command: {
+            operation: "update",
+            eventId: created.data.eventId,
+            expectedRevision: created.data.revision,
+            event: { ...fields, deleteForumAfterConclusion: true },
+        },
+    })
+    assert.equal(updated.data.operation, "update")
+    assert.equal(f.ctx.db.tables.events[0].deleteForumAfterConclusion, true)
+    const preserved = await f.run({
+        idempotencyKey: "preserve-cleanup-0001",
+        command: {
+            operation: "update",
+            eventId: created.data.eventId,
+            expectedRevision: updated.data.revision,
+            event: { ...fields, name: "Renamed match" },
+        },
+    })
+    assert.equal(preserved.data.operation, "update")
+    assert.equal(f.ctx.db.tables.events[0].deleteForumAfterConclusion, true)
+})

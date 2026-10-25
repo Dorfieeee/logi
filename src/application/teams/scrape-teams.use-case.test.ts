@@ -6,7 +6,7 @@ import {
 import assert from "node:assert/strict"
 import test from "node:test"
 
-test("skips normalized existing names/codes, source duplicates and failed logos; reports concurrent skips", async () => {
+test("refreshes existing logos, skips source duplicates and failed logos; reports concurrent skips", async () => {
     const downloads: string[] = []
     let committed: PreparedTeam[] = []
     const ports: ScrapeTeamsPorts = {
@@ -28,17 +28,18 @@ test("skips normalized existing names/codes, source duplicates and failed logos;
         commit: async (game, teams) => {
             assert.equal(game, "wardogs")
             committed = teams
-            return { created: 1, skipped: 1 }
+            return { created: 1, updated: 1, skipped: 1 }
         },
     }
     assert.deepEqual(await scrapeTeams(ports, "wardogs"), {
         created: 1,
-        skipped: 4,
+        updated: 1,
+        skipped: 3,
         failed: ["Broken"],
     })
-    assert.deepEqual(downloads, ["good", "broken"])
+    assert.deepEqual(downloads, ["never", "good", "broken"])
     assert.equal(committed[0]?.logoAssetId, "asset-good")
-    assert.equal(committed[1]?.logoAssetId, null)
+    assert.equal(committed[2]?.logoAssetId, null)
 })
 
 test("provider failure does not read or write catalogue", async () => {
@@ -74,7 +75,9 @@ test("logo failures can be retried and a fully imported source performs no uploa
             { name: "Alpha", shortCode: "A", logoUrl: "logo" },
         ],
         existing: async () =>
-            imported ? [{ name: "Alpha", shortCode: "A" }] : [],
+            imported
+                ? [{ name: "Alpha", shortCode: "A", logoAssetId: "asset-a" }]
+                : [],
         logo: async () => {
             if (!online) throw new Error("offline")
             return "asset-a"
@@ -82,27 +85,31 @@ test("logo failures can be retried and a fully imported source performs no uploa
         key: () => "import-alpha-1",
         commit: async () => {
             commits++
+            if (imported) return { created: 0, updated: 0, skipped: 1 }
             imported = true
-            return { created: 1, skipped: 0 }
+            return { created: 1, updated: 0, skipped: 0 }
         },
     }
     assert.deepEqual(await scrapeTeams(ports, "wardogs"), {
         created: 0,
+        updated: 0,
         skipped: 0,
         failed: ["Alpha"],
     })
     online = true
     assert.deepEqual(await scrapeTeams(ports, "wardogs"), {
         created: 1,
+        updated: 0,
         skipped: 0,
         failed: [],
     })
     assert.deepEqual(await scrapeTeams(ports, "wardogs"), {
         created: 0,
+        updated: 0,
         skipped: 1,
         failed: [],
     })
-    assert.equal(commits, 1)
+    assert.equal(commits, 2)
 })
 
 test("logo preparation limits concurrent provider requests to four", async () => {
@@ -125,9 +132,55 @@ test("logo preparation limits concurrent provider requests to four", async () =>
                 return "asset"
             },
             key: () => "import-key",
-            commit: async (_, teams) => ({ created: teams.length, skipped: 0 }),
+            commit: async (_, teams) => ({
+                created: teams.length,
+                updated: 0,
+                skipped: 0,
+            }),
         },
         "wardogs"
     )
     assert.equal(maximum, 4)
+})
+
+test("a missing or failed provider logo preserves an existing catalogue logo", async () => {
+    let commits = 0
+    const result = await scrapeTeams(
+        {
+            source: async () => [
+                { name: "Missing", shortCode: "M", logoUrl: null },
+                { name: "Offline", shortCode: "O", logoUrl: "offline" },
+            ],
+            existing: async () => [
+                {
+                    id: "m",
+                    name: "Missing",
+                    shortCode: "M",
+                    logoAssetId: "saved-m",
+                },
+                {
+                    id: "o",
+                    name: "Offline",
+                    shortCode: "O",
+                    logoAssetId: "saved-o",
+                },
+            ],
+            logo: async () => {
+                throw new Error("offline")
+            },
+            key: () => "unused",
+            commit: async () => {
+                commits++
+                return { created: 0, updated: 0, skipped: 0 }
+            },
+        },
+        "wardogs"
+    )
+    assert.deepEqual(result, {
+        created: 0,
+        updated: 0,
+        skipped: 1,
+        failed: ["Offline"],
+    })
+    assert.equal(commits, 0)
 })

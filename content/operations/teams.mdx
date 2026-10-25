@@ -157,16 +157,24 @@ their name, short code (HeLO calls this the tag), and a stored copy of the logo.
 It does not register those teams in the competition automatically; use the
 competition's team picker afterwards.
 
-A team is skipped if its name **or** short code already exists in that game's
-catalogue, ignoring letter case and extra spaces. Archived and merged entries
-also count as existing. Existing records, names, codes and logos are preserved.
-Repeated imports are safe, including imports started at the same time.
+Matching uses the normalized name or short code within the selected game.
+A matching active team keeps its identity, name, code, links and workspace
+association, while its logo is refreshed from the provider. This also repairs
+teams imported earlier without logos. Archived and merged entries are left
+unchanged; ambiguous matches are never used to overwrite a team. Unchanged
+logo bytes reuse the stored asset without creating a new revision.
 
-The result shows created, skipped and failed counts, and the names of failed
-teams. If a logo cannot be downloaded or normalized, that team is not created;
-retry the import after the provider recovers. Teams with no source logo are
-created without one. Imported GIF logos use a static first frame. Source
-changes can require an importer update; a failed source read creates no teams.
+The result shows created teams, updated logos, skipped teams and failures.
+Missing source logos never clear a saved logo. Failed downloads leave existing
+teams unchanged and are reported for retry; new teams with a failed logo are
+not created. Imported GIFs use a static first frame. The Wardogs importer selects
+`/api/logos/...` images, and HeLO uses its API's `icon` or rendered **Team Icon**
+image. Source reads and downloads are bounded and restricted to provider hosts.
+
+Run the import again to repair existing catalogue logos. Saved match snapshots
+remain historical: use **Refresh snapshot** on an existing match to adopt a
+new catalogue logo. Upcoming and recent Discord cards are redrawn by the bot
+when that snapshot changes.
 This import is available only to Logi global administrators.
 
 ## Register teams in a competition (global administrators)

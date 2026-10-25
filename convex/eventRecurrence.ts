@@ -28,6 +28,7 @@ function seriesInput(source: Doc<"events">) {
         imageUrl: source.imageUrl,
         announcementChannelId: source.announcementChannelId,
         eventInfoChannelId: source.eventInfoChannelId,
+        eventResultsChannelId: source.eventResultsChannelId,
         meetingChannelId: source.meetingChannelId,
         createSquadVoiceChannels: source.createSquadVoiceChannels,
         squadVoiceCategoryId: source.squadVoiceCategoryId,
@@ -51,6 +52,7 @@ function seriesInput(source: Doc<"events">) {
         pingMode: source.pingMode,
         pingRoleIds: source.pingRoleIds,
         createForumChannel: source.createForumChannel,
+        deleteForumAfterConclusion: source.deleteForumAfterConclusion,
         topicPresetId: source.topicPresetId
             ? String(source.topicPresetId)
             : undefined,

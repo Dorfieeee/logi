@@ -9,6 +9,7 @@ import { z } from "zod"
 
 const resultSchema = z.object({
     created: z.number(),
+    updated: z.number(),
     skipped: z.number(),
     failed: z.array(z.string()),
 })
@@ -42,6 +43,7 @@ export function TeamScrapeButton({
             setMessage(
                 t.scrapeResult
                     .replace("{created}", String(result.created))
+                    .replace("{updated}", String(result.updated))
                     .replace("{skipped}", String(result.skipped))
                     .replace("{failed}", String(result.failed.length)) +
                     (result.failed.length ? ` ${result.failed.join(", ")}` : "")

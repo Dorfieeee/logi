@@ -39,6 +39,7 @@ export type GuidedSetupProfile = {
 export type GuidedSetupChannels = {
     announcementsChannelId?: string
     eventInfoChannelId?: string
+    eventResultsChannelId?: string
     errorsChannelId?: string
 }
 export type GuidedSetupRoles = {
@@ -414,6 +415,12 @@ export function ChannelsStep({
             key: "eventInfoChannelId",
             label: copy.eventInfo,
             help: copy.eventInfoHelp,
+        },
+        {
+            key: "eventResultsChannelId",
+            label: copy.eventResults,
+            help: copy.eventResultsHelp,
+            optional: true,
         },
         {
             key: "errorsChannelId",

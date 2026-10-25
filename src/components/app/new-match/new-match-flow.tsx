@@ -603,6 +603,7 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
             [
                 "announcementChannelId",
                 "eventInfoChannelId",
+                "eventResultsChannelId",
                 "pingMode",
                 "pingRoleIds",
                 "pingClan",
@@ -917,6 +918,10 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
             announcementChannelId:
                 channelDefaults[gameId]?.announcementChannelId ??
                 values.announcementChannelId,
+            eventResultsChannelId: isMatch
+                ? (channelDefaults[gameId]?.eventResultsChannelId ??
+                  values.eventResultsChannelId)
+                : "",
             eventInfoChannelId: isMatch
                 ? (channelDefaults[gameId]?.eventInfoChannelId ??
                   values.eventInfoChannelId)
@@ -3207,6 +3212,20 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                               isEdit
                                           )
                                         : null}
+                                    {isMatch
+                                        ? channelSelect(
+                                              "nm-results",
+                                              t.discord.results,
+                                              values.eventResultsChannelId,
+                                              textChannels,
+                                              (eventResultsChannelId) =>
+                                                  update({
+                                                      eventResultsChannelId,
+                                                  }),
+                                              t.discord.defaultChannel,
+                                              isEdit
+                                          )
+                                        : null}
                                 </div>
                                 {isEdit ? (
                                     <Hint>{t.discord.channelsLocked}</Hint>
@@ -3402,6 +3421,20 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                         </>
                                     )
                                 ) : null}
+                                {isMatch && values.createForumChannel
+                                    ? switchRow(
+                                          "nm-delete-forum",
+                                          t.discord.deleteForumAfterConclusion,
+                                          values.deleteForumAfterConclusion ??
+                                              true,
+                                          (deleteForumAfterConclusion) =>
+                                              update({
+                                                  deleteForumAfterConclusion,
+                                              }),
+                                          t.discord
+                                              .deleteForumAfterConclusionHint
+                                      )
+                                    : null}
                                 {isEdit ? (
                                     <div className="flex flex-col gap-2">
                                         {switchRow(

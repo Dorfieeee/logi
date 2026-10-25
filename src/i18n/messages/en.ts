@@ -1586,9 +1586,9 @@ export const enMessages = {
         scrapeHll: "Sync teams from HeLO (2024)",
         scrapingTeams: "Importing teams…",
         scrapeDescription:
-            "Adds missing teams and their logos to this game’s global catalogue. Existing names or short codes are skipped. Register imported teams in the competition separately.",
+            "Adds missing teams and refreshes logos for matching existing teams. Missing or failed provider logos never remove a saved logo. Register imported teams in the competition separately.",
         scrapeResult:
-            "Created: {created}. Skipped: {skipped}. Failed: {failed}. You can retry failed teams.",
+            "Created: {created}. Logos updated: {updated}. Skipped: {skipped}. Failed: {failed}. You can retry failed teams.",
         scrapeError: "Team import failed. Please try again.",
 
         searchLabel: "Search teams",
@@ -4347,6 +4347,9 @@ export const enMessages = {
                         "Choose channels on your Discord. You can set them differently for individual games later.",
                     announcements: "Announcements",
                     announcementsHelp: "New events and roster changes.",
+                    eventResults: "Event results",
+                    eventResultsHelp:
+                        "Confirmed match scores and statistics links. Optional; shared across games.",
                     eventInfo: "Event information",
                     eventInfoHelp: "Event details and sign-ups.",
                     errors: "Bot errors",
@@ -5082,6 +5085,7 @@ export const enMessages = {
             rolesPlaceholder: "Choose roles",
         },
         discord: {
+            results: "Event results",
             announcement: "Announcement and sign-ups",
             roster: "Roster",
             ping: "Ping",
@@ -5090,6 +5094,9 @@ export const enMessages = {
             pingRoles: "Chosen roles",
             pingRolesLabel: "Roles to ping",
             forum: "Match forum",
+            deleteForumAfterConclusion: "Delete the forum after the match",
+            deleteForumAfterConclusionHint:
+                "After manual or automatic conclusion, invite participants to a private debrief thread in results → event info → registration, then delete the match forum and its posts.",
             signupThread: "Event discussion thread",
             signupThreadHint:
                 "Create a public thread under the announcement and keep its members in sync with sign-ups.",

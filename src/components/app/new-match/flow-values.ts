@@ -87,10 +87,12 @@ export type FlowValues = {
     signupReminderStatuses: TemplateReminderStatus[]
     announcementChannelId: string
     eventInfoChannelId: string
+    eventResultsChannelId: string
     pingMode: "none" | "clan" | "roles"
     pingRoleIds: string[]
     createForumChannel: boolean
     createSignupThread: boolean
+    deleteForumAfterConclusion?: boolean
     createSquadVoiceChannels: boolean
     server: string
     serverPassword: string
@@ -113,7 +115,11 @@ export type FlowValues = {
 export type ChannelDefaults = Partial<
     Record<
         GameId,
-        { announcementChannelId?: string; eventInfoChannelId?: string }
+        {
+            announcementChannelId?: string
+            eventInfoChannelId?: string
+            eventResultsChannelId?: string
+        }
     >
 >
 
@@ -218,6 +224,7 @@ export function applyTemplateValues(
         pingRoleIds: template.pingRoleIds,
         createForumChannel: isMatch && template.createForumChannel,
         createSignupThread: false,
+        deleteForumAfterConclusion: true,
         createSquadVoiceChannels: template.createSquadVoiceChannels,
         matchType: template.categoryId ?? values.matchType,
         topicPresetId: template.topicPresetId,
@@ -227,6 +234,11 @@ export function applyTemplateValues(
         eventInfoChannelId: isMatch
             ? values.eventInfoChannelId ||
               channelDefaults[values.gameId]?.eventInfoChannelId ||
+              ""
+            : "",
+        eventResultsChannelId: isMatch
+            ? values.eventResultsChannelId ||
+              channelDefaults[values.gameId]?.eventResultsChannelId ||
               ""
             : "",
         // Trainings have no opponent or map.
@@ -292,6 +304,10 @@ export function newFlowValues(input: {
         signupReminderStatuses: ["member"],
         announcementChannelId:
             channelDefaults[gameId]?.announcementChannelId ?? "",
+        eventResultsChannelId:
+            kind === "match"
+                ? (channelDefaults[gameId]?.eventResultsChannelId ?? "")
+                : "",
         eventInfoChannelId:
             kind === "match"
                 ? (channelDefaults[gameId]?.eventInfoChannelId ?? "")
@@ -300,6 +316,7 @@ export function newFlowValues(input: {
         pingRoleIds: [],
         createForumChannel: kind === "match",
         createSignupThread: false,
+        deleteForumAfterConclusion: true,
         createSquadVoiceChannels: false,
         server: "",
         serverPassword: "",
@@ -424,10 +441,12 @@ export function flowValuesFromEvent(
         signupReminderStatuses: event.signupReminderStatuses ?? ["member"],
         announcementChannelId: event.announcementChannelId ?? "",
         eventInfoChannelId: event.eventInfoChannelId ?? "",
+        eventResultsChannelId: event.eventResultsChannelId ?? "",
         pingMode: event.pingMode ?? (event.pingClan ? "clan" : "none"),
         pingRoleIds: event.pingRoleIds ?? [],
         createForumChannel: event.createForumChannel,
         createSignupThread: event.createSignupThread ?? false,
+        deleteForumAfterConclusion: event.deleteForumAfterConclusion ?? false,
         createSquadVoiceChannels: event.createSquadVoiceChannels ?? false,
         server: event.server ?? "",
         serverPassword: event.serverPassword ?? "",
@@ -577,6 +596,8 @@ export function flowEventPayload(values: FlowValues, context: PayloadContext) {
         pingRoleIds: values.pingMode === "roles" ? values.pingRoleIds : [],
         createForumChannel: isMatch && values.createForumChannel,
         createSignupThread: isMatch && values.createSignupThread,
+        deleteForumAfterConclusion:
+            isMatch && (values.deleteForumAfterConclusion ?? true),
         createSquadVoiceChannels: values.createSquadVoiceChannels,
         squadVoiceCategoryId: values.createSquadVoiceChannels
             ? values.squadVoiceCategoryId || undefined
@@ -585,6 +606,9 @@ export function flowEventPayload(values: FlowValues, context: PayloadContext) {
             ? values.meetingChannelId || undefined
             : undefined,
         announcementChannelId: values.announcementChannelId || undefined,
+        eventResultsChannelId: isMatch
+            ? values.eventResultsChannelId || undefined
+            : undefined,
         eventInfoChannelId: isMatch
             ? values.eventInfoChannelId || undefined
             : undefined,
@@ -808,12 +832,17 @@ export function flowEditPayload(
         pingRoleIds: values.pingMode === "roles" ? values.pingRoleIds : [],
         createForumChannel: isMatch && values.createForumChannel,
         createSignupThread: isMatch && values.createSignupThread,
+        deleteForumAfterConclusion:
+            isMatch && (values.deleteForumAfterConclusion ?? true),
         createSquadVoiceChannels: values.createSquadVoiceChannels,
         squadVoiceCategoryId: values.squadVoiceCategoryId || undefined,
         meetingChannelId: values.meetingChannelId || undefined,
         // Creation-time choices; the server keeps the stored channels.
         announcementChannelId: event.announcementChannelId,
         eventInfoChannelId: isMatch ? event.eventInfoChannelId : undefined,
+        eventResultsChannelId: isMatch
+            ? event.eventResultsChannelId
+            : undefined,
         server: values.server || undefined,
         serverPassword: values.serverPassword || undefined,
         side: isMatch ? (values.ownSide ?? undefined) : undefined,

@@ -614,7 +614,9 @@ Leave **Picture** empty to let Logi generate a match card. It uses the selected
 map as its background, or Discord gray when map artwork is unavailable. Assigned
 teams appear with their captured logos and codes: two for Hell Let Loose and up
 to three for Wardogs. With no teams assigned, the clan's linked team or clan
-identity is centered instead. Missing logos use initials.
+identity is centered instead. Missing logos use initials. Logos retain their original shape and aspect ratio,
+including square images; Logi adds no circles or backplates. The small Logi
+footer mark also has no colored background.
 
 The card includes the game icon/name, match category, competition heading when
 linked, and small Logi branding. The meeting time is the main time; game start is
@@ -627,8 +629,12 @@ after the update or restart, without sending another announcement ping. Generate
 pictures are cached by their content and uploaded directly to Discord. A changed
 team snapshot, map, schedule or language produces a new version.
 
-Set **Settings → Channels and language → Event results** to choose one channel
-for every game's results. After a match is concluded and its result is confirmed,
+Set **Settings → Channels and language → Event results** to choose the clan-wide
+default for every game. The same channel is available in guided setup and linked
+from **Discord messages**. During match creation, the **Discord** step includes
+**Event results** beside registration and event information. Its selected channel
+is saved with the match, like those other channels; legacy matches fall back to
+the clan default. Saved routing is locked during editing just like event info. After a match is concluded and its result is confirmed,
 the bot posts a separate scored image there. Corrections update that same post;
 reopening the match or withdrawing the reviewed result removes it. Scores are
 matched to recorded sides, not their screen position. Victory, defeat or draw
@@ -652,3 +658,13 @@ results and other clans' matches are excluded. A custom match picture returns
 When you first enable the shared results channel, the bot also reconciles reviewed
 results still in its recent-event synchronization window. It does not scan or
 repost the entire match archive.
+
+### Forum cleanup and debrief
+
+New matches have **Delete the forum after the match** enabled in the Discord
+step. It applies to manual and automatic conclusion. Logi invites participants
+to a private debrief thread in results → event info → registration, then removes
+the match forum with all its posts. Turn it off to retain the forum and its
+debrief. Existing events retain their saved behavior. See
+[briefings and strategy maps](./briefings-and-stratmaps) for permissions and
+retention details.

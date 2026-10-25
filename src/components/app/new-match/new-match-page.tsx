@@ -44,6 +44,8 @@ export function clanFlowProps(input: {
                     {
                         announcementChannelId:
                             scoped?.announcementsChannelId || undefined,
+                        eventResultsChannelId:
+                            config?.eventResultsChannelId || undefined,
                         eventInfoChannelId:
                             scoped?.eventInfoChannelId || undefined,
                     },

@@ -111,6 +111,12 @@ export const websiteEventFieldsSchema = z
         tacticalPlan: tacticalPlanSchema.nullable().optional(),
         /** Opt-in public Discord thread under the announcement; omitted preserves it on update. */
         createSignupThread: z.boolean().optional(),
+        deleteForumAfterConclusion: z
+            .boolean()
+            .optional()
+            .describe(
+                "Delete the event forum after manual or automatic conclusion, after creating a private debrief and inviting participants. Parent priority: results, event info, registration. Defaults to true on creation; omission preserves the stored value on update. Legacy events default to false."
+            ),
         side: z.string().trim().max(200).optional(),
         registrationStart: instant.optional(),
         registrationEnd: instant,

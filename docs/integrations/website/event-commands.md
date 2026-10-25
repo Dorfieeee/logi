@@ -401,3 +401,15 @@ assertions are in the [local acceptance bundle](v0.13/evidence/README.md); sourc
 hashes were stable through the run. Discord observations were synthetic trusted gateway fixtures.
 This proves the local HTTP/transaction path, not production deployment, live
 Discord role delivery, hosted SSO acceptance or website browser integration.
+
+### Match forum cleanup
+
+`event.deleteForumAfterConclusion` is available through the actor-backed create
+and update commands and the event editor read. It defaults to `true` for new
+matches; omission on update preserves the saved value, with `false` for legacy
+events. After manual or automatic conclusion, the bot creates a private debrief
+under results → event info → registration, invites attending signups and
+rostered players (excluding explicit absences), then deletes the forum and all
+its posts. Turning the flag off retains the forum and its debrief post. The
+workspace debrief message switch still applies. These operations use the same
+actor authorization, revision checks and idempotency receipts as other edits.

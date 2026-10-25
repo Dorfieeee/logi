@@ -959,6 +959,11 @@ const eventMutation = {
                             type: "array",
                             items: { type: "string" },
                         },
+                        deleteForumAfterConclusion: {
+                            type: "boolean",
+                            description:
+                                "Deletes the event forum after manual or automatic conclusion once a private debrief thread and participant invitations succeed. Parent priority: results, event info, registration. New matches default to true; omission on update preserves the stored value. Legacy events default to false.",
+                        },
                         createSignupThread: {
                             type: "boolean",
                             description:

@@ -75,6 +75,27 @@ export function createMatchImageRenderer(ports: {
               )
             : null
         if (background) layers.push({ input: background })
+        const teamLogos = await Promise.all(
+            model.teams.map(async (team) => {
+                if (!team.logoUrl) return null
+                return remember(`logo:${team.logoUrl}`, async () => {
+                    const bytes = await ports.loadLogo(team.logoUrl!)
+                    return bytes
+                        ? sharp(bytes, {
+                              limitInputPixels: 8192 * 8192,
+                              animated: false,
+                          })
+                              .rotate()
+                              .resize(150, 150, {
+                                  fit: "contain",
+                                  background: "transparent",
+                              })
+                              .png()
+                              .toBuffer()
+                        : null
+                })
+            })
+        )
         const copy = matchImageCopy(model.language)
         let svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#10151d" stop-opacity=".68"/><stop offset=".5" stop-color="#10151d" stop-opacity=".78"/><stop offset="1" stop-color="#10151d" stop-opacity=".98"/></linearGradient></defs><rect width="1200" height="675" fill="${background ? "url(#shade)" : "#313338"}"/>`
         svg += text(
@@ -104,16 +125,16 @@ export function createMatchImageRenderer(ports: {
                   : [275, 600, 925]
         model.teams.forEach((team, i) => {
             const x = positions[i]!
-            svg += `<circle cx="${x}" cy="220" r="75" fill="#141a23" fill-opacity=".65" stroke="#ffffff" stroke-opacity=".13"/>`
-            svg += text(
-                (team.code || team.name).slice(0, 3).toUpperCase(),
-                x,
-                237,
-                37,
-                "#97d8c2",
-                700,
-                120
-            )
+            if (!teamLogos[i])
+                svg += text(
+                    (team.code || team.name).slice(0, 3).toUpperCase(),
+                    x,
+                    237,
+                    37,
+                    "#97d8c2",
+                    700,
+                    120
+                )
             svg += text(team.code || team.name, x, 337, 36, "#ffffff", 700, 275)
             if (team.code)
                 svg += text(
@@ -234,48 +255,12 @@ export function createMatchImageRenderer(ports: {
             200,
             "end"
         )
-        svg +=
-            '<rect x="1142" y="633" width="26" height="26" rx="5" fill="#c9a84e"/></svg>'
+        svg += "</svg>"
         layers.push({ input: Buffer.from(svg) })
-        await Promise.all(
-            model.teams.map(async (team, i) => {
-                if (!team.logoUrl) return
-                const logo = await remember(
-                    `logo:${team.logoUrl}`,
-                    async () => {
-                        const bytes = await ports.loadLogo(team.logoUrl!)
-                        return bytes
-                            ? sharp(bytes, {
-                                  limitInputPixels: 8192 * 8192,
-                                  animated: false,
-                              })
-                                  .rotate()
-                                  .resize(126, 126, {
-                                      fit: "contain",
-                                      background: "transparent",
-                                  })
-                                  .png()
-                                  .toBuffer()
-                            : null
-                    }
-                )
-                if (logo) {
-                    // Cover the initials only after successfully decoding a real logo.
-                    layers.push({
-                        input: Buffer.from(
-                            `<svg width="140" height="140"><circle cx="70" cy="70" r="70" fill="#202630"/></svg>`
-                        ),
-                        left: positions[i]! - 70,
-                        top: 150,
-                    })
-                    layers.push({
-                        input: logo,
-                        left: positions[i]! - 63,
-                        top: 157,
-                    })
-                }
-            })
-        )
+        teamLogos.forEach((logo, i) => {
+            if (logo)
+                layers.push({ input: logo, left: positions[i]! - 75, top: 145 })
+        })
         const icons: Record<string, string> = {
             hell_let_loose: "img/games/hll.jpg",
             hell_let_loose_vietnam: "img/games/hllv.png",
@@ -291,8 +276,25 @@ export function createMatchImageRenderer(ports: {
                 left: 600 - Math.min(300, model.gameName.length * 5) - 38,
                 top: 26,
             })
-        const logi = await packaged("favicon.svg", 22, 22)
-        if (logi) layers.push({ input: logi, left: 1144, top: 635 })
+        const logoSource = await packaged("favicon.svg", 22, 22)
+        if (logoSource) {
+            const alpha = await sharp(logoSource)
+                .ensureAlpha()
+                .extractChannel("alpha")
+                .toBuffer()
+            const logi = await sharp({
+                create: {
+                    width: 22,
+                    height: 22,
+                    channels: 3,
+                    background: "#dce2eb",
+                },
+            })
+                .joinChannel(alpha)
+                .png()
+                .toBuffer()
+            layers.push({ input: logi, left: 1144, top: 635 })
+        }
         return new Uint8Array(
             await sharp({
                 create: {

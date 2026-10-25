@@ -1,0 +1,49 @@
+◇ injected env (20) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+✔ confirmed results publish in the shared channel, with scores, a stats link and no ping (2.979458ms)
+✔ a corrected result changes the outcome on the same publication key (1.858291ms)
+✔ unreviewed or reopened matches withdraw their result; context failures preserve it (0.203458ms)
+✔ a render failure leaves the existing result intact and propagates for retry (0.074916ms)
+✔ custom announcement pictures do not replace a scored result card (0.169875ms)
+✔ statistics links never expose credentials or non-web protocols (0.127417ms)
+✔ a match's own results destination takes precedence over the clan default (0.185583ms)
+✔ refreshes existing logos, skips source duplicates and failed logos; reports concurrent skips (1.656833ms)
+✔ provider failure does not read or write catalogue (0.218083ms)
+✔ logo failures can be retried and a fully imported source performs no uploads or commit (0.184542ms)
+✔ logo preparation limits concurrent provider requests to four (2.6985ms)
+✔ a missing or failed provider logo preserves an existing catalogue logo (0.213375ms)
+✔ Wardogs map, independent time, layout and team positions survive editing (6.560959ms)
+✔ base HLL map without a preset remains selectable and TBD map stays empty (0.227125ms)
+✔ a stored match reads back into the flow exactly (0.5435ms)
+✔ an untouched edit sends every stored field and nothing optional (0.171083ms)
+✔ a new start moves the whole timeline and keeps every offset (0.212916ms)
+✔ changed template settings are sent; a cap of a group no longer offered is dropped (0.152125ms)
+✔ clearing settings sends empty values; reminders read as all four when never set (0.218375ms)
+✔ a new opponent keeps your stored team in slot a and a third Wardogs team (0.271959ms)
+✔ a legacy match without teams keeps its side and an unknown map (0.377709ms)
+✔ an offensive keeps its mode and follows your side (0.213834ms)
+✔ a training edits its meeting and never carries match fields (0.213709ms)
+✔ a weekly series stops, starts and follows its match to another day (0.472542ms)
+✔ a new match payload keeps the create flow's shape (0.426208ms)
+✔ an incoherent timeline is caught before saving (0.278417ms)
+✔ creation persists the edited sign-up roles, caps and general sign-up without unrelated caps (0.195291ms)
+✔ Wardogs time and planning metadata validate, persist and explicitly clear (2.454792ms)
+✔ omitting a plan preserves it only while editing the same map (0.129042ms)
+✔ base payload never carries match teams; create stores only resolved assignments (0.115542ms)
+✔ update preserves saved assignments when omitted and clears them with an explicit empty list (0.149625ms)
+✔ update keeps the template settings it is not sent (0.084791ms)
+✔ update changes caps, reminder offsets, participant roles and the squad preset (0.114916ms)
+✔ update clears caps, reminders and the preset with empty values (0.090667ms)
+✔ a training update never stores caps or a squad preset (0.069ms)
+✔ transactional import preserves existing/archived teams and skips names OR codes per game and within batch (5.421833ms)
+✔ import mutation refuses workspace admins and invalid inputs (0.7ms)
+✔ reimport updates only an existing active team's logo and repeats are unchanged (1.270583ms)
+✔ an ambiguous name/code pair cannot replace either existing logo (0.43475ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 505.423375

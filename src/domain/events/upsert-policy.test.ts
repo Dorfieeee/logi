@@ -235,3 +235,58 @@ test("a training update never stores caps or a squad preset", () => {
     assert.deepEqual(patch.attendanceReminderHours, [12])
     assert.equal(patch.createParticipantRoles, true)
 })
+
+test("forum cleanup defaults on for new matches and preserves legacy values on update", () => {
+    assert.equal(
+        buildCreateEventRecord(input, now).deleteForumAfterConclusion,
+        true
+    )
+    assert.equal(
+        buildCreateEventRecord({ ...input, kind: "training" }, now)
+            .deleteForumAfterConclusion,
+        false
+    )
+    const saved = buildCreateEventRecord(
+        { ...input, deleteForumAfterConclusion: false },
+        now
+    )
+    assert.equal(saved.deleteForumAfterConclusion, false)
+    assert.equal(
+        "deleteForumAfterConclusion" in
+            buildUpdateEventPatch(saved, input, now),
+        false
+    )
+    assert.equal(
+        buildUpdateEventPatch(
+            saved,
+            { ...input, deleteForumAfterConclusion: true },
+            now
+        ).deleteForumAfterConclusion,
+        true
+    )
+})
+
+test("results routing is a trimmed creation-time choice just like event info", () => {
+    const saved = buildCreateEventRecord(
+        { ...input, eventResultsChannelId: "  results-one  " },
+        now
+    )
+    assert.equal(saved.eventResultsChannelId, "results-one")
+    const edited = buildUpdateEventPatch(
+        saved,
+        { ...input, eventResultsChannelId: "results-two" },
+        now
+    )
+    assert.equal(edited.eventResultsChannelId, "results-one")
+    assert.equal(
+        buildCreateEventRecord(
+            {
+                ...input,
+                kind: "training",
+                eventResultsChannelId: "results-one",
+            },
+            now
+        ).eventResultsChannelId,
+        undefined
+    )
+})

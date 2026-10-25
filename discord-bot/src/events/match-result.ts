@@ -50,7 +50,8 @@ export async function synchronizeMatchResult(
     ports: MatchResultSyncPorts
 ) {
     if (event.kind !== "match") return
-    const channelId = payload.config.eventResultsChannelId
+    const channelId =
+        event.eventResultsChannelId ?? payload.config.eventResultsChannelId
     const context =
         channelId && event.status === "concluded"
             ? await ports.context(event.id)

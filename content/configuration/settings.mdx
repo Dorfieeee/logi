@@ -508,7 +508,7 @@ The switches on this page:
 | Message                                            | Default | What turning it off does                                                                                  |
 | -------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------- |
 | Roster changes                                     | On      | **Roster changes** is no longer pre-selected in the Publish dialog; it can still be chosen there.         |
-| Debrief in the forum                               | On      | No Debrief post is created in the match forum thread after the match.                                     |
+| Debrief in the forum                               | On      | No debrief is created after the match, including the private thread used when automatic forum deletion is enabled.                                     |
 | Absences and late notices in the match thread      | Off     | When on, `/notice`, **Running late** and **Can't make it** post who, late or absent and the arrival time. |
 | Discord event                                      | On      | The bot does not keep a Discord scheduled event with the meeting time.                                    |
 | Match recap                                        | On      | No player gets the recap DM. When on, each player can still turn it off.                                  |
@@ -842,7 +842,10 @@ list is unavailable, paste a channel ID into the search and select it.
 ### One results channel for every game
 
 In **Channels and language**, set **Event results** to a text or announcement
-channel. This is a clan-wide setting with no per-game exceptions. It is separate
+channel. This is a clan-wide default with no per-game exceptions. It also appears in
+guided setup and is linked from Discord messages. The match creation Discord
+step lets you select its results channel beside registration and event info;
+that selection is saved with the match. It is separate
 from registration, event information and the optional game-specific results
 panels. The bot posts a scored image for concluded matches after the result has
 been confirmed, edits it after corrections, and includes available statistics
