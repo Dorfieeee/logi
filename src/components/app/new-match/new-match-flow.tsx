@@ -1774,9 +1774,8 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                             />
                                         )
                                     ) : null}
-                                    {/* Wardogs: a third team (slot c) when editing. */}
-                                    {isEdit &&
-                                    teamGame === "wardogs" &&
+                                    {/* Wardogs: an optional third team (slot c). */}
+                                    {teamGame === "wardogs" &&
                                     (values.opponent || values.extraTeam) ? (
                                         values.extraTeam ? (
                                             <div className="border-border flex flex-wrap items-center gap-2 rounded-[10px] border px-3 py-2.5">
