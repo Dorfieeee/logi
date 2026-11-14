@@ -15,6 +15,53 @@ import { getUserStableId } from "./identity"
 
 type Context = Pick<QueryCtx, "db">
 type Scope = { guildId: string; gameId: string }
+type UserLookup = ReturnType<typeof peopleUser>
+
+/** Limit database fan-out while overlapping independent player reads. */
+async function mapPeople<T, R>(
+    items: readonly T[],
+    read: (item: T) => Promise<R>
+) {
+    const results = new Array<R>(items.length)
+    let next = 0
+    await Promise.all(
+        Array.from({ length: Math.min(8, items.length) }, async () => {
+            while (next < items.length) {
+                const index = next++
+                results[index] = await read(items[index])
+            }
+        })
+    )
+    return results
+}
+
+/** Cache only within one projection; identity changes are visible on the next query. */
+function referenceReader(ctx: Context, scope: Scope) {
+    const users = new Map<string, UserLookup>()
+    const references = new Map<string, Promise<MemberReference>>()
+    return (alias?: string) => {
+        if (!alias) return Promise.resolve(unknownReference())
+        let value = references.get(alias)
+        if (!value) {
+            value = peopleReference(ctx, scope, alias, users)
+            references.set(alias, value)
+        }
+        return value
+    }
+}
+
+function cachedUser(
+    ctx: Context,
+    alias: string,
+    users: Map<string, UserLookup>
+) {
+    let value = users.get(alias)
+    if (!value) {
+        value = peopleUser(ctx, alias)
+        users.set(alias, value)
+    }
+    return value
+}
 const unknownReference = (
     identityState: "unresolved" | "conflict" = "unresolved"
 ): MemberReference => ({ memberId: null, identityId: null, identityState })
@@ -52,7 +99,8 @@ export async function peopleUser(ctx: Context, alias: string) {
 async function scopedAssignment(
     ctx: Context,
     user: Doc<"users">,
-    scope: Scope
+    scope: Scope,
+    users: Map<string, UserLookup>
 ) {
     const rows = new Map<string, Doc<"userAssignments">>()
     let conflict = false
@@ -61,7 +109,7 @@ async function scopedAssignment(
             (value): value is string => !!value
         )
     )) {
-        const resolved = await peopleUser(ctx, alias)
+        const resolved = await cachedUser(ctx, alias, users)
         if (resolved.user?._id !== user._id) {
             conflict ||= resolved.conflict
             continue
@@ -93,12 +141,13 @@ async function scopedAssignment(
 export async function peopleReference(
     ctx: Context,
     scope: Scope,
-    alias?: string
+    alias?: string,
+    users = new Map<string, UserLookup>()
 ): Promise<MemberReference> {
     if (!alias) return unknownReference()
-    const { user, conflict } = await peopleUser(ctx, alias)
+    const { user, conflict } = await cachedUser(ctx, alias, users)
     if (!user) return unknownReference(conflict ? "conflict" : "unresolved")
-    const bound = await scopedAssignment(ctx, user, scope)
+    const bound = await scopedAssignment(ctx, user, scope, users)
     return bound.assignment
         ? {
               memberId: String(bound.assignment._id),
@@ -183,15 +232,22 @@ export async function projectRoster(
         (event.participants?.length ?? 0) > 1000
     )
         throw new Error("Roster projection too large.")
-    const references = new Map<string, Promise<MemberReference>>()
-    const reference = (alias?: string) => {
-        if (!alias) return Promise.resolve(unknownReference())
-        const cached = references.get(alias)
-        if (cached) return cached
-        const value = peopleReference(ctx, scope, alias)
-        references.set(alias, value)
-        return value
-    }
+    const reference = referenceReader(ctx, scope)
+    // Warm unique references with a bounded number of independent reads. Rendering
+    // below retains the source order and reuses these promises across all sections.
+    const aliases = new Set(
+        [
+            ...row.squads.flatMap((squad) =>
+                squad.players.map((slot) => slot.id)
+            ),
+            ...row.reservePlayerIds,
+            ...row.notAttendingPlayerIds,
+            ...(event.participants ?? []).map(
+                (participant) => participant.userId
+            ),
+        ].filter((alias): alias is string => !!alias)
+    )
+    await mapPeople([...aliases], reference)
     const squads = []
     for (const [index, squad] of row.squads.entries()) {
         const slots = []
@@ -310,9 +366,9 @@ export async function projectPlayerFacts(
         return null
     if (row.session.players.length > 300)
         throw new Error("Too many session players.")
-    const players: ClanPlayerStatSummary["players"] = []
-    for (const player of row.session.players) {
-        if (player.platform !== "steam") continue
+    const reference = referenceReader(ctx, row)
+    const projected = await mapPeople(row.session.players, async (player) => {
+        if (player.platform !== "steam") return null
         const links = await ctx.db
             .query("platformIdentityLinks")
             .withIndex("platform_platformId_active", (q) =>
@@ -330,33 +386,35 @@ export async function projectPlayerFacts(
             link.verifiedAt > now ||
             !Number.isFinite(link.verifiedAt)
         )
-            continue
+            return null
         const user = await ctx.db.get(link.userRecordId)
         if (
             !user ||
             user.discordId !== link.discordUserId ||
             getUserStableId(user) !== link.logiUserId
         )
-            continue
-        const ref = await peopleReference(ctx, row, String(user._id))
+            return null
+        const ref = await reference(String(user._id))
         if (
             ref.identityState !== "resolved" ||
             !ref.identityId ||
             !ref.memberId
         )
-            continue
-        players.push({
+            return null
+        return {
             memberId: ref.memberId,
             identityId: ref.identityId,
             verifiedAt: new Date(link.verifiedAt).toISOString(),
             metrics: projectPlayerMetrics(player.metrics),
-        })
-    }
+        }
+    })
+    const players = projected.filter((player) => player !== null)
     // A duplicated player or multiple linked accounts must not double-count one member.
+    const counts = new Map<string, number>()
+    for (const player of players)
+        counts.set(player.identityId, (counts.get(player.identityId) ?? 0) + 1)
     const unique = players.filter(
-        (row) =>
-            players.filter((other) => other.identityId === row.identityId)
-                .length === 1
+        (player) => counts.get(player.identityId) === 1
     )
     return clanPlayerStatSummarySchema.parse({
         schemaVersion: 1,

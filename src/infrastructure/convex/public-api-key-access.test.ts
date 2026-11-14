@@ -506,6 +506,35 @@ test("key access validation rejects empty, duplicate, and unsupported permission
     }
 })
 
+test("live key authentication supplies cache counters only on projection requests", async () => {
+    const db = new Database()
+    db.tables.integrationHeads = [
+        { _id: "head-a", guildId: "guild-a", revision: "7" },
+        { _id: "head-b", guildId: "guild-b", revision: "99" },
+    ]
+    db.tables.peopleIntegrationState = [
+        { _id: "people", key: "global", generation: "3" },
+    ]
+    const read = () =>
+        invoke(apiKeyAuth.authenticateKey, db, { projectionCache: true })
+    assert.deepEqual(await read(), {
+        guildId: "guild-a",
+        lastUsedAt: null,
+        readAccess,
+        projectionVersion: JSON.stringify(["7", "3", readAccess]),
+    })
+    db.tables.peopleIntegrationState[0].generation = "4"
+    assert.deepEqual(await read(), {
+        guildId: "guild-a",
+        lastUsedAt: null,
+        readAccess,
+        projectionVersion: JSON.stringify(["7", "4", readAccess]),
+    })
+    assert.equal(db.writes, 0)
+    db.tables.apiKeys[0].revokedAt = "2026-11-14T00:00:00Z"
+    assert.equal(await read(), null)
+})
+
 test("legacy keys retain cross-game reads and completed write replay", async () => {
     const db = new Database()
     delete db.tables.apiKeys[0].readAccess

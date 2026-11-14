@@ -49,7 +49,13 @@ export async function runScheduledBatch(
             try {
                 if (!(await ports.renew([job])).includes(job.id)) continue
                 const result = await ports.reconcile(job)
-                if (!(await ports.complete(job, result))) continue
+                if (
+                    !(await ports.complete(job, {
+                        changedEventIds: result.changedEventIds,
+                        scoreEventIds: result.scoreEventIds,
+                    }))
+                )
+                    continue
                 changed.add(job.eventId)
                 for (const id of result.changedEventIds) changed.add(id)
                 for (const id of result.scoreEventIds) scores.add(id)

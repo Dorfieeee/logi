@@ -50,6 +50,28 @@ test("one release failure cannot strand the rest of the claimed batch", async ()
     assert.equal(failures.length, 2)
 })
 
+test("completion receives only the scheduled-job result fields", async () => {
+    let completion: unknown
+    await runScheduledBatch([jobs[0]], {
+        renew: async (claims) => claims.map((job) => job.id),
+        reconcile: async () =>
+            Object.assign(
+                { changedEventIds: ["changed"], scoreEventIds: ["score"] },
+                { continueCursor: null, isDone: true }
+            ),
+        complete: async (_job, result) => {
+            completion = result
+            return true
+        },
+        release: async () => {},
+        failed: () => {},
+    })
+    assert.deepEqual(completion, {
+        changedEventIds: ["changed"],
+        scoreEventIds: ["score"],
+    })
+})
+
 test("the heartbeat covers queued claims while a slow first reconciliation runs", async (t) => {
     t.mock.timers.enable({ apis: ["setInterval"] })
     let finish!: () => void
