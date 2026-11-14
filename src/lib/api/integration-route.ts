@@ -4,14 +4,28 @@ import {
 } from "@/domain/integrations/change.schema"
 import type { AuthenticatedClanRequest } from "./authenticated-clan-route"
 import { createHash, createHmac, timingSafeEqual } from "node:crypto"
+import { readCachedProjection } from "./projection-read-cache"
 import { revisionOrder } from "@/domain/integrations/change"
 import { parseIntegrationQuery } from "./integration-query"
 import { makeFunctionReference } from "convex/server"
+import { observeApiRead } from "./read-diagnostics"
 import { getInternalAuthSecret } from "@/lib/env"
 import { fetchQuery } from "convex/nextjs"
 import { NextResponse } from "next/server"
 
 export async function handleIntegrationRead(
+    request: Request,
+    auth: AuthenticatedClanRequest
+) {
+    const input = parseIntegrationQuery(request)
+    return input?.kind === "record"
+        ? readCachedProjection(request, auth, input.resources[0], () =>
+              buildIntegrationRead(request, auth)
+          )
+        : buildIntegrationRead(request, auth)
+}
+
+async function buildIntegrationRead(
     request: Request,
     auth: AuthenticatedClanRequest
 ) {
@@ -35,9 +49,20 @@ export async function handleIntegrationRead(
         keyHash = createHash("sha256").update(auth.key).digest("hex")
     const subject = { secret, keyHash, gameId: input.gameId }
     if (input.kind === "record") {
-        const value = await fetchQuery(
-            makeFunctionReference<"query">("integrationChanges:readSyncRecord"),
-            { ...subject, resource: input.resources[0], id: input.id }
+        const value = await observeApiRead(
+            {
+                operation: "sync-record",
+                resource: input.resources[0],
+                gameId: input.gameId,
+                keyHash,
+            },
+            () =>
+                fetchQuery(
+                    makeFunctionReference<"query">(
+                        "integrationChanges:readSyncRecord"
+                    ),
+                    { ...subject, resource: input.resources[0], id: input.id }
+                )
         )
         if (!value) return error("not_found", 404)
         const data = syncRecordSchema.parse(value)

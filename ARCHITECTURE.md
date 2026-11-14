@@ -91,6 +91,15 @@ Collectors run from crons. History collection performs bounded steps and stops i
 
 Request authentication uses queries. Process-local limits and throttled usage writes avoid per-request contention on shared documents. `/api/v1/clan/meta` serves `clanMetaSummaries`; missing summaries are computed synchronously, while stale summaries refresh off the request path at most once per minute.
 
+Repeated people projection reads and supported sync records reuse validated response
+bodies in a bounded five-minute process-local cache with concurrent fetch coalescing.
+Live key authentication and grants remain outside the cache. For these routes the
+authentication query also supplies the guild integration revision and global people
+dependency generation; both counters and current grant policy form part of the cache
+identity, so tracked writes invalidate old projections on the next request. Membership
+authorization and live/time-sensitive resources bypass it. HTTP responses remain
+`no-store`; see the [synchronization contract](docs/integrations/website/v0.6/README.md).
+
 The changes endpoint accepts `start=now` for a boundary; replaying a cursor returns `410 reset_required`, so consumers rebuild their scoped resources. There is no persistent integration change log. Revisions and queued webhooks signal relevant projection changes.
 
 Housekeeping prunes expired idempotency records, rate-limit buckets, completed delivery work, and other bounded history through expiry indexes. Game history follows its configured retention. Match statistics, result revisions, and recaps have their own persistence lifecycles.

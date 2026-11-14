@@ -167,16 +167,21 @@ export async function checkPublicApiRateLimit(bucket: string, limit: number) {
  * Authenticates through a read-only query and records the key's last use
  * off the request path, at most once per interval per key and process.
  */
-export async function authenticateClanApiKey(key: string) {
+export async function authenticateClanApiKey(
+    key: string,
+    options?: { projectionCache: boolean }
+) {
     const keyHash = hashApiKey(key)
     const secret = getInternalAuthSecret()
     const authenticated = (await fetchQuery(authenticateKeyReference, {
         secret,
         keyHash,
+        ...(options?.projectionCache ? { projectionCache: true } : {}),
     })) as {
         guildId: string
         lastUsedAt: string | null
         readAccess?: ApiKeyReadAccess
+        projectionVersion?: string
     } | null
     if (!authenticated) return null
     const now = Date.now()
@@ -187,8 +192,12 @@ export async function authenticateClanApiKey(key: string) {
         void fetchMutation(recordKeyUseReference, { secret, keyHash }).catch(
             () => undefined
         )
-    const { guildId, readAccess } = authenticated
-    return { guildId, ...(readAccess !== undefined ? { readAccess } : {}) }
+    const { guildId, readAccess, projectionVersion } = authenticated
+    return {
+        guildId,
+        ...(readAccess !== undefined ? { readAccess } : {}),
+        ...(projectionVersion !== undefined ? { projectionVersion } : {}),
+    }
 }
 
 export async function getClanApiResourcePage(

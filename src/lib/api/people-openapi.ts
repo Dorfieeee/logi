@@ -56,6 +56,8 @@ const game = {
     description:
         "Exactly one explicitly granted game; canonical Discord guild comes from the key.",
 }
+const projectionCaching =
+    " Successful responses may be reused in Logi's private server-side cache for up to five minutes. Live key/grant/rate checks and current integration/dependency counters run on every request; tracked changes bypass old entries immediately. Concurrent identical reads share one fetch. Attribution timestamps are not refreshed on cache hits. X-Logi-Cache reports hit, miss, coalesced or bypass; browsers/proxies must still honor no-store."
 export const peopleReadPaths = Object.fromEntries(
     PEOPLE_RESOURCES.flatMap((resource, index) => [
         [
@@ -66,7 +68,8 @@ export const peopleReadPaths = Object.fromEntries(
                     security: [{ clanApiKey: [] }],
                     summary: `Read minimized ${resource}`,
                     description:
-                        "Private versioned operational facts, not public consent or role authorization. Explicit independent resource/game grant required; legacy keys denied. Always no-store. Member IDs identify assignments, identityId identifies an unambiguous native user record. Unresolved/conflicting bindings have no identity or name. Roster facts require a currently published roster; acknowledgement/confirmation never proves gameplay or no-show. Statistics cover collected server sessions only, not a career: current verified Steam ownership and a unique scoped member are required, unsupported metrics are null, and coverage counts unresolved players. eventRefs require an exact confirmed/corrected reviewed result and matching source digest. Source configuration changes suppress older generations until recollected. Consumers must combine revision polling with a full refresh and attribution age cap of at most five minutes, and explicit publication consent. Cross-row identity, group, membership, reviewed-result and source changes invalidate the signed cursor with 410; rebuild and suppress old public data during the reset. An empty list page can still have a nextCursor.",
+                        "Private versioned operational facts, not public consent or role authorization. Explicit independent resource/game grant required; legacy keys denied. Always no-store. Member IDs identify assignments, identityId identifies an unambiguous native user record. Unresolved/conflicting bindings have no identity or name. Roster facts require a currently published roster; acknowledgement/confirmation never proves gameplay or no-show. Statistics cover collected server sessions only, not a career: current verified Steam ownership and a unique scoped member are required, unsupported metrics are null, and coverage counts unresolved players. eventRefs require an exact confirmed/corrected reviewed result and matching source digest. Source configuration changes suppress older generations until recollected. Consumers must combine revision polling with a full refresh and attribution age cap of at most five minutes, and explicit publication consent. Cross-row identity, group, membership, reviewed-result and source changes invalidate the signed cursor with 410; rebuild and suppress old public data during the reset. An empty list page can still have a nextCursor." +
+                        projectionCaching,
                     parameters: [
                         game,
                         {
@@ -152,7 +155,8 @@ export const peopleReadPaths = Object.fromEntries(
                     security: [{ clanApiKey: [] }],
                     summary: `Read one ${resource} record`,
                     description:
-                        "Same explicit independent grant, minimized projection and publication rules as the collection. Missing, foreign-game, foreign-guild, unpublished or unavailable-source records return 404. Use sync-records for an atomic revision or retained removal tombstone.",
+                        "Same explicit independent grant, minimized projection and publication rules as the collection. Missing, foreign-game, foreign-guild, unpublished or unavailable-source records return 404. Use sync-records for an atomic revision; removed records return 404." +
+                        projectionCaching,
                     parameters: [
                         game,
                         {

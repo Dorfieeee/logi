@@ -771,6 +771,14 @@ mutation: a cursor response is `410 reset_required`, so rebuild the integration'
 own baseline when recovery is needed. Keep CMS/publication decisions in the
 website's own backend.
 
+Repeated people collection/detail requests and supported sync-record requests use
+a private server-side cache for up to five minutes. Logi still checks the API key,
+resource/game grants and rate limit on every request. Tracked projection or identity
+changes invalidate cached responses on the next read. The `X-Logi-Cache` response
+header reports whether a request reused a result. Membership authorization and live
+server/health observations remain uncached; observation and attribution timestamps
+must still be checked by the consuming website. Browser/proxy caching remains disabled.
+
 The registered projections are event summaries, match summaries and reviewed
 result summaries. Server snapshots and integration health are live state with no
 invalidations: read them from `/api/v1/clan/server-snapshots` and

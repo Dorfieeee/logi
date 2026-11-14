@@ -23,6 +23,60 @@ const args = {
     gameId: "wardogs",
     resource: "member-summaries",
 }
+
+test("large player projections overlap reads with bounded concurrency", async (t) => {
+    const ctx = fixture()
+    const session = ctx.db.tables.gameSessions[0]
+    session.session.players = Array.from({ length: 24 }, (_, index) => ({
+        platform: "steam",
+        platformId: `unknown-${index}`,
+        metrics: {},
+    }))
+    let active = 0,
+        peak = 0,
+        reads = 0
+    const query = ctx.db.query.bind(ctx.db)
+    t.mock.method(ctx.db, "query", (table: string) => {
+        const result = query(table)
+        if (table === "platformIdentityLinks") {
+            const take = result.take
+            result.take = async (limit: number) => {
+                active++
+                reads++
+                peak = Math.max(peak, active)
+                await new Promise<void>((resolve) => setImmediate(resolve))
+                try {
+                    return await take(limit)
+                } finally {
+                    active--
+                }
+            }
+        }
+        return result
+    })
+    const result = await invoke(feed.readSyncRecord, ctx, {
+        ...args,
+        resource: "player-stat-summaries",
+        id: session._id,
+    })
+    assert.deepEqual(result.data.players, [])
+    assert.equal(reads, 24)
+    assert.equal(peak, 8)
+    assert.equal(active, 0)
+})
+
+test("roster references reuse alias lookups within a projection and refresh on the next read", async () => {
+    const ctx = fixture()
+    const reads = spyReads(ctx)
+    const query = { ...args, resource: "roster-summaries", id: "rosters:one" }
+    const first = await invoke(feed.readSyncRecord, ctx, query)
+    assert.equal(first.data.squads[0].slots[0].identityState, "resolved")
+    // Three identity aliases, with both imported and Discord namespaces checked.
+    assert.equal(reads.filter((read) => read.table === "users").length, 6)
+    await ctx.db.delete("userAssignments:one")
+    const second = await invoke(feed.readSyncRecord, ctx, query)
+    assert.equal(second.data.squads[0].slots[0].identityState, "unresolved")
+})
 function fixture() {
     const ctx = testContext()
     ctx.db.seed("apiKeys", {

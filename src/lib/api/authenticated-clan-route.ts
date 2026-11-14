@@ -22,6 +22,7 @@ export type AuthenticatedClanRequest = {
     key: string
     guildId: string
     headers: Record<string, string>
+    projectionVersion?: string
 }
 
 /** Performs the same authentication and rate-limit response handling for every clan route. */
@@ -47,8 +48,13 @@ export async function authenticateClanRequestWith(
             limit: number
         ) => Promise<{ allowed: boolean; remaining: number; resetAt: number }>
         authenticateKey: (
-            key: string
-        ) => Promise<{ guildId: string; readAccess?: ApiKeyReadAccess } | null>
+            key: string,
+            options?: { projectionCache: boolean }
+        ) => Promise<{
+            guildId: string
+            readAccess?: ApiKeyReadAccess
+            projectionVersion?: string
+        } | null>
         rateLimitHeaders: (result: {
             remaining: number
             resetAt: number
@@ -87,7 +93,13 @@ export async function authenticateClanRequestWith(
                 },
             }
         )
-    const authenticated = await dependencies.authenticateKey(key)
+    const authenticated = await dependencies.authenticateKey(key, {
+        projectionCache:
+            request.method === "GET" &&
+            /^\/api\/v1\/clan\/(sync-records|member-summaries|roster-summaries|player-stat-summaries)(\/|$)/.test(
+                new URL(request.url).pathname
+            ),
+    })
     if (!authenticated)
         return NextResponse.json(
             {
@@ -136,7 +148,14 @@ export async function authenticateClanRequestWith(
                 },
                 { status: 403, headers }
             )
-        return { key, guildId: authenticated.guildId, headers }
+        return {
+            key,
+            guildId: authenticated.guildId,
+            headers,
+            ...(authenticated.projectionVersion !== undefined
+                ? { projectionVersion: authenticated.projectionVersion }
+                : {}),
+        }
     }
     if (providerGrant) {
         headers["Cache-Control"] = "no-store"
@@ -257,7 +276,14 @@ export async function authenticateClanRequestWith(
                 },
                 { status: 403, headers }
             )
-        return { key, guildId: authenticated.guildId, headers }
+        return {
+            key,
+            guildId: authenticated.guildId,
+            headers,
+            ...(authenticated.projectionVersion !== undefined
+                ? { projectionVersion: authenticated.projectionVersion }
+                : {}),
+        }
     }
     if (
         /^\/api\/v1\/clan\/(competitions|workspace-mode)\/?$/.test(

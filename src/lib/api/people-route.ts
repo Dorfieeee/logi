@@ -5,13 +5,27 @@ import {
 } from "@/domain/api/people-summaries"
 import type { AuthenticatedClanRequest } from "./authenticated-clan-route"
 import { createHash, createHmac, timingSafeEqual } from "node:crypto"
+import { readCachedProjection } from "./projection-read-cache"
 import { makeFunctionReference } from "convex/server"
+import { observeApiRead } from "./read-diagnostics"
 import { parsePeopleQuery } from "./people-query"
 import { getInternalAuthSecret } from "@/lib/env"
 import { fetchQuery } from "convex/nextjs"
 import { NextResponse } from "next/server"
 
 export async function handlePeopleRead(
+    request: Request,
+    auth: AuthenticatedClanRequest
+) {
+    const input = parsePeopleQuery(request)
+    return input
+        ? readCachedProjection(request, auth, input.resource, () =>
+              buildPeopleRead(request, auth)
+          )
+        : buildPeopleRead(request, auth)
+}
+
+async function buildPeopleRead(
     request: Request,
     auth: AuthenticatedClanRequest
 ) {
@@ -56,9 +70,18 @@ export async function handlePeopleRead(
         return row
     }
     if (input.id !== undefined) {
-        const value = await fetchQuery(
-            makeFunctionReference<"query">("peopleSummaries:get"),
-            { ...args, id: input.id }
+        const value = await observeApiRead(
+            {
+                operation: "people-detail",
+                resource: input.resource,
+                gameId: input.gameId,
+                keyHash,
+            },
+            () =>
+                fetchQuery(
+                    makeFunctionReference<"query">("peopleSummaries:get"),
+                    { ...args, id: input.id }
+                )
         )
         return value
             ? NextResponse.json({ data: validate(value) }, { headers })
@@ -107,14 +130,22 @@ export async function handlePeopleRead(
             return error("invalid_cursor", 400)
         }
     }
-    const value = await fetchQuery(
-        makeFunctionReference<"query">("peopleSummaries:list"),
+    const value = await observeApiRead(
         {
-            ...args,
-            cursor: position,
-            limit: input.limit,
-            ...(peopleScopeVersion !== undefined ? { peopleScopeVersion } : {}),
-        }
+            operation: "people-list",
+            resource: input.resource,
+            gameId: input.gameId,
+            keyHash,
+        },
+        () =>
+            fetchQuery(makeFunctionReference<"query">("peopleSummaries:list"), {
+                ...args,
+                cursor: position,
+                limit: input.limit,
+                ...(peopleScopeVersion !== undefined
+                    ? { peopleScopeVersion }
+                    : {}),
+            })
     )
     if (!value) return error("insufficient_scope", 403)
     if (value.resetRequired) return error("reset_required", 410)
