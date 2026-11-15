@@ -197,7 +197,7 @@ test("map tiles show custom, built-in or missing images and can be searched", ()
     const tiles = panelMapTiles([
         { game: "hell_let_loose", mapKey: "carentan", url: "https://own" },
     ])
-    assert.equal(tiles.length, 23)
+    assert.equal(tiles.length, 24)
     assert.equal(tiles.find((t) => t.key === "carentan")?.status, "custom")
     assert.equal(tiles.find((t) => t.key === "carentan")?.image, "https://own")
     assert.equal(tiles.find((t) => t.key === "foy")?.status, "builtin")
@@ -207,9 +207,9 @@ test("map tiles show custom, built-in or missing images and can be searched", ()
     )
     assert.deepEqual(
         filterPanelMapTiles(tiles, { game: "wardogs" }).map((t) => t.key),
-        ["bakurani", "ozeti", "zestafona"]
+        ["bakurani", "ozeti", "zestafona", "sabatulo"]
     )
-    assert.equal(filterPanelMapTiles(tiles, { game: "all" }).length, 23)
+    assert.equal(filterPanelMapTiles(tiles, { game: "all" }).length, 24)
 })
 
 test("emoji status counts 12 faction signs and 7 status pieces", () => {

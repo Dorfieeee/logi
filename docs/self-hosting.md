@@ -35,3 +35,7 @@ The checked-in defaults include `MAX_ISOLATE_WORKERS=16`, `ISOLATE_IDLE_TIMEOUT_
 Container memory includes backend heaps, caches, and filesystem page cache. Inspect the backend's cgroup memory statistics to distinguish anonymous memory from file cache when investigating resource use. Size worker counts, caches, storage, and container limits for the host and workload.
 
 See [architecture](../ARCHITECTURE.md#convex-hot-paths) for Logi's persistence and polling behavior. Upstream reference links: [Convex self-hosting](https://docs.convex.dev/self-hosting) and [backend configuration](https://github.com/get-convex/convex-backend/tree/main/self-hosted).
+
+### Daily team catalogue refresh
+
+Convex schedules Wardogs League and HeLO catalogue imports every 24 hours. Set `SITE_URL` in the Convex deployment to the reachable dashboard origin and use the same `INTERNAL_AUTH_SECRET` in both runtimes. The authenticated internal refresh route runs image decoding in the dashboard Node runtime and stores imported GIF logos as static PNGs. Manual catalogue imports use the same workflow.

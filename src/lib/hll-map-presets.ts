@@ -100,6 +100,7 @@ const MAP_DEFINITIONS: MapDefinition[] = [
 const WARDOGS_MAP_DEFINITIONS: MapDefinition[] = [
     { id: "bakurani", name: "Bakurani", aliases: ["bakurani"] },
     { id: "ozeti", name: "Ozeti", aliases: ["ozeti"] },
+    { id: "sabatulo", name: "Sabatulo", aliases: ["sabatulo"] },
     { id: "zestafona", name: "Zestafona", aliases: ["zestafona"] },
 ]
 

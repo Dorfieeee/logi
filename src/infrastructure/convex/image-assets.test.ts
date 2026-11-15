@@ -339,3 +339,40 @@ test("image assets keep the uploaded file's own name for display (P8-08)", async
     const row = await ctx.db.get(created.asset.id)
     assert.equal(row?.fileName, "vlci-public.png")
 })
+
+test("trusted catalogue uploads are limited to platform team logos and still validate records", async () => {
+    const ctx = testContext()
+    const asset = {
+        kind: "team-logo",
+        publicId: "c".repeat(32),
+        storageId: "storage:scheduled",
+        contentType: "image/png",
+        width: 32,
+        height: 32,
+        bytes: 100,
+        sha256: "d".repeat(64),
+        publicUrl: `https://logi.test/api/image-assets/${"c".repeat(32)}.png`,
+    }
+    const input = { secret, guildId: "platform", provider: true, asset }
+    await assert.rejects(
+        invoke(imageAssets.record, ctx, { ...input, secret: "wrong" })
+    )
+    await assert.rejects(
+        invoke(imageAssets.record, ctx, { ...input, guildId: "guild-a" })
+    )
+    await assert.rejects(
+        invoke(imageAssets.record, ctx, {
+            ...input,
+            asset: { ...asset, kind: "panel-banner" },
+        })
+    )
+    assert.deepEqual(
+        await invoke(imageAssets.record, ctx, {
+            ...input,
+            asset: { ...asset, width: 513 },
+        }),
+        { error: "invalid_asset" }
+    )
+    const result = await invoke(imageAssets.record, ctx, input)
+    assert.equal(result.ok, true)
+})

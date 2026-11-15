@@ -83,7 +83,7 @@ test("GET returns the page view with every catalogue map tile for a clan admin",
     assert.equal(response.headers.get("cache-control"), "no-store")
     const body = await response.json()
     assert.equal(body.revision, 3)
-    assert.equal(body.mapTiles.length, 23)
+    assert.equal(body.mapTiles.length, 24)
     assert.equal(
         body.mapTiles.find((t: { key: string }) => t.key === "carentan").status,
         "custom"

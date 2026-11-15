@@ -160,7 +160,8 @@ const recordReference = makeFunctionReference<
     {
         secret: string
         guildId: string
-        actor: DashboardActor
+        actor?: DashboardActor
+        provider?: true
         asset: {
             kind: ImageAssetKind
             publicId: string
@@ -222,10 +223,52 @@ export const storeNormalized = action({
     },
 })
 
+export const storeProviderLogo = action({
+    args: {
+        secret: v.string(),
+        guildId: v.literal("platform"),
+        asset: normalizedAsset,
+        bytes: v.bytes(),
+    },
+    handler: async (ctx, args): Promise<StoreImageAssetResult> => {
+        assertSessionGateway(args.secret)
+        const { secret, asset } = args
+        if (asset.kind !== "team-logo")
+            throw new Error("Invalid provider asset")
+        const guildId = PLATFORM_SCOPE
+        return await storeImageAsset(
+            {
+                kind: asset.kind,
+                contentType: asset.contentType,
+                bytes: args.bytes,
+            },
+            {
+                digest: sha256Hex,
+                store: async (bytes, contentType) =>
+                    await ctx.storage.store(
+                        new Blob([bytes], { type: contentType })
+                    ),
+                record: async (stored) =>
+                    await ctx.runMutation(recordReference, {
+                        secret,
+                        guildId,
+                        provider: true,
+                        asset: { ...asset, ...stored },
+                    }),
+                remove: async (storageId) =>
+                    await ctx.storage.delete(storageId),
+            }
+        )
+    },
+})
+
 /** Records a stored normalized image; internal, reached only through `storeNormalized`. */
 export const record = internalMutation({
     args: {
-        ...access,
+        secret: v.string(),
+        guildId: v.string(),
+        actor: v.optional(dashboardActor),
+        provider: v.optional(v.literal(true)),
         asset: v.object({
             kind: imageAssetKind,
             publicId: v.string(),
@@ -240,7 +283,19 @@ export const record = internalMutation({
         }),
     },
     handler: async (ctx, args): Promise<StoreImageAssetResult> => {
-        const admin = await authorizeAssetScope(ctx, args)
+        assertSessionGateway(args.secret)
+        const admin =
+            args.provider &&
+            args.guildId === PLATFORM_SCOPE &&
+            args.asset.kind === "team-logo"
+                ? { subject: "team-catalogue-sync" }
+                : args.actor
+                  ? await authorizeAssetScope(ctx, {
+                        ...args,
+                        actor: args.actor,
+                    })
+                  : null
+        if (!admin) throw new Error("Forbidden.")
         const asset = args.asset,
             bounds = IMAGE_OUTPUT[asset.kind]
         if (args.guildId.startsWith("team:") && asset.kind !== "team-logo")

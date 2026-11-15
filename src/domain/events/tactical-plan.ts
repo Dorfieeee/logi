@@ -8,7 +8,7 @@ const zone = z.strictObject({
 })
 export const tacticalPlanSchema = z
     .strictObject({
-        mapId: z.enum(["bakurani", "ozeti", "zestafona"]),
+        mapId: z.enum(["bakurani", "ozeti", "zestafona", "sabatulo"]),
         layout: z.string().trim().max(120),
         controlZone: zone.nullable(),
         hotZone: zone.nullable(),

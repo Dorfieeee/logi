@@ -112,6 +112,7 @@ export const PANEL_MAPS: readonly PanelMapDefinition[] = [
     wardogs("bakurani", "Bakurani"),
     wardogs("ozeti", "Ozeti"),
     wardogs("zestafona", "Zestafona"),
+    { ...wardogs("sabatulo", "Sabatulo"), builtIn: null },
 ]
 export function panelMapDefinition(
     game: string,

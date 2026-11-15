@@ -48,9 +48,9 @@ export function parseWardogsTeams(html: string): SourceTeam[] {
 export function parseHeloTeamCards(html: string): SourceTeam[] {
     const $ = load(html)
     const teams: SourceTeam[] = []
-    $('img[alt="Team Icon"]').each((_, image) => {
-        const icon = $(image)
-        const row = icon.closest("tr, [data-team-name], .team-card")
+    $("tr, [data-team-name], .team-card").each((_, element) => {
+        const row = $(element)
+        const icon = row.find('img[alt="Team Icon"]').first()
         if (!row.length) return
         const cells = row.find("td")
         const name =

@@ -70,6 +70,7 @@ test("provider map names and layer IDs resolve to catalogue keys", () => {
     )
     assert.equal(panelMapKey("hell_let_loose", "Smolensk"), "smolensk")
     assert.equal(panelMapKey("wardogs", "Zestafona"), "zestafona")
+    assert.equal(panelMapKey("wardogs", "sabatulo_koth_day"), "sabatulo")
     // Unknown, foreign-game and path-like values never resolve.
     assert.equal(panelMapKey("wardogs", "Foy"), null)
     assert.equal(panelMapKey("hell_let_loose", "Nowhere"), null)
@@ -78,9 +79,13 @@ test("provider map names and layer IDs resolve to catalogue keys", () => {
     assert.equal(panelMapKey("hell_let_loose", null), null)
 })
 
-test("every catalogue map has packaged art and HLL maps name their nations", () => {
+test("catalogue maps resolve packaged art or explicitly await it; HLL maps name their nations", () => {
     const root = path.resolve(import.meta.dirname, "../../../public")
     for (const map of PANEL_MAPS) {
+        if (map.key === "sabatulo") {
+            assert.equal(map.builtIn, null)
+            continue
+        }
         assert.ok(map.builtIn, map.key)
         assert.ok(existsSync(path.join(root, map.builtIn)), map.builtIn)
         assert.equal(Boolean(map.nations), map.game === "hell_let_loose")

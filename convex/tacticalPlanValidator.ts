@@ -5,7 +5,8 @@ export const tacticalPlanValidator = v.object({
     mapId: v.union(
         v.literal("bakurani"),
         v.literal("ozeti"),
-        v.literal("zestafona")
+        v.literal("zestafona"),
+        v.literal("sabatulo")
     ),
     layout: v.string(),
     controlZone: v.union(zone, v.null()),

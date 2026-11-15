@@ -196,6 +196,7 @@ import type * as sso from "../sso.js";
 import type * as ssoTokenStore from "../ssoTokenStore.js";
 import type * as stratmaps from "../stratmaps.js";
 import type * as tacticalPlanValidator from "../tacticalPlanValidator.js";
+import type * as teamCatalogueSync from "../teamCatalogueSync.js";
 import type * as teamMigrations from "../teamMigrations.js";
 import type * as teamProfileAccess from "../teamProfileAccess.js";
 import type * as teamReads from "../teamReads.js";
@@ -413,6 +414,7 @@ declare const fullApi: ApiFromModules<{
   ssoTokenStore: typeof ssoTokenStore;
   stratmaps: typeof stratmaps;
   tacticalPlanValidator: typeof tacticalPlanValidator;
+  teamCatalogueSync: typeof teamCatalogueSync;
   teamMigrations: typeof teamMigrations;
   teamProfileAccess: typeof teamProfileAccess;
   teamReads: typeof teamReads;
