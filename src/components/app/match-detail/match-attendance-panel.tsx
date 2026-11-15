@@ -1,7 +1,14 @@
 "use client"
 
+import {
+    ChevronDown,
+    ChevronRight,
+    ClipboardList,
+    Loader2,
+    Radio,
+    Save,
+} from "lucide-react"
 import { signupListMembership } from "@/domain/events/signup-list"
-import { ClipboardList, Loader2, Radio, Save } from "lucide-react"
 import { Fragment, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -10,6 +17,8 @@ import Link from "next/link"
 import {
     applyAttendanceExcuses,
     buildMatchAttendance,
+    buildMatchResponseRows,
+    type MatchResponse,
     planAttendanceChanges,
     setRosterPresence,
     type AttendanceMark,
@@ -39,7 +48,7 @@ import type { Dictionary } from "@/i18n/dictionaries"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-type Filter = "roster" | "declined" | "noResponse"
+type Filter = "all" | MatchResponse
 
 const MARKS: AttendanceMark[] = ["present", "excused", "absent"]
 
@@ -84,6 +93,7 @@ export function MatchAttendancePanel({
     roster,
     users,
     memberIds,
+    scoredUserIds,
     assignments,
     scoreSettings,
     closeSummary,
@@ -103,6 +113,7 @@ export function MatchAttendancePanel({
     roster: Roster | null
     users: AppUser[]
     memberIds: string[]
+    scoredUserIds: string[]
     assignments: Array<{
         userId: string
         type: "member" | "reserve_member" | "mercenary"
@@ -129,7 +140,8 @@ export function MatchAttendancePanel({
     const [overrides, setOverrides] = useState<Map<string, AttendanceMark>>(
         () => new Map()
     )
-    const [filter, setFilter] = useState<Filter>("roster")
+    const [filter, setFilter] = useState<Filter>("all")
+    const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
     const [isSaving, startSaving] = useTransition()
     const [isLoadingVoice, setIsLoadingVoice] = useState(false)
     const concluded = event.status === "concluded"
@@ -245,6 +257,11 @@ export function MatchAttendancePanel({
     )
 
     function pointsFor(userId: string) {
+        if (
+            !scoredUserIds.includes(userId) ||
+            event.scoreResolution === "skipped"
+        )
+            return null
         return scoreSettings[
             resolveRosterScoreCategory({
                 userId,
@@ -260,7 +277,7 @@ export function MatchAttendancePanel({
             ? [entry.placement.squadName, entry.placement.roleName]
                   .filter(Boolean)
                   .join(" · ")
-            : t.reserve
+            : t.eventReserve
     }
 
     function nameOf(userId: string) {
@@ -360,7 +377,6 @@ export function MatchAttendancePanel({
         }
     }
 
-    const counts = attendance.counts
     const foundInVoice = new Set(roster?.meetingAttendance?.foundUserIds ?? [])
     const lastLoaded = roster?.meetingAttendance
         ? t.lastLoaded
@@ -379,79 +395,52 @@ export function MatchAttendancePanel({
                       dictionary.matchDetail.discord.meetingChannel
               )
         : null
-    const summaryCards = [
-        {
-            label: t.rosterSummary.replace(
-                "{count}",
-                String(counts.roster.total)
-            ),
-            value: t.rosterCounts
-                .replace("{present}", String(counts.roster.present))
-                .replace("{excused}", String(counts.roster.excused))
-                .replace("{absent}", String(counts.roster.absent)),
-        },
-        {
-            label: t.reservesSummary.replace(
-                "{count}",
-                String(counts.reserves.total)
-            ),
-            value: t.reserveCounts
-                .replace("{present}", String(counts.reserves.present))
-                .replace(
-                    "{absent}",
-                    String(counts.reserves.absent + counts.reserves.excused)
-                ),
-        },
-        {
-            label: t.declinedSummary,
-            value: t.playerCount.replace("{count}", String(counts.declined)),
-        },
-        {
-            label: t.noResponseSummary,
-            value: t.memberCount.replace("{count}", String(counts.noResponse)),
-        },
-    ]
+    const responseRows = buildMatchResponseRows({
+        attendance,
+        participants: event.participants,
+        memberIds,
+    })
+    const responseLabels = {
+        attending: t.signedUp,
+        declined: t.before.declined,
+        noResponse: t.before.noResponse,
+    }
+    const responseCounts = { attending: 0, declined: 0, noResponse: 0 }
+    for (const row of responseRows) responseCounts[row.response] += 1
+    const summaryCards = (["attending", "declined", "noResponse"] as const).map(
+        (id) => ({
+            id,
+            label: responseLabels[id],
+            value: t.playerCount.replace("{count}", String(responseCounts[id])),
+        })
+    )
     const filters: Array<{ id: Filter; label: string }> = [
-        {
-            id: "roster",
-            label: t.filters.roster.replace(
-                "{count}",
-                String(
-                    attendance.entries.length +
-                        attendance.unplacedUserIds.length
-                )
-            ),
-        },
-        {
-            id: "declined",
-            label: t.filters.declined.replace(
-                "{count}",
-                String(counts.declined)
-            ),
-        },
-        {
-            id: "noResponse",
-            label: t.filters.noResponse.replace(
-                "{count}",
-                String(counts.noResponse)
-            ),
-        },
+        { id: "all", label: `${t.allResponses} (${responseRows.length})` },
+        ...summaryCards.map((card) => ({
+            id: card.id,
+            label: `${card.label} (${responseCounts[card.id]})`,
+        })),
     ]
+    const visibleRows = responseRows.filter(
+        (row) => filter === "all" || row.response === filter
+    )
+    const groups = groupPlayers(visibleRows, (row) => row.userId)
 
     return (
         <div className="space-y-4 pb-24 sm:pb-0">
             <section
                 aria-label={t.summaryLabel}
-                className="border-border/70 bg-card grid grid-cols-2 overflow-hidden rounded-2xl border xl:grid-cols-4"
+                className="border-border/70 bg-card grid grid-cols-3 overflow-hidden rounded-2xl border"
             >
-                {summaryCards.map((card, index) => (
-                    <div
+                {summaryCards.map((card) => (
+                    <button
+                        type="button"
+                        aria-pressed={filter === card.id}
+                        onClick={() => setFilter(card.id)}
                         key={card.label}
                         className={cn(
-                            "border-border/70 px-4 py-3",
-                            index % 2 === 0 && "border-r",
-                            index < 2 && "border-b xl:border-b-0",
-                            index === 1 && "xl:border-r"
+                            "border-border/70 hover:bg-muted/50 border-r px-3 py-4 text-left last:border-r-0",
+                            filter === card.id && "bg-muted/60"
                         )}
                     >
                         <div className="text-muted-foreground text-[11px] font-semibold tracking-[0.08em] uppercase">
@@ -460,7 +449,7 @@ export function MatchAttendancePanel({
                         <div className="mt-1 text-sm">
                             <BoldNumbers text={card.value} />
                         </div>
-                    </div>
+                    </button>
                 ))}
             </section>
 
@@ -575,97 +564,213 @@ export function MatchAttendancePanel({
                 </Link>
             </div>
 
-            {filter === "roster" ? (
-                <div className="space-y-3">
-                    <div className="border-border/70 bg-card overflow-x-auto rounded-2xl border">
-                        <Table>
-                            <TableHeader className="bg-muted/40">
-                                <TableRow>
-                                    <TableHead scope="col">
-                                        {t.columns.player}
-                                    </TableHead>
-                                    <TableHead
-                                        scope="col"
-                                        className="hidden md:table-cell"
-                                    >
-                                        {t.columns.place}
-                                    </TableHead>
-                                    <TableHead
-                                        scope="col"
-                                        className="hidden lg:table-cell"
-                                    >
-                                        {t.columns.before}
-                                    </TableHead>
-                                    <TableHead scope="col">
-                                        {t.columns.attendance}
-                                    </TableHead>
-                                    <TableHead
-                                        scope="col"
-                                        className="text-right"
-                                    >
-                                        {t.columns.points}
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {attendance.entries.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={5}
-                                            className="text-muted-foreground py-8 text-center"
+            <p className="text-muted-foreground text-sm">{t.responseHelp}</p>
+            <details className="border-border/70 rounded-xl border px-4 py-3 text-sm">
+                <summary className="cursor-pointer font-medium">
+                    {t.scoringRules}
+                </summary>
+                <p className="text-muted-foreground mt-2">{t.pointsHelp}</p>
+                <ul className="mt-2 space-y-1">
+                    {Object.entries(scoreSettings).map(([category, delta]) => (
+                        <li key={category}>
+                            {dictionary.matchDetail.close.categories[
+                                category as keyof RosterScoreSettings
+                            ].replace("{count}", "1")}
+                            : {formatDelta(delta)}
+                        </li>
+                    ))}
+                </ul>
+            </details>
+            {(filter === "all" || filter === "noResponse") &&
+            canAdmin &&
+            !concluded ? (
+                <div className="border-border/70 bg-card flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-3">
+                    <span className="text-muted-foreground text-sm">
+                        {t.noResponseHint.replace(
+                            "{count}",
+                            String(responseCounts.noResponse)
+                        )}
+                    </span>
+                    <ReminderButton
+                        serverId={serverId}
+                        eventId={event.id}
+                        audience="unanswered"
+                        state={reminder}
+                        dictionary={dictionary}
+                    />
+                </div>
+            ) : null}
+            {event.requiredRoleIds?.length ? (
+                <p className="text-muted-foreground text-sm">
+                    {t.roleEligibilityUnknown}
+                </p>
+            ) : null}
+            <div className="border-border/70 bg-card overflow-x-auto rounded-2xl border">
+                <Table>
+                    <TableHeader className="bg-muted/40">
+                        <TableRow>
+                            <TableHead scope="col">
+                                {t.columns.player}
+                            </TableHead>
+                            <TableHead scope="col">
+                                {t.responseColumn}
+                            </TableHead>
+                            <TableHead scope="col">{t.columns.place}</TableHead>
+                            <TableHead
+                                scope="col"
+                                className="hidden lg:table-cell"
+                            >
+                                {t.columns.before}
+                            </TableHead>
+                            <TableHead scope="col">
+                                {t.columns.attendance}
+                            </TableHead>
+                            <TableHead scope="col" className="text-right">
+                                {concluded
+                                    ? t.currentRulePoints
+                                    : t.previewPoints}
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {groups.length === 0 ? (
+                            <TableRow>
+                                <TableCell
+                                    colSpan={6}
+                                    className="text-muted-foreground py-8 text-center"
+                                >
+                                    {t.empty}
+                                </TableCell>
+                            </TableRow>
+                        ) : null}
+                        {groups.map((group) => {
+                            const closed = collapsed.has(group.category)
+                            return (
+                                <Fragment key={group.category}>
+                                    <TableRow className="bg-muted/70 hover:bg-muted/70">
+                                        <TableHead
+                                            colSpan={6}
+                                            scope="rowgroup"
+                                            className="p-0"
                                         >
-                                            {t.empty}
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    groupPlayers(
-                                        attendance.entries,
-                                        (entry) => entry.userId
-                                    ).map((group) => (
-                                        <Fragment key={group.category}>
-                                            <TableRow>
-                                                <TableHead
-                                                    colSpan={5}
-                                                    scope="rowgroup"
-                                                >
-                                                    {group.label} ?{" "}
+                                            <button
+                                                type="button"
+                                                aria-expanded={!closed}
+                                                aria-controls={group.items
+                                                    .map(
+                                                        (row) =>
+                                                            `attendance-${group.category}-${row.userId}`
+                                                    )
+                                                    .join(" ")}
+                                                className="flex w-full items-center gap-2 px-4 py-3 text-left font-semibold"
+                                                onClick={() =>
+                                                    setCollapsed((current) => {
+                                                        const next = new Set(
+                                                            current
+                                                        )
+                                                        if (
+                                                            next.has(
+                                                                group.category
+                                                            )
+                                                        )
+                                                            next.delete(
+                                                                group.category
+                                                            )
+                                                        else
+                                                            next.add(
+                                                                group.category
+                                                            )
+                                                        return next
+                                                    })
+                                                }
+                                            >
+                                                {closed ? (
+                                                    <ChevronRight className="size-4" />
+                                                ) : (
+                                                    <ChevronDown className="size-4" />
+                                                )}
+                                                {group.label}
+                                                <span className="bg-background rounded-md px-2 py-0.5 text-xs tabular-nums">
                                                     {group.items.length}
-                                                </TableHead>
-                                            </TableRow>
-                                            {group.items.map((entry) => (
-                                                <TableRow key={entry.userId}>
-                                                    <TableHead
-                                                        scope="row"
-                                                        className="max-w-28 font-normal sm:max-w-none"
-                                                    >
-                                                        <span className="text-foreground block truncate">
-                                                            {nameOf(
-                                                                entry.userId
-                                                            )}
-                                                        </span>
-                                                        <span className="text-muted-foreground mt-0.5 block truncate text-xs font-normal md:hidden">
-                                                            {placeOf(entry)}
-                                                        </span>
-                                                    </TableHead>
-                                                    <TableCell className="text-muted-foreground hidden md:table-cell">
-                                                        {placeOf(entry)}
-                                                    </TableCell>
-                                                    <TableCell
-                                                        className={cn(
-                                                            "hidden max-w-64 truncate lg:table-cell",
-                                                            entry.before
+                                                </span>
+                                            </button>
+                                        </TableHead>
+                                    </TableRow>
+                                    {group.items.map((row) => {
+                                        const entry = row.entry
+                                        const points = pointsFor(row.userId)
+                                        const category =
+                                            resolveRosterScoreCategory({
+                                                userId: row.userId,
+                                                participants:
+                                                    event.participants,
+                                                notices,
+                                                roster: board,
+                                            })
+                                        return (
+                                            <TableRow
+                                                key={row.userId}
+                                                hidden={closed}
+                                                id={`attendance-${group.category}-${row.userId}`}
+                                            >
+                                                <TableHead
+                                                    scope="row"
+                                                    className="font-normal"
+                                                >
+                                                    <span className="text-foreground">
+                                                        {nameOf(row.userId)}
+                                                    </span>
+                                                    {entry ? (
+                                                        <span className="text-muted-foreground mt-1 block max-w-48 text-xs whitespace-normal lg:hidden">
+                                                            {entry.before
                                                                 .kind ===
-                                                                "acknowledged"
-                                                                ? "text-emerald-700 dark:text-emerald-400"
-                                                                : entry.before
-                                                                        .kind ===
-                                                                    "notice"
-                                                                  ? "text-amber-700 dark:text-amber-400"
-                                                                  : "text-muted-foreground"
+                                                            "notice"
+                                                                ? t.before.notice.replace(
+                                                                      "{reason}",
+                                                                      entry
+                                                                          .before
+                                                                          .reason
+                                                                  )
+                                                                : t.before[
+                                                                      entry
+                                                                          .before
+                                                                          .kind
+                                                                  ]}
+                                                        </span>
+                                                    ) : null}
+                                                </TableHead>
+                                                <TableCell>
+                                                    <span
+                                                        className={cn(
+                                                            "inline-flex rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap",
+                                                            row.response ===
+                                                                "attending"
+                                                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                                                : row.response ===
+                                                                    "declined"
+                                                                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                                                  : "bg-muted text-muted-foreground"
                                                         )}
                                                     >
-                                                        {entry.before.kind ===
-                                                        "notice"
+                                                        {
+                                                            responseLabels[
+                                                                row.response
+                                                            ]
+                                                        }
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {entry
+                                                        ? placeOf(entry)
+                                                        : row.response ===
+                                                            "attending"
+                                                          ? t.unplacedTitle
+                                                          : "—"}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground hidden max-w-64 whitespace-normal lg:table-cell">
+                                                    {entry
+                                                        ? entry.before.kind ===
+                                                          "notice"
                                                             ? t.before.notice.replace(
                                                                   "{reason}",
                                                                   entry.before
@@ -674,16 +779,18 @@ export function MatchAttendancePanel({
                                                             : t.before[
                                                                   entry.before
                                                                       .kind
-                                                              ]}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                              ]
+                                                        : "—"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {entry ? (
+                                                        <div className="flex flex-wrap items-center gap-2">
                                                             <MarkGroup
                                                                 entry={entry}
                                                                 label={t.markGroupLabel.replace(
                                                                     "{name}",
                                                                     nameOf(
-                                                                        entry.userId
+                                                                        row.userId
                                                                     )
                                                                 )}
                                                                 labels={t.marks}
@@ -706,116 +813,51 @@ export function MatchAttendancePanel({
                                                             {entry.mark ===
                                                                 "present" &&
                                                             foundInVoice.has(
-                                                                entry.userId
+                                                                row.userId
                                                             ) ? (
-                                                                <span className="text-muted-foreground hidden text-xs sm:inline">
+                                                                <span className="text-muted-foreground text-xs">
                                                                     {
                                                                         t.fromVoice
                                                                     }
                                                                 </span>
                                                             ) : null}
                                                         </div>
-                                                    </TableCell>
-                                                    <TableCell
-                                                        className={cn(
-                                                            "text-right font-semibold tabular-nums",
-                                                            deltaClass(
-                                                                pointsFor(
-                                                                    entry.userId
-                                                                )
-                                                            )
-                                                        )}
-                                                    >
-                                                        {formatDelta(
-                                                            pointsFor(
-                                                                entry.userId
-                                                            )
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </Fragment>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                    {attendance.unplacedUserIds.length ? (
-                        <>
-                            <h3 className="text-sm font-semibold">
-                                {t.unplacedTitle} ?{" "}
-                                {attendance.unplacedUserIds.length}
-                            </h3>
-                            <SimplePlayerList
-                                userIds={attendance.unplacedUserIds}
-                                before={t.signedUp}
-                                points={null}
-                                usersById={usersById}
-                                fallbackName={dictionary.common.unknown}
-                                columns={t.columns}
-                                empty={t.empty}
-                                groups={groupPlayers(
-                                    attendance.unplacedUserIds,
-                                    (id) => id
-                                )}
-                            />
-                        </>
-                    ) : null}
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    {filter === "noResponse" && canAdmin && !concluded ? (
-                        <div className="border-border/70 bg-card flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-4 py-3">
-                            <span className="text-muted-foreground text-sm">
-                                {t.noResponseHint.replace(
-                                    "{count}",
-                                    String(counts.noResponse)
-                                )}
-                            </span>
-                            <ReminderButton
-                                serverId={serverId}
-                                eventId={event.id}
-                                audience="unanswered"
-                                state={reminder}
-                                dictionary={dictionary}
-                            />
-                        </div>
-                    ) : null}
-                    {filter === "noResponse" &&
-                    event.requiredRoleIds?.length ? (
-                        <p className="text-muted-foreground text-sm">
-                            {t.roleEligibilityUnknown}
-                        </p>
-                    ) : null}
-                    <SimplePlayerList
-                        userIds={
-                            filter === "declined"
-                                ? attendance.declinedUserIds
-                                : attendance.noResponseUserIds
-                        }
-                        groups={groupPlayers(
-                            filter === "declined"
-                                ? attendance.declinedUserIds
-                                : attendance.noResponseUserIds,
-                            (id) => id
-                        )}
-                        before={
-                            filter === "declined"
-                                ? t.before.declined
-                                : t.before.noResponse
-                        }
-                        points={
-                            filter === "declined"
-                                ? scoreSettings.declined
-                                : scoreSettings.noCategory
-                        }
-                        usersById={usersById}
-                        fallbackName={dictionary.common.unknown}
-                        columns={t.columns}
-                        empty={t.empty}
-                    />
-                </div>
-            )}
+                                                    ) : (
+                                                        <span className="text-muted-foreground">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell
+                                                    className={cn(
+                                                        "text-right text-xs font-semibold tabular-nums",
+                                                        points !== null &&
+                                                            deltaClass(points)
+                                                    )}
+                                                    title={
+                                                        points === null
+                                                            ? t.notScored
+                                                            : dictionary.matchDetail.close.categories[
+                                                                  category
+                                                              ].replace(
+                                                                  "{count}",
+                                                                  "1"
+                                                              )
+                                                    }
+                                                >
+                                                    {points === null
+                                                        ? t.notScored
+                                                        : formatDelta(points)}
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </Fragment>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
 
             {changeCount > 0 ? (
                 <div className="bg-background/95 border-border/70 fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t px-4 py-3 sm:static sm:rounded-xl sm:border sm:px-4">
@@ -889,92 +931,6 @@ function MarkGroup({
                     </button>
                 )
             })}
-        </div>
-    )
-}
-
-function SimplePlayerList({
-    userIds,
-    groups,
-    before,
-    points,
-    usersById,
-    fallbackName,
-    columns,
-    empty,
-}: {
-    userIds: string[]
-    groups: Array<{ category: string; label: string; items: string[] }>
-    before: string
-    points: number | null
-    usersById: Map<string, AppUser>
-    fallbackName: string
-    columns: { player: string; before: string; points: string }
-    empty: string
-}) {
-    return (
-        <div className="border-border/70 bg-card overflow-x-auto rounded-2xl border">
-            <Table>
-                <TableHeader className="bg-muted/40">
-                    <TableRow>
-                        <TableHead scope="col">{columns.player}</TableHead>
-                        <TableHead scope="col">{columns.before}</TableHead>
-                        <TableHead scope="col" className="text-right">
-                            {columns.points}
-                        </TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {userIds.length === 0 ? (
-                        <TableRow>
-                            <TableCell
-                                colSpan={3}
-                                className="text-muted-foreground py-8 text-center"
-                            >
-                                {empty}
-                            </TableCell>
-                        </TableRow>
-                    ) : (
-                        groups.map((group) => (
-                            <Fragment key={group.category}>
-                                <TableRow>
-                                    <TableHead colSpan={3} scope="rowgroup">
-                                        {group.label} ? {group.items.length}
-                                    </TableHead>
-                                </TableRow>
-                                {group.items.map((userId) => (
-                                    <TableRow key={userId}>
-                                        <TableHead
-                                            scope="row"
-                                            className="font-normal"
-                                        >
-                                            <span className="text-foreground">
-                                                {usersById.get(userId)?.name ??
-                                                    fallbackName}
-                                            </span>
-                                        </TableHead>
-                                        <TableCell className="text-muted-foreground">
-                                            {before}
-                                        </TableCell>
-                                        <TableCell
-                                            className={cn(
-                                                "text-right font-semibold tabular-nums",
-                                                points === null
-                                                    ? undefined
-                                                    : deltaClass(points)
-                                            )}
-                                        >
-                                            {points === null
-                                                ? "?"
-                                                : formatDelta(points)}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </Fragment>
-                        ))
-                    )}
-                </TableBody>
-            </Table>
         </div>
     )
 }

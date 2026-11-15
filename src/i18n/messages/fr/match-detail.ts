@@ -109,6 +109,18 @@ export const matchDetailMessages = {
             meetingTime: "Heure de rassemblement",
         },
         attendance: {
+            allResponses: "Toutes les réponses",
+            responseColumn: "Réponse",
+            scoringRules: "Règles de points",
+            notScored: "Non comptabilisé",
+            previewPoints: "Points prévisionnels",
+            currentRulePoints: "Points selon les règles actuelles",
+            responseHelp:
+                "La réponse et le placement sont distincts. Sans réponse signifie aucune réponse enregistrée, pas un refus.",
+            pointsHelp:
+                "Les points suivent les paramètres des membres pour les affectations non suspendues. Le type d’adhésion et une place de remplaçant sont distincts. Les valeurs suivent les règles actuelles, pas un historique. Les joueurs non éligibles et les événements clôturés sans points affichent Non comptabilisé.",
+            eventReserve: "Remplaçant de l’événement",
+
             summaryLabel: "Bilan des présences",
             rosterSummary: "Composition · {count}",
             reservesSummary: "Remplaçants · {count}",

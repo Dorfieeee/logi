@@ -1,4 +1,5 @@
 import { matchAttendanceMemberIds } from "@/domain/rosters/match-attendance"
+import { EventSignupHistory } from "@/components/app/event-signup-history"
 import { matchesGameScope, resolveGameScope } from "@/domain/games/game"
 import { SharedMatchPanel } from "@/components/app/shared-match-panel"
 import { sharedInvitations } from "@/lib/gateways/shared-matches"
@@ -287,7 +288,7 @@ export async function MatchDetailPage({
         canAdmin && !event.hostEventId
             ? `/${locale}/dashboard/servers/${serverId}/rosters/create?game=${gameId}&eventId=${encodeURIComponent(event.id)}`
             : undefined
-    const signupHistoryHref = `/${locale}/dashboard/servers/${serverId}/signup-activity?eventId=${event.id}`
+    const signupHistoryHref = tabHref("history")
     const reviewerIds =
         activeTab === "result" && review
             ? [
@@ -392,6 +393,7 @@ export async function MatchDetailPage({
                     resolveGameScope(event.gameId)
                 )
             )}
+            scoredUserIds={memberIds}
             scoreSettings={scoreSettings}
             closeSummary={closeSummary}
             messages={messages}
@@ -416,6 +418,18 @@ export async function MatchDetailPage({
                     : undefined
             }
             signupHistoryHref={signupHistoryHref}
+            signupHistory={
+                activeTab === "history" ? (
+                    <EventSignupHistory
+                        serverId={serverId}
+                        eventId={event.id}
+                        guildDiscordId={guildDiscordId}
+                        dictionary={dictionary}
+                        locale={locale}
+                        timezone={timeZone}
+                    />
+                ) : null
+            }
             editHref={editHref}
             overview={
                 activeTab === "overview" ? (

@@ -80,7 +80,7 @@ test("Přihlásit se opens the group picker with counts and full groups (L1-88, 
     const body = text(view)
     assert.match(
         body,
-        /^-# \*\*PŘIHLÁŠKA · VLK VS ROG\*\*\n### Kde chceš hrát\?/
+        /^-# \*\*PŘIHLÁŠKA · VLK VS ROG\*\*\n### Nejsi přihlášený — vyber skupinu/
     )
     assert.match(body, /<t:1791741600:f> · přihlášky do <t:1791653400:f>/)
     const select = view.blocks.find((block) => block.kind === "select")
@@ -111,7 +111,7 @@ test("a saved sign-up offers Změnit skupinu and Nepřijdu (L1-90, L1-91)", () =
         /Soupisku velení zveřejní před srazem\. Kde hraješ, uvidíš pod Zobrazit zařazení\./
     )
     assert.deepEqual(buttons(view), [
-        "Změnit skupinu|secondary|signup-picker:event-1:111111111111111111",
+        "Změnit skupinu|secondary|signup-picker:event-1:111111111111111111:edit",
         "Nepřijdu|danger|signup:event-1:NOT_ATTENDING:111111111111111111",
     ])
     assert.deepEqual(
@@ -142,13 +142,16 @@ test("a full group keeps the sign-up as a reserve (L1-93, L1-B05)", () => {
         max: 6,
     })
     valid(view)
-    assert.equal(view.header?.title, "Tanky jsou plné (6/6)")
+    assert.equal(
+        view.header?.title,
+        "Přihlášený v zálohách — Tanky jsou plné (6/6)"
+    )
     assert.match(
         text(view),
         /Přihláška platí, ale v zálohách bez skupiny\. Když se místo uvolní, velení tě může přesunout\./
     )
     assert.deepEqual(buttons(view), [
-        "Změnit skupinu|secondary|signup-picker:event-1:111111111111111111",
+        "Změnit skupinu|secondary|signup-picker:event-1:111111111111111111:edit",
     ])
 })
 

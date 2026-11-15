@@ -109,6 +109,18 @@ export const matchDetailMessages = {
             meetingTime: "Čas srazu",
         },
         attendance: {
+            allResponses: "Všechny odpovědi",
+            responseColumn: "Odpověď",
+            scoringRules: "Pravidla bodování",
+            notScored: "Neboduje se",
+            previewPoints: "Předběžné body",
+            currentRulePoints: "Body dle aktuálních pravidel",
+            responseHelp:
+                "Odpověď a zařazení do soupisky jsou oddělené. Bez odpovědi znamená, že nemáme zaznamenanou reakci; nejde o odmítnutí.",
+            pointsHelp:
+                "Body se počítají pro nepozastavená členství podle nastavení Členství. Typ členství a místo náhradníka na eventu jsou odlišné věci. Hodnoty odpovídají aktuálním pravidlům, nikoliv historickému výpisu bodů. U lidí mimo bodování a eventů uzavřených bez bodů se zobrazuje Neboduje se.",
+            eventReserve: "Náhradník na eventu",
+
             summaryLabel: "Shrnutí docházky",
             rosterSummary: "Soupiska · {count}",
             reservesSummary: "Zálohy · {count}",

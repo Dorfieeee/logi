@@ -6,12 +6,15 @@ import {
     UserPlus,
 } from "lucide-react"
 
+import Link from "next/link"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { SignupActivity } from "@/lib/signup-activity"
 import { EmptyState } from "@/components/app/empty-state"
 import type { Dictionary } from "@/i18n/dictionaries"
 
 type Props = {
+    eventHref?: (entry: SignupActivity) => string
     activity: SignupActivity[]
     userNameById: Map<string, string>
     dictionary: Dictionary
@@ -43,6 +46,7 @@ export function SignupActivityFeed({
     timezone,
     intlLocale,
     limited,
+    eventHref,
 }: Props) {
     if (!activity.length)
         return (
@@ -107,7 +111,17 @@ export function SignupActivityFeed({
                                         </span>
                                     </p>
                                     <p className="text-muted-foreground mt-1 text-sm break-words">
-                                        {entry.eventName} ·{" "}
+                                        {eventHref ? (
+                                            <Link
+                                                href={eventHref(entry)}
+                                                className="underline underline-offset-4"
+                                            >
+                                                {entry.eventName}
+                                            </Link>
+                                        ) : (
+                                            entry.eventName
+                                        )}{" "}
+                                        ·{" "}
                                         {entry.eventKind === "match"
                                             ? dictionary.sidebar.matches
                                             : dictionary.sidebar.trainings}

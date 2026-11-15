@@ -1,4 +1,5 @@
 import { EventDeliveryStatus } from "@/components/app/event-delivery-status"
+import { EventSignupHistory } from "@/components/app/event-signup-history"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 
@@ -20,10 +21,11 @@ export default async function TrainingDetailPage({
     searchParams,
 }: {
     params: Promise<{ locale: string; serverId: string; eventId: string }>
-    searchParams: Promise<{ game?: string }>
+    searchParams: Promise<{ game?: string; tab?: string }>
 }) {
     const { locale, serverId, eventId } = await params
-    const { game } = await searchParams
+    const { game, tab } = await searchParams
+    const activeTab = tab === "history" ? "history" : "overview"
     const safeLocale = isLocale(locale) ? locale : "en"
     const dictionary = getDictionary(safeLocale)
     const context = await getServerContext(
@@ -85,17 +87,6 @@ export default async function TrainingDetailPage({
                                 </Link>
                             </Button>
                         ) : null}
-                        <Button
-                            asChild
-                            variant="outline"
-                            className="rounded-xl"
-                        >
-                            <a
-                                href={`/${locale}/dashboard/servers/${serverId}/signup-activity?eventId=${event.id}`}
-                            >
-                                {dictionary.signupActivity.title}
-                            </a>
-                        </Button>
                         {canAdmin && event.status !== "concluded" ? (
                             <CompleteTrainingButton
                                 serverId={serverId}
@@ -108,18 +99,63 @@ export default async function TrainingDetailPage({
                     </div>
                 }
             />
-            <div className="px-4 lg:px-6">
-                {canAdmin && !event.isDraft ? <EventDeliveryStatus key={event.id} serverId={serverId} eventId={event.id} dictionary={dictionary} /> : null}
-                <EventOverview
-                    event={event}
-                    context={context}
-                    dictionary={dictionary}
-                    locale={locale}
-                    serverId={serverId}
-                    editHref={editHref}
-                    seriesEditHref={null}
-                    canResyncTopics={false}
-                />
+            <div className="space-y-4 px-4 lg:px-6">
+                <nav
+                    aria-label={dictionary.matchDetail.tabsLabel}
+                    className="flex gap-4 border-b"
+                >
+                    {(["overview", "history"] as const).map((target) => {
+                        const query = new URLSearchParams()
+                        if (isGameId(game)) query.set("game", game)
+                        if (target === "history") query.set("tab", "history")
+                        return (
+                            <Link
+                                key={target}
+                                href={`/${locale}/dashboard/servers/${serverId}/trainings/${event.id}${query.size ? `?${query}` : ""}`}
+                                scroll={false}
+                                aria-current={
+                                    activeTab === target ? "page" : undefined
+                                }
+                                className={`border-b-2 px-3 py-3 text-sm ${activeTab === target ? "border-foreground font-semibold" : "text-muted-foreground border-transparent"}`}
+                            >
+                                {target === "overview"
+                                    ? dictionary.matchDetail.tabs.overview
+                                    : dictionary.signupActivity.title}
+                            </Link>
+                        )
+                    })}
+                </nav>
+                {activeTab === "history" ? (
+                    <EventSignupHistory
+                        serverId={serverId}
+                        eventId={event.id}
+                        guildDiscordId={context.server.discordId}
+                        dictionary={dictionary}
+                        locale={safeLocale}
+                        timezone={context.discordConfig?.timezone}
+                    />
+                ) : (
+                    <>
+                        {canAdmin && !event.isDraft ? (
+                            <EventDeliveryStatus
+                                key={event.id}
+                                serverId={serverId}
+                                eventId={event.id}
+                                dictionary={dictionary}
+                            />
+                        ) : null}
+                        <EventOverview
+                            event={event}
+                            context={context}
+                            dictionary={dictionary}
+                            locale={locale}
+                            serverId={serverId}
+                            editHref={editHref}
+                            seriesEditHref={null}
+                            canResyncTopics={false}
+                        />
+                    </>
+                )}
             </div>
         </>
     )

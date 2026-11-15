@@ -4,6 +4,7 @@ import test from "node:test"
 import {
     applyAttendanceExcuses,
     buildMatchAttendance,
+    buildMatchResponseRows,
     matchAttendanceMemberIds,
     planAttendanceChanges,
     setRosterPresence,
@@ -267,5 +268,58 @@ test("attendance includes unplaced signups and excludes ineligible memberships",
             "merc",
         ]),
         ["merc"]
+    )
+})
+
+test("inferred not-attending buckets do not count as explicit declines", () => {
+    const attendance = buildMatchAttendance({
+        roster: { ...roster, notAttendingPlayerIds: ["quiet", "no", "paused"] },
+        participants: [{ userId: "no", status: "not_attending" }],
+        notices: [],
+        memberIds: ["quiet", "no"],
+    })
+    assert.deepEqual(attendance.declinedUserIds, ["no"])
+    assert.deepEqual(attendance.noResponseUserIds, ["quiet"])
+    assert.equal(attendance.counts.declined, 1)
+})
+
+test("unified responses include unplaced signups and keep response separate from placement", () => {
+    const participants = [
+        { userId: "unplaced", status: "attending" as const },
+        { userId: "no", status: "not_attending" as const },
+        { userId: "sl", status: "not_attending" as const },
+    ]
+    const attendance = buildMatchAttendance({
+        roster,
+        participants,
+        notices: [],
+        memberIds: ["quiet", "quiet", "no"],
+    })
+    const rows = buildMatchResponseRows({
+        attendance,
+        participants,
+        memberIds: ["quiet", "quiet", "no"],
+    })
+    assert.equal(rows.length, 8)
+    assert.equal(
+        rows.find((row) => row.userId === "quiet")?.response,
+        "noResponse"
+    )
+    assert.equal(
+        rows.find((row) => row.userId === "unplaced")?.response,
+        "attending"
+    )
+    assert.equal(
+        rows.find((row) => row.userId === "unplaced")?.entry,
+        undefined
+    )
+    assert.equal(rows.find((row) => row.userId === "sl")?.response, "declined")
+    assert.equal(
+        rows.find((row) => row.userId === "sl")?.entry?.mark,
+        "present"
+    )
+    assert.equal(
+        rows.find((row) => row.userId === "cmd")?.response,
+        "noResponse"
     )
 })

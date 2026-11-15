@@ -77,6 +77,9 @@ export default async function SignupActivityPage({
             <div className="mt-6 px-4 lg:px-6">
                 <SignupActivityFeed
                     activity={activity}
+                    eventHref={(entry) =>
+                        `/${safeLocale}/dashboard/servers/${serverId}/${entry.eventKind === "training" ? "trainings" : "matches"}/${entry.eventId}?tab=history`
+                    }
                     userNameById={userNameById}
                     dictionary={dictionary}
                     timezone={context.discordConfig?.timezone}

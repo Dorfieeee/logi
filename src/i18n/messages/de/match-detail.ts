@@ -109,6 +109,18 @@ export const matchDetailMessages = {
             meetingTime: "Treffzeit",
         },
         attendance: {
+            allResponses: "Alle Antworten",
+            responseColumn: "Antwort",
+            scoringRules: "Punkteregeln",
+            notScored: "Keine Wertung",
+            previewPoints: "Voraussichtliche Punkte",
+            currentRulePoints: "Punkte nach aktuellen Regeln",
+            responseHelp:
+                "Antwort und Aufstellung sind getrennt. Keine Antwort bedeutet keine erfasste Anmeldeantwort, keine Absage.",
+            pointsHelp:
+                "Punkte folgen den Mitgliedschaftseinstellungen für nicht pausierte Clan-Zuordnungen. Mitgliedschaftstyp und Event-Ersatzplatz sind verschieden. Werte folgen aktuellen Regeln, keinem historischen Punktekonto. Nicht gewertete Spieler und ohne Punkte abgeschlossene Events zeigen Keine Wertung.",
+            eventReserve: "Event-Ersatzspieler",
+
             summaryLabel: "Anwesenheit im Überblick",
             rosterSummary: "Aufstellung · {count}",
             reservesSummary: "Reserve · {count}",
