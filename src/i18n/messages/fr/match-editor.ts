@@ -230,11 +230,11 @@ export const matchEditorMessages = {
             debriefDestination: "Emplacement du débriefing",
             debriefEventForum: "Dans le forum du match",
             debriefResultsThread: "Fil privé dans le salon des résultats",
-            debriefSeparateForum: "Fil privé des participants (repli du forum)",
+            debriefSeparateForum: "Sujet dans le forum de débriefing",
             debriefLegacyPrivate: "Débriefing privé existant (ancien système)",
             debriefForumChannel: "Salon forum du débriefing",
             debriefForumChannelHint:
-                "Les débriefings externes utilisent un fil privé dans le salon textuel des résultats. Les sujets d’un forum partagé ne peuvent pas être réservés aux participants du match.",
+                "Crée un sujet dans le forum choisi après le match. Les sujets héritent des permissions du forum.",
             debriefResultsWarning:
                 "Les débriefings dans les résultats nécessitent la publication du résultat après le match. Le forum de l’événement est conservé jusqu’à la création du débriefing.",
             discussionDefaults: "Discussions des événements par défaut",

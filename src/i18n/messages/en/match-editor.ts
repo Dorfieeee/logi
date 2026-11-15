@@ -225,11 +225,11 @@ export const matchEditorMessages = {
             debriefDestination: "Debrief destination",
             debriefEventForum: "Inside the match forum",
             debriefResultsThread: "Private thread in the results channel",
-            debriefSeparateForum: "Private participant thread (forum fallback)",
+            debriefSeparateForum: "Topic in the debrief forum",
             debriefLegacyPrivate: "Existing private debrief (legacy)",
             debriefForumChannel: "Debrief forum channel",
             debriefForumChannelHint:
-                "External debriefs use a private thread in the results text channel. Shared forum topics cannot restrict access to match participants.",
+                "Creates a post in the selected debrief forum after the match. Posts inherit the forum channel permissions.",
             debriefResultsWarning:
                 "Debriefs under results require publishing the match result after the game. The event forum is kept until the debrief exists.",
             discussionDefaults: "Event discussion defaults",

@@ -231,11 +231,11 @@ export const matchEditorMessages = {
             debriefDestination: "Miejsce podsumowania",
             debriefEventForum: "Na forum meczu",
             debriefResultsThread: "Prywatny wątek w kanale wyników",
-            debriefSeparateForum: "Prywatny wątek uczestników (zamiast forum)",
+            debriefSeparateForum: "Temat na forum podsumowań",
             debriefLegacyPrivate: "Istniejące prywatne podsumowanie",
             debriefForumChannel: "Kanał forum podsumowań",
             debriefForumChannelHint:
-                "Podsumowania poza forum meczu używają prywatnego wątku w kanale tekstowym wyników. Tematów wspólnego forum nie można ograniczyć do uczestników meczu.",
+                "Po meczu tworzy wpis na wybranym forum podsumowań. Wpisy dziedziczą uprawnienia kanału forum.",
             debriefResultsWarning:
                 "Podsumowanie pod wynikiem wymaga opublikowania wyniku po meczu. Forum meczu pozostaje do czasu utworzenia podsumowania.",
             discussionDefaults: "Domyślne dyskusje wydarzeń",

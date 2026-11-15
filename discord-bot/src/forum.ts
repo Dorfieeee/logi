@@ -1307,7 +1307,9 @@ export async function concludeEventForum(
           ? await syncPrivateDebrief(input)
           : destination === "event_forum"
             ? input.existingThreadId
-            : await syncPrivateDebrief(input)
+            : destination === "debrief_forum"
+              ? await syncPublicDebrief(input)
+              : await syncPrivateDebrief(input)
     if (input.deleteForum !== false && input.forumChannelId) {
         const forum = await fetchEventChannel(input.guild, input.forumChannelId)
         if (forum) {
