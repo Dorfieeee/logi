@@ -34,7 +34,9 @@ export const matchAnnouncementInteractions: InteractionFeature = {
             .stringSelect("ranked-signup:", (interaction) =>
                 handleRankedSignupInteraction(interaction, context)
             )
-            .button("signup-picker:", handleEventSignupPickerInteraction)
+            .button("signup-picker:", (interaction) =>
+                handleEventSignupPickerInteraction(interaction, context)
+            )
             .button("check-signup:", handleCheckSignupInteraction)
             .button("signup:", (interaction) =>
                 handleEventButtonInteraction(interaction, context)

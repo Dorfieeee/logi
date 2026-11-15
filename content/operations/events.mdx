@@ -327,18 +327,15 @@ their own time zone.
   name", with the meeting and the server (never its password), **Signed up 8** ·
   Not coming 1, and no teams, map or forum.
 - **Sign-up replies** (visible only to the player who clicks; in a DM they
-  arrive as a normal message, in the clan's language too): **Sign up** opens "Where do you want to play?"
-  with each group, its count and, for a full group, "you'll go to the
-  reserves". Choosing a group saves the sign-up and the same card turns into
-  "Sign-up saved: Infantry" with **Change group** and **Can't make it**; **Edit
-  sign-up** returns that card. A full group keeps the sign-up as a reserve
-  without a group, a group that needs a Discord role names the group, the role
-  and where to ask for it, and closed sign-ups say when they closed. Every
-  refusal is a short reason and the next step.
-  A match with **Allow backup group choices** enabled instead opens an ordered
-  choice card. One group is enough; add alternatives if wanted, use **Change
-  order** for up/down/remove buttons, then **Save sign-up**. Full-group reserves
-  retain their preferences. See [match sign-ups](./matches#sign-ups).
+  arrive as a normal message, in the clan's language too): **Sign up** saves
+  your eligible primary group, falling back to the first eligible secondary group.
+  If none matches, **Not signed up - choose a group** requires a selection, which
+  saves immediately. The saved card says **No further action required** and offers
+  optional **Change group** and **Can't make it** actions. Full groups save as
+  reserves. With **Allow backup group choices**, Change group opens the optional
+  preference editor: add alternatives, use **Change order**, then **Save sign-up**
+  to apply edits. Abandoning or expiring the editor preserves the saved signup.
+  See [match sign-ups](./matches#sign-ups).
   During registration, you can select the same group again or return to a
   previously selected group, including on matches created before preferential
   sign-ups were introduced. Normal and preferential saves acknowledge the click
@@ -555,3 +552,13 @@ delivery receipts still require that manual check.
 
 
 The match **Sign-ups and attendance** tab includes players who have signed up but are not yet placed on the roster. It groups players by their membership for the match's game. **No response** includes unpaused members, recruits, reserves and mercenaries whose membership status is allowed for the match; shared matches use the local player audience. Players who already responded or have a roster placement are excluded. Required Discord-role restrictions may further limit who can sign up.
+
+
+## Event-specific sign-up history
+
+Match and training details include a **Sign-up history** tab. It stays inside
+that event's detail and shows only activity recorded for that event. The tab has
+a direct URL (`?tab=history`), and event names in the general sign-up activity feed
+link to their corresponding event history. Switching back to **Overview** keeps
+the same event and game context. History shows up to the latest 100 entries and
+indicates when that limit is reached.

@@ -178,6 +178,7 @@ export type MatchAnnouncementCopy = {
         /** "Přihláška · {event}" (laid out upper case). */
         label: string
         pickerTitle: string
+        pickerBody: string
         /** "{start} · přihlášky do {deadline}". */
         meta: string
         pickerPlaceholder: string

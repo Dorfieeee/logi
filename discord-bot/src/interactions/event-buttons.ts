@@ -283,12 +283,14 @@ function pickerOptions(context: EventInteractionContext): SignupPickerOption[] {
  * L1-88, L1-89). Who may not sign up at all reads why right away.
  */
 export async function handleEventSignupPickerInteraction(
-    interaction: ButtonInteraction
+    interaction: ButtonInteraction,
+    handlers?: InteractionHandlerOptions
 ) {
     const [, eventId, thirdPart, fourthPart] = interaction.customId.split(":")
     // A legacy announcement's single signup button has an extra action
     // segment (`signup:<event>:PRIMARY_GROUP:<guild>`).
-    const customIdGuildId = fourthPart ?? thirdPart
+    const editing = thirdPart !== SIGNUP_PRIMARY_GROUP && fourthPart === "edit"
+    const customIdGuildId = editing ? thirdPart : (fourthPart ?? thirdPart)
     const context = await loadSignupContext(
         interaction,
         eventId ?? "",
@@ -321,14 +323,76 @@ export async function handleEventSignupPickerInteraction(
         return
     }
     const choices = pickerOptions(context)
-    if (context.event.kind === "match" && context.event.allowRankedSignup) {
+    if (!editing && handlers) {
+        if (
+            context.event.participants.some(
+                (person) =>
+                    person.userId === interaction.user.id &&
+                    person.status === "attending"
+            )
+        ) {
+            await handleCheckSignupInteraction(interaction)
+            return
+        }
+        const preferred = [
+            membership.assignment?.primaryGroupId,
+            ...(membership.assignment?.secondaryGroupIds ?? []),
+        ].find(
+            (id) =>
+                id &&
+                choices.some((choice) => choice.value === id) &&
+                resolveEventSignupSelection({
+                    event: context.event,
+                    groups: context.groups,
+                    memberRoleIds: member
+                        ? [...member.roles.cache.keys()]
+                        : null,
+                    assignedGroupIds: membership.assignedGroupIds,
+                    membershipStatus: membership.membershipStatus,
+                    actionId: id,
+                    labels: selectionLabels(context),
+                }).ok
+        )
+        if (preferred) {
+            const group = context.groups.find((item) => item.id === preferred)
+            if (group) {
+                await handleEventButtonInteraction(interaction, handlers, {
+                    eventId: context.event.id,
+                    guildId: context.event.guildId,
+                    firstGroupId: preferred,
+                    choices: context.event.allowRankedSignup
+                        ? [group.name]
+                        : [],
+                })
+                return
+            }
+        }
+    }
+    if (
+        editing &&
+        context.event.participants.some(
+            (person) =>
+                person.userId === interaction.user.id &&
+                person.status === "attending"
+        ) &&
+        context.event.kind === "match" &&
+        context.event.allowRankedSignup
+    ) {
         await openRankedSignup(interaction, context)
         return
     }
     await replyToClicker(
         interaction,
         choices.length
-            ? signupPickerView({ ...replyContext(context), options: choices })
+            ? signupPickerView({
+                  ...replyContext(context),
+                  options: choices,
+                  signedUp: context.event.participants.some(
+                      (person) =>
+                          person.userId === interaction.user.id &&
+                          person.status === "attending"
+                  ),
+              })
             : signupNoGroupsView(replyContext(context).copy),
         { ...options, replaceCard: true }
     )
@@ -345,20 +409,6 @@ function groupNameOf(
         context.groups.find((item) => item.id === group || item.name === group)
             ?.name ?? group
     )
-}
-
-/** The first configured assignment that this match offers: primary, then secondary order. */
-function preferredSignupGroupId(
-    context: EventInteractionContext,
-    assignment: ReturnType<typeof membershipOf>["assignment"]
-) {
-    if (!assignment) return undefined
-    const offered = new Set(
-        context.event.signupGroupIds ?? context.groups.map((group) => group.id)
-    )
-    return [assignment.primaryGroupId, ...(assignment.secondaryGroupIds ?? [])]
-        .filter((groupId): groupId is string => Boolean(groupId))
-        .find((groupId) => offered.has(groupId))
 }
 
 /**
@@ -496,7 +546,7 @@ export async function handleEventButtonInteraction(
         interaction.customId.split(":")
     const eventId = ranked?.eventId ?? parsedEventId
     const customIdGuildId = ranked?.guildId ?? parsedGuildId
-    let requestedGroupId =
+    const requestedGroupId =
         ranked?.firstGroupId ??
         (interaction.isStringSelectMenu()
             ? (interaction.values[0] ?? "")
@@ -530,6 +580,15 @@ export async function handleEventButtonInteraction(
         }
 
         await handleAttendanceInteraction(interaction, context, options)
+        return
+    }
+
+    if (
+        !ranked &&
+        interaction.isButton() &&
+        requestedGroupId === SIGNUP_PRIMARY_GROUP
+    ) {
+        await handleEventSignupPickerInteraction(interaction, options)
         return
     }
 
@@ -569,20 +628,6 @@ export async function handleEventButtonInteraction(
         const member = await resolveInteractionMember(interaction, guild)
         const membership = membershipOf(context, interaction.user.id)
         const kit = { ...kitOptions(context), replaceCard: true }
-        if (
-            interaction.isButton() &&
-            requestedGroupId === SIGNUP_PRIMARY_GROUP
-        ) {
-            const preferredGroupId = preferredSignupGroupId(
-                context,
-                membership.assignment
-            )
-            if (!preferredGroupId) {
-                await handleEventSignupPickerInteraction(interaction)
-                return
-            }
-            requestedGroupId = preferredGroupId
-        }
         const resolved = resolveEventSignupSelection({
             event: context.event,
             groups: context.groups,
@@ -602,18 +647,6 @@ export async function handleEventButtonInteraction(
             return
         }
 
-        if (
-            !ranked &&
-            context.event.kind === "match" &&
-            context.event.allowRankedSignup &&
-            resolved.group &&
-            ![SIGNUP_NOT_ATTENDING, SIGNUP_GENERAL, TRAINING_ATTEND].includes(
-                resolved.group
-            )
-        ) {
-            await openRankedSignup(interaction, context, [resolved.group])
-            return
-        }
         if (ranked) {
             for (const name of ranked.choices) {
                 const group = context.groups.find((item) => item.name === name)
@@ -703,7 +736,13 @@ export async function handleEventButtonInteraction(
                 group: resolved.group,
                 signupPreferences: ranked?.choices.length
                     ? ranked.choices
-                    : undefined,
+                    : context.event.allowRankedSignup &&
+                        resolved.group &&
+                        context.groups.some(
+                            (group) => group.name === resolved.group
+                        )
+                      ? [resolved.group]
+                      : undefined,
                 lateSignupReason,
                 profile: {
                     name:

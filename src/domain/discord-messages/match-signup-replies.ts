@@ -48,7 +48,7 @@ function meta({ event, copy }: SignupReplyContext) {
 export function changeGroupButton(context: SignupReplyContext): MessageButton {
     return {
         kind: "action",
-        id: `signup-picker:${context.event.eventId}:${context.event.guildId}`,
+        id: `signup-picker:${context.event.eventId}:${context.event.guildId}:edit`,
         label: context.copy.buttons.changeGroup,
         style: "secondary",
     }
@@ -95,15 +95,25 @@ export function signupSelectId(
  * capped group saying the sign-up goes to the reserves (L1-88, L1-89).
  */
 export function signupPickerView(
-    context: SignupReplyContext & { options: readonly SignupPickerOption[] }
+    context: SignupReplyContext & {
+        options: readonly SignupPickerOption[]
+        signedUp?: boolean
+    }
 ): MessageView {
     const { copy, event } = context
     const text = copy.replies
     return {
         accent: "clan",
         ephemeral: true,
-        header: { label: label(context), title: text.pickerTitle },
+        header: {
+            label: label(context),
+            title: context.signedUp ? text.savedTitleNoGroup : text.pickerTitle,
+        },
         blocks: [
+            {
+                kind: "text",
+                markdown: context.signedUp ? text.savedBody : text.pickerBody,
+            },
             { kind: "meta", lines: [{ text: meta(context) }] },
             {
                 kind: "select",

@@ -92,11 +92,20 @@ semantics. A missing legacy `confirmed` value means unconfirmed. These states
 are not a proof that someone played, and absence of a slot is not a no-show.
 Training completion remains independently `passed`, `failed` or null.
 
-The dashboard's sign-up and attendance view groups its existing event participants
-and game memberships by status, including attendees awaiting roster placement.
+The dashboard's sign-up and attendance view combines existing event participants
+and eligible game memberships in one table, including attendees awaiting roster
+placement. Its response counts distinguish explicit `not_attending` participation
+from a missing response: the roster's not-attending bucket is also populated for
+non-responders and must not be interpreted as proof of a decline. Roster placement,
+confirmation and the event response remain separate facts.
+
 This is a dashboard projection; the published roster summary continues to expose
 its existing participation and roster fields, without dashboard grouping or an
-aggregate unanswered audience.
+aggregate unanswered audience. The UI adds no persistence fields, scoring policy,
+or API write operation, so the existing `/api/v1` contract and OpenAPI schema remain
+unchanged. Event-specific sign-up activity tabs use the existing authenticated
+dashboard reader; sign-up audit history is not added to the public integration
+projection.
 
 ## Collected-session statistics, not career statistics
 

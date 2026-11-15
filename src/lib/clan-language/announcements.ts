@@ -167,7 +167,9 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
         },
         replies: {
             label: "Přihláška · {event}",
-            pickerTitle: "Kde chceš hrát?",
+            pickerTitle: "Nejsi přihlášený — vyber skupinu",
+            pickerBody:
+                "Pro přihlášení musíš vybrat skupinu. Výběr se ihned uloží. U pozdní přihlášky ještě vyplň důvod.",
             meta: "{start} · přihlášky do {deadline}",
             pickerPlaceholder: "Vyber skupinu",
             optionCount: {
@@ -183,10 +185,11 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
             savedTitle: "Přihláška uložena: {group}",
             savedTitleNoGroup: "Přihláška uložena",
             savedBody:
-                "Soupisku velení zveřejní před srazem. Kde hraješ, uvidíš pod Zobrazit zařazení.",
+                "Přihláška je uložená. Nemusíš už nic potvrzovat. Skupinu a preference můžeš volitelně změnit přes Změnit skupinu. Soupisku velení zveřejní před srazem. Kde hraješ, uvidíš pod Zobrazit zařazení.",
             savedBodyTraining:
                 "Sraz je {time}. Když nakonec nemůžeš, klikni na Nepřijdu.",
-            fullTitle: "{group} jsou plné ({count}/{max})",
+            fullTitle:
+                "Přihlášený v zálohách — {group} jsou plné ({count}/{max})",
             fullBody:
                 "Přihláška platí, ale v zálohách bez skupiny. Když se místo uvolní, velení tě může přesunout.",
             noRoleTitle: "Na {group} nemáš roli",
@@ -404,7 +407,9 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
         },
         replies: {
             label: "Rejestracja · {event}",
-            pickerTitle: "Gdzie chcesz grać?",
+            pickerTitle: "Nie jesteś zapisany — wybierz grupę",
+            pickerBody:
+                "Wybierz grupę, aby się zapisać. Wybór zapisuje się od razu. Spóźnione zgłoszenie wymaga jeszcze podania powodu.",
             meta: "{start} · rejestracje do {deadline}",
             pickerPlaceholder: "Wybierz grupę",
             optionCount: {
@@ -418,10 +423,11 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
             savedTitle: "Rejestracja została zapisana: {group}",
             savedTitleNoGroup: "Rejestracja została zapisana",
             savedBody:
-                "Komenda publikuje skład przed spotkaniem. W obszarze Moje zadanie zobaczysz, gdzie grasz.",
+                "Zapisano. Nie musisz już nic potwierdzać. Grupę i preferencje możesz opcjonalnie zmienić przyciskiem Zmień grupę. Komenda publikuje skład przed spotkaniem. W obszarze Moje zadanie zobaczysz, gdzie grasz.",
             savedBodyTraining:
                 "Spotkanie to {time}. Jeśli mimo wszystko nie dasz rady, kliknij Nie dam rady.",
-            fullTitle: "{group} jest pełny ({count}/{max})",
+            fullTitle:
+                "Zapisano do rezerwy — {group} jest pełny ({count}/{max})",
             fullBody:
                 "Twoja rejestracja się liczy, ale jako rezerwa bez grupy. Jeśli zwolni się miejsce, dowództwo może cię przenieść.",
             noRoleTitle: "Nie masz roli dla {group}",
@@ -533,8 +539,7 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
             trainingCancelledDetail: "l’entraînement est annulé",
             cancelledBody:
                 "L’événement Discord est annulé. Si tu étais inscrit, tu n’as rien à faire.",
-            cancelledBodyNoEvent:
-                "Si tu étais inscrit, tu n’as rien à faire.",
+            cancelledBodyNoEvent: "Si tu étais inscrit, tu n’as rien à faire.",
             outcomes: { win: "Victoire", loss: "Défaite", draw: "Match nul" },
             confirmedBy: "confirmé par {name}",
             forumFooter: "Forum du match : {channel}",
@@ -594,14 +599,16 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
             full: "complet",
             attending: "Présents ({count})",
             reserves: "Remplaçants ({count})",
-            reservesNote: "le groupe était complet, le commandement peut les réaffecter",
+            reservesNote:
+                "le groupe était complet, le commandement peut les réaffecter",
             general: "Sans groupe ({count})",
             generalNote: "le commandement les répartira dans les groupes",
             declined: "Absents ({count})",
             declinedNote: "seul le commandement voit le motif",
             noReason: "sans motif",
             unanswered: "Sans réponse ({count})",
-            unansweredNote: "membres qui ne se sont ni inscrits ni déclarés absents",
+            unansweredNote:
+                "membres qui ne se sont ni inscrits ni déclarés absents",
             originally: "initialement {group}",
             late: "en retard",
             signedUpLate: "inscription tardive",
@@ -621,20 +628,24 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
                 "Les {members} membres sans réponse recevront un rappel d’inscription en message privé. Le prochain rappel pourra être envoyé dans une heure au plus tôt.",
             remindMembers: { one: "{count} membre", other: "{count} membres" },
             remindNobodyTitle: "Personne à relancer",
-            remindNobodyBody: "Tous les membres autorisés à s’inscrire ont répondu.",
+            remindNobodyBody:
+                "Tous les membres autorisés à s’inscrire ont répondu.",
             remindLimitedTitle: "Un rappel a déjà été envoyé",
             remindLimitedBody:
                 "Le commandement en a envoyé un il y a moins d’une heure. Le prochain pourra être envoyé {time}.",
             remindClosedTitle: "Les inscriptions sont closes",
             remindClosedBody:
                 "Le rappel d’inscription ne peut être envoyé que tant que les inscriptions sont ouvertes.",
-            remindNotAllowedTitle: "Seul le commandement peut envoyer des rappels",
+            remindNotAllowedTitle:
+                "Seul le commandement peut envoyer des rappels",
             remindNotAllowedWho:
                 "Ce bouton est réservé aux joueurs disposant du rôle d’administrateur Logi.",
         },
         replies: {
             label: "Inscription · {event}",
-            pickerTitle: "Dans quel groupe veux-tu jouer ?",
+            pickerTitle: "Pas encore inscrit : choisis un groupe",
+            pickerBody:
+                "Choisis un groupe pour t’inscrire. Le choix est enregistré immédiatement. Une inscription tardive nécessite aussi un motif.",
             meta: "{start} · inscriptions jusqu’à {deadline}",
             pickerPlaceholder: "Choisis un groupe",
             optionCount: {
@@ -648,10 +659,11 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
             savedTitle: "Inscription enregistrée : {group}",
             savedTitleNoGroup: "Inscription enregistrée",
             savedBody:
-                "Le commandement publiera la composition avant le rassemblement. Tu trouveras ton poste dans Mon affectation.",
+                "Inscription enregistrée. Aucune autre action requise. Le bouton Changer de groupe permet de modifier le groupe et les préférences si tu le souhaites. Le commandement publiera la composition avant le rassemblement. Tu trouveras ton poste dans Mon affectation.",
             savedBodyTraining:
                 "Le rassemblement est prévu {time}. Si tu ne peux finalement pas venir, clique sur Je ne peux pas venir.",
-            fullTitle: "{group} est complet ({count}/{max})",
+            fullTitle:
+                "Inscrit en réserve — {group} est complet ({count}/{max})",
             fullBody:
                 "Ton inscription est prise en compte, mais tu es remplaçant sans groupe. Si une place se libère, le commandement pourra t’affecter.",
             noRoleTitle: "Tu n’as pas le rôle requis pour {group}",
@@ -682,7 +694,8 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
             declineSavedBody:
                 "Le commandement est informé de ton absence. Si tu changes d’avis, réinscris-toi avant {time}.",
             groupGoneTitle: "Ce groupe n’est plus proposé",
-            groupGoneBody: "Le commandement a modifié les groupes entre-temps. Fais un nouveau choix.",
+            groupGoneBody:
+                "Le commandement a modifié les groupes entre-temps. Fais un nouveau choix.",
             noGroupsTitle: "Aucun groupe configuré pour le moment",
             noGroupsBody:
                 "Le commandement n’a pas encore défini les groupes pour ce match. Réessaie plus tard ou contacte-le.",
@@ -862,7 +875,9 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
         },
         replies: {
             label: "Sign-up · {event}",
-            pickerTitle: "Where do you want to play?",
+            pickerTitle: "Not signed up - choose a group",
+            pickerBody:
+                "Choose a group to sign up. Your choice saves immediately. Late sign-ups also require a reason.",
             meta: "{start} · sign-ups until {deadline}",
             pickerPlaceholder: "Choose a group",
             optionCount: {
@@ -876,10 +891,10 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
             savedTitle: "Sign-up saved: {group}",
             savedTitleNoGroup: "Sign-up saved",
             savedBody:
-                "Command publishes the roster before the meeting. You'll see where you play under My assignment.",
+                "You are signed up. No further action required. Changing your group or preferences is optional. Command publishes the roster before the meeting. You'll see where you play under My assignment.",
             savedBodyTraining:
                 "The meeting is {time}. If you can't make it after all, click Can't make it.",
-            fullTitle: "{group} is full ({count}/{max})",
+            fullTitle: "Signed up as reserve — {group} is full ({count}/{max})",
             fullBody:
                 "Your sign-up counts, but as a reserve without a group. If a place opens up, command can move you.",
             noRoleTitle: "You don't have the role for {group}",
@@ -1105,7 +1120,9 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
         },
         replies: {
             label: "Anmeldung · {event}",
-            pickerTitle: "Wo willst du spielen?",
+            pickerTitle: "Noch nicht angemeldet — Gruppe wählen",
+            pickerBody:
+                "Wähle eine Gruppe, um dich anzumelden. Die Auswahl wird sofort gespeichert. Für eine verspätete Anmeldung ist noch eine Begründung nötig.",
             meta: "{start} · Anmeldung bis {deadline}",
             pickerPlaceholder: "Gruppe wählen",
             optionCount: {
@@ -1119,10 +1136,11 @@ const announcementMessages: Record<ClanLanguage, AnnouncementMessages> = {
             savedTitle: "Anmeldung gespeichert: {group}",
             savedTitleNoGroup: "Anmeldung gespeichert",
             savedBody:
-                "Die Führung veröffentlicht das Roster vor dem Treffen. Wo du spielst, siehst du unter Meine Einteilung.",
+                "Du bist angemeldet. Keine weitere Aktion erforderlich. Über Gruppe ändern kannst du optional Gruppe und Präferenzen bearbeiten. Die Führung veröffentlicht das Roster vor dem Treffen. Wo du spielst, siehst du unter Meine Einteilung.",
             savedBodyTraining:
                 "Das Treffen ist {time}. Wenn du doch nicht kannst, klick auf Ich komme nicht.",
-            fullTitle: "{group} ist voll ({count}/{max})",
+            fullTitle:
+                "Als Reserve angemeldet — {group} ist voll ({count}/{max})",
             fullBody:
                 "Deine Anmeldung gilt, aber in der Reserve ohne Gruppe. Wenn ein Platz frei wird, kann dich die Führung verschieben.",
             noRoleTitle: "Dir fehlt die Rolle für {group}",

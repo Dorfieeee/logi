@@ -393,3 +393,14 @@ The application/ticket effect journal is an internal Discord lifecycle. There is
 no new `/api/v1` write: an API key is not a substitute for the current Discord
 thread/category authority used by recruitment and ticket commands. Dashboard/v1
 membership writes continue to use the existing shared assignment commands.
+
+## Immediate match signup
+
+Discord Sign up saves the first eligible offered assignment (primary, then
+secondary order), or requires a group selection that saves immediately.
+Saved replies distinguish completed signup from a required selection and a full
+group reserve. Optional ranked preference edits require Save sign-up; abandoning
+them preserves the existing signup. Late signups still require a reason.
+This is a Discord interaction convenience over the existing shared signup command.
+Dashboard and v1 writers retain their explicit group/preference inputs and existing
+authorization, capacity and late-signup rules; no new API operation is needed.

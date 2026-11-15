@@ -123,8 +123,57 @@ test("ranked Discord draft adds, reorders, removes and saves only on request", a
         return activeClick
     }
     const options = { enqueueEventSync: () => {}, triggerPollSoon: () => {} }
+    // First signup is durable immediately, including primary/secondary fallback.
+    context.assignments = [
+        { userId, primaryGroupId: "inf", secondaryGroupIds: ["tank"] },
+    ]
     await handleEventSignupPickerInteraction(
-        click(`signup-picker:event-1:${guildId}`) as ButtonInteraction
+        click(`signup-picker:event-1:${guildId}`) as ButtonInteraction,
+        options
+    )
+    assert.equal(mutations.at(-1)?.group, boardGroups[0].name)
+    assert.deepEqual(mutations.at(-1)?.signupPreferences, [boardGroups[0].name])
+    context.assignments[0].primaryGroupId = "unoffered"
+    await handleEventSignupPickerInteraction(
+        click(`signup-picker:event-1:${guildId}`) as ButtonInteraction,
+        options
+    )
+    assert.equal(mutations.at(-1)?.group, boardGroups[1].name)
+    context.assignments = []
+    const beforePicker = mutations.length
+    await handleEventSignupPickerInteraction(
+        click(`signup-picker:event-1:${guildId}`) as ButtonInteraction,
+        options
+    )
+    assert.equal(mutations.length, beforePicker)
+    assert.match(payloadText(replies.at(-1)), /Not signed up/)
+    await handleEventButtonInteraction(
+        click(`signup:event-1:select:${guildId}`, "inf"),
+        options
+    )
+    assert.equal(mutations.length, beforePicker + 1)
+    assert.match(payloadText(replies.at(-1)), /No further action required/)
+    context.event.participants = [
+        {
+            userId,
+            status: "attending",
+            group: boardGroups[0].name,
+            updatedAt: "2030-01-01T00:00:00.000Z",
+        },
+    ]
+    const beforeRepeat = mutations.length
+    await handleEventSignupPickerInteraction(
+        click(`signup-picker:event-1:${guildId}`) as ButtonInteraction,
+        options
+    )
+    assert.equal(
+        mutations.length,
+        beforeRepeat,
+        "repeat signup preserves saved choices"
+    )
+    mutations.length = 0
+    await handleEventSignupPickerInteraction(
+        click(`signup-picker:event-1:${guildId}:edit`) as ButtonInteraction
     )
     function actionId(action: string) {
         const match = payloadText(replies.at(-1)).match(
@@ -151,6 +200,7 @@ test("ranked Discord draft adds, reorders, removes and saves only on request", a
         1,
         "an expired or replayed editor never saves twice"
     )
+    context.event.participants = []
     // Legacy matches without the ranked setting may repeatedly choose any group.
     delete context.event.allowRankedSignup
     for (const groupId of ["tank", "tank", "inf", "inf", "tank"]) {

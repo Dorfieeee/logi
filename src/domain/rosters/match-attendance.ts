@@ -202,12 +202,11 @@ export function buildMatchAttendance(input: {
         ),
     ]
     const declinedUserIds = [
-        ...new Set([
-            ...(input.roster?.notAttendingPlayerIds ?? []),
-            ...input.participants
+        ...new Set(
+            input.participants
                 .filter((participant) => participant.status === "not_attending")
-                .map((participant) => participant.userId),
-        ]),
+                .map((participant) => participant.userId)
+        ),
     ].filter((userId) => !seen.has(userId) && !unplacedUserIds.includes(userId))
     const answered = new Set([
         ...seen,
@@ -311,4 +310,45 @@ export function applyAttendanceExcuses<T extends AttendanceNotice>(input: {
         })
     }
     return notices
+}
+
+/** Response comes from the event, never from an inferred roster bucket. */
+export type MatchResponse = "attending" | "declined" | "noResponse"
+
+export function buildMatchResponseRows(input: {
+    attendance: MatchAttendance
+    participants: readonly {
+        userId: string
+        status: "attending" | "not_attending"
+    }[]
+    memberIds: readonly string[]
+}): Array<{
+    userId: string
+    response: MatchResponse
+    entry?: MatchAttendanceEntry
+}> {
+    const participants = new Map(
+        input.participants.map((participant) => [
+            participant.userId,
+            participant.status,
+        ])
+    )
+    const entries = new Map(
+        input.attendance.entries.map((entry) => [entry.userId, entry])
+    )
+    const userIds = new Set([
+        ...input.memberIds,
+        ...participants.keys(),
+        ...entries.keys(),
+    ])
+    return [...userIds].map((userId) => ({
+        userId,
+        response:
+            participants.get(userId) === "attending"
+                ? "attending"
+                : participants.get(userId) === "not_attending"
+                  ? "declined"
+                  : "noResponse",
+        entry: entries.get(userId),
+    }))
 }

@@ -117,12 +117,19 @@ Switch on **Repeat every week** for a weekly series.
 
 ### Sign-ups
 
+Clicking **Sign up** saves immediately using your offered, eligible primary group,
+or the first eligible secondary group. If no assigned group matches, the bot says
+**Not signed up - choose a group**. Choose one to save; no extra confirmation is
+needed. A saved signup says **No further action required**. Clicking Sign up again
+shows the saved signup without replacing your choices.
+
 **Allow backup group choices** is off by default. Enable it to let players add
-optional alternatives in preference order. In Discord, select a first group,
-optionally **Add another group**, then **Save sign-up**. One group is enough.
-**Change order** opens an editor with up/down and remove buttons; **Done** returns
-to the choices before saving. Longer lists have pages. Edits are private and
-expire after 15 minutes of inactivity; reopen the signup to start again.
+optional alternatives in preference order. After signup, **Change group** opens
+the optional preference editor. Use **Add another group** and **Change order**
+for up/down/remove buttons; **Done** returns to the choices. Click **Save sign-up**
+to apply edits. Longer lists have pages. Edits are private and expire after 15
+minutes of inactivity. Closing the editor, expiration, or a bot restart preserves
+the saved signup; only unsaved edits are lost. Late signups still require a reason.
 A full first-choice group still starts the player in reserves, and their ordered
 choices are retained for roster planning. Backup choices do not automatically
 move players between groups when someone else signs up or withdraws.
@@ -307,14 +314,29 @@ attendance**.
 
 ## Sign-ups and attendance (manager)
 
-The **Sign-ups and attendance** tab counts roster players who attended, were
-excused or did not attend, reserves who attended, people who declined and
-members who never answered. The table lists the roster players in squad order,
-then the reserves, with their place, what they said before the match, their
-attendance and the points it gives under the workspace's
-[membership score rules](/wiki/configuration/members). Filters switch to the
-people who declined or did not answer; **Sign-up history** opens the event's
-sign-up activity.
+The **Sign-ups and attendance** tab shows one table for everyone: signed-up
+players (including those awaiting placement), explicit declines, and eligible
+members without a recorded response. The three summary counts stay visible;
+click a count or a filter to narrow the table, or choose **All responses**.
+Membership groups have prominent headings and can be collapsed independently.
+Collapsing or filtering does not change the summary counts.
+
+The **Response** column is independent of roster placement and actual attendance.
+Only a recorded **Not attending** response counts as a decline. The roster's
+inferred not-attending bucket does not prove that a player declined. Someone
+placed on a roster can still have no recorded sign-up response. An **Event reserve**
+place is different from **Reserve member** membership.
+
+Points are shown per player using the current Membership rules and scoring
+eligibility. Before closing, they are **Projected points**; after closing, they
+are **Points under current rules**, not a historical ledger. Players outside the
+scored membership set and events closed without points show **Not scored**.
+Expand **Scoring rules** to see the configured values; hover a point value for its
+category. This screen does not change the existing scoring policy.
+
+**Sign-up history** is a tab inside this match detail, with a direct link and
+activity queried for this event only. The general sign-up activity feed also
+links each event name to that event's history tab.
 
 - **Attended** records manager-confirmed attendance on the roster, the same
   status as **Confirmed** on the roster board.

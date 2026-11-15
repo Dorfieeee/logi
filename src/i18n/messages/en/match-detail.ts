@@ -109,6 +109,18 @@ export const matchDetailMessages = {
             meetingTime: "Meeting time",
         },
         attendance: {
+            allResponses: "All responses",
+            responseColumn: "Response",
+            scoringRules: "Scoring rules",
+            notScored: "Not scored",
+            previewPoints: "Projected points",
+            currentRulePoints: "Points under current rules",
+            responseHelp:
+                "Response and roster placement are separate. No response means no recorded sign-up response; it is not a decline.",
+            pointsHelp:
+                "Points follow Membership settings for non-paused clan assignments. Membership type and an event reserve place are different. Values use current rules, not a historical score ledger. Ineligible players and events closed without points show Not scored.",
+            eventReserve: "Event reserve",
+
             summaryLabel: "Attendance summary",
             rosterSummary: "Roster · {count}",
             reservesSummary: "Reserves · {count}",

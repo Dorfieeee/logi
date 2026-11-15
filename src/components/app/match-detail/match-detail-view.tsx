@@ -57,6 +57,7 @@ export type MatchDetailViewModel = {
     roster: Roster | null
     users: AppUser[]
     memberIds: string[]
+    scoredUserIds: string[]
     attendanceAssignments: Array<{
         userId: string
         type: "member" | "reserve_member" | "mercenary"
@@ -86,6 +87,7 @@ export type MatchDetailViewModel = {
     /** The overview and the live roster board come from the page. */
     overview: ReactNode
     rosterBoard: ReactNode
+    signupHistory: ReactNode
 }
 
 /**
@@ -261,6 +263,7 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                         roster={roster}
                         users={model.users}
                         memberIds={model.memberIds}
+                        scoredUserIds={model.scoredUserIds}
                         assignments={model.attendanceAssignments}
                         scoreSettings={model.scoreSettings}
                         closeSummary={model.closeSummary}
@@ -278,6 +281,7 @@ export function MatchDetailView(model: MatchDetailViewModel) {
                         dictionary={dictionary}
                     />
                 ) : null}
+                {activeTab === "history" ? model.signupHistory : null}
                 {activeTab === "roster" ? (
                     roster &&
                     (canAdmin || event.hostEventId || roster.published) ? (

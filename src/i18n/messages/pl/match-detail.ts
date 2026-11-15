@@ -110,6 +110,18 @@ export const matchDetailMessages = {
             meetingTime: "Godzina zbiórki",
         },
         attendance: {
+            allResponses: "Wszystkie odpowiedzi",
+            responseColumn: "Odpowiedź",
+            scoringRules: "Zasady punktacji",
+            notScored: "Bez punktacji",
+            previewPoints: "Przewidywane punkty",
+            currentRulePoints: "Punkty według obecnych zasad",
+            responseHelp:
+                "Odpowiedź i miejsce w składzie są oddzielne. Brak odpowiedzi oznacza brak zapisanej reakcji, a nie odmowę.",
+            pointsHelp:
+                "Punkty wynikają z ustawień członkostwa dla niezawieszonych przypisań do klanu. Typ członkostwa i miejsce rezerwowe w wydarzeniu to różne rzeczy. Wartości wynikają z obecnych zasad, a nie historii punktów. Osoby nieobjęte punktacją i wydarzenia zamknięte bez punktów pokazują Bez punktacji.",
+            eventReserve: "Rezerwowy wydarzenia",
+
             summaryLabel: "Podsumowanie obecności",
             rosterSummary: "Skład · {count}",
             reservesSummary: "Rezerwy · {count}",

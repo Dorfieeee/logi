@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 export const MATCH_DETAIL_TABS = [
     "overview",
     "attendance",
+    "history",
     "roster",
     "discord",
     "result",
@@ -181,6 +182,8 @@ export function MatchDetailHeader({
             ) : (
                 t.tabSignups
             )
+        ) : tab === "history" ? (
+            t.actions.signupHistory
         ) : (
             t.tabs[tab]
         )
