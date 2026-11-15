@@ -11,6 +11,7 @@ function fixture() {
         _id: "guilds:a",
         discordId: "111111111111111111",
         adminIds: [],
+        enabledGames: ["hell_let_loose", "wardogs"],
     })
     ctx.db.seed("discordConfigs", {
         _id: "discordConfigs:a",
@@ -110,6 +111,75 @@ test("the clan-wide results destination can be saved and cleared without changin
         ctx.db.tables.discordConfigs[0].eventResultsChannelId,
         undefined
     )
+})
+
+test("per-game debrief forums save without a clan fallback or disabled-game channels", async () => {
+    const ctx = fixture()
+    const eventDiscussionDefaults = {
+        createForumChannel: false,
+        createDebriefThread: true,
+        debriefDestination: "debrief_forum",
+    }
+    const gameOverrides = {
+        hell_let_loose: {
+            eventDiscussionDefaults: { debriefForumChannelId: "401" },
+        },
+        wardogs: {
+            eventDiscussionDefaults: { debriefForumChannelId: "402" },
+        },
+    }
+    await invoke(configuration.upsertConfig, ctx, {
+        secret,
+        guildId: "guilds:a",
+        eventDiscussionDefaults,
+        gameOverrides,
+    })
+    assert.deepEqual(
+        ctx.db.tables.discordConfigs[0].gameOverrides,
+        gameOverrides
+    )
+    // Subsequent saves of another settings page must validate the same effective routing.
+    await invoke(configuration.upsertConfig, ctx, {
+        secret,
+        guildId: "guilds:a",
+        timezone: "UTC",
+    })
+    await assert.rejects(
+        invoke(configuration.upsertConfig, ctx, {
+            secret,
+            guildId: "guilds:a",
+            gameOverrides: {
+                ...gameOverrides,
+                wardogs: { eventDiscussionDefaults: {} },
+            },
+        }),
+        /Select a debrief forum channel/
+    )
+})
+
+test("enabled custom games require a debrief forum while disabled debriefs do not", async () => {
+    const ctx = fixture()
+    ctx.db.tables.guilds[0].enabledGames = ["custom-game"]
+    const eventDiscussionDefaults = {
+        debriefDestination: "debrief_forum",
+        createDebriefThread: true,
+    }
+    await assert.rejects(
+        invoke(configuration.upsertConfig, ctx, {
+            secret,
+            guildId: "guilds:a",
+            eventDiscussionDefaults,
+        }),
+        /Select a debrief forum channel/
+    )
+    await invoke(configuration.upsertConfig, ctx, {
+        secret,
+        guildId: "guilds:a",
+        eventDiscussionDefaults: {
+            ...eventDiscussionDefaults,
+            createDebriefThread: false,
+        },
+    })
 })
 
 test("discussion defaults save with game overrides and validate inherited deletion", async () => {

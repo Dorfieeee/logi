@@ -18,9 +18,9 @@ import { normalizeMessageStyle } from "../src/domain/discord-messages/message-st
 import { discordConfigPatch } from "../src/domain/workspaces/discord-config-patch"
 import { eventDiscussionDefaultsValidator } from "./eventDiscussionValidators"
 import { managedRolePolicy } from "../src/domain/membership/managed-roles"
+import { DEFAULT_GAME_ID, GAME_IDS } from "../src/domain/games/game"
 import { getGuildById, getGuildDiscordId } from "./identity"
 import { mutation, query } from "./_generated/server"
-import { GAME_IDS } from "../src/domain/games/game"
 import { v } from "convex/values"
 
 export const getConfigByGuild = query({
@@ -174,6 +174,10 @@ export const upsertConfig = mutation({
             ...Object.keys(merged.gameOverrides ?? {}),
         ])) {
             managedRolePolicy(merged, gameId)
+        }
+        // Only enabled games need a usable discussion destination. Disabled games
+        // may have no channel while every enabled game has its own override.
+        for (const gameId of guild.enabledGames ?? [DEFAULT_GAME_ID]) {
             validateEventDiscussion({
                 createForumChannel: true,
                 deleteForumAfterConclusion: true,

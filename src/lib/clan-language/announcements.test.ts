@@ -45,7 +45,7 @@ test("the Czech copy is the board's (L1)", () => {
     assert.equal(cs.buttons.assignment, "Zobrazit zařazení")
     assert.equal(cs.buttons.remind, "Připomenout bez odpovědi")
     assert.equal(cs.buttons.openWeb, "Otevřít na webu")
-    assert.equal(cs.replies.pickerTitle, "Kde chceš hrát?")
+    assert.equal(cs.replies.pickerTitle, "Nejsi přihlášený — vyber skupinu")
     assert.equal(cs.attendees.footer, "Pořadí podle času přihlášky")
 })
 
