@@ -223,11 +223,11 @@ export const matchEditorMessages = {
             debriefDestination: "Umístění debriefu",
             debriefEventForum: "Ve fóru zápasu",
             debriefResultsThread: "Soukromé vlákno v kanálu výsledků",
-            debriefSeparateForum: "Soukromé vlákno účastníků (náhrada fóra)",
+            debriefSeparateForum: "Téma ve fóru pro debriefy",
             debriefLegacyPrivate: "Stávající soukromý debrief",
             debriefForumChannel: "Kanál fóra pro debriefy",
             debriefForumChannelHint:
-                "Debrief mimo fórum zápasu používá soukromé vlákno v textovém kanálu výsledků. Témata sdíleného fóra nelze omezit na účastníky zápasu.",
+                "Po zápasu vytvoří příspěvek ve vybraném fóru pro debriefy. Příspěvky přebírají oprávnění kanálu fóra.",
             debriefResultsWarning:
                 "Debrief pod výsledky vyžaduje zveřejnění výsledku po zápase. Fórum zápasu zůstane zachováno, dokud debrief nevznikne.",
             discussionDefaults: "Výchozí nastavení diskuzí událostí",

@@ -227,11 +227,11 @@ export const matchEditorMessages = {
             debriefDestination: "Debrief-Ziel",
             debriefEventForum: "Im Spielforum",
             debriefResultsThread: "Privater Thread im Ergebniskanal",
-            debriefSeparateForum: "Privater Teilnehmer-Thread (Forum-Ersatz)",
+            debriefSeparateForum: "Thema im Debrief-Forum",
             debriefLegacyPrivate: "Bestehender privater Debrief",
             debriefForumChannel: "Forumkanal für Debriefs",
             debriefForumChannelHint:
-                "Externe Debriefs nutzen einen privaten Thread im Ergebnis-Textkanal. Themen in geteilten Foren lassen sich nicht auf Spielteilnehmer beschränken.",
+                "Erstellt nach dem Spiel einen Beitrag im gewählten Debrief-Forum. Beiträge übernehmen die Kanalberechtigungen.",
             debriefResultsWarning:
                 "Debriefs unter Ergebnissen erfordern die Veröffentlichung des Spielergebnisses. Das Spielforum bleibt erhalten, bis der Debrief existiert.",
             discussionDefaults: "Standardwerte für Eventdiskussionen",

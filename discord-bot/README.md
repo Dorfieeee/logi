@@ -149,7 +149,7 @@ See [Discord installation](../content/discord-bot-setup.mdx) for application set
 
 ## Responsibilities
 
-- Event announcements, forum posts, scheduled events, sign-ups, rosters, attendance, reminders, and reviewed-result cards. Debriefs use a private retained event forum or an invitation-only participant thread in the results text channel. External forum destinations also use private threads because shared forum topics cannot restrict their individual audience. Disposable match forums are deleted only after any enabled external debrief exists.
+- Event announcements, forum posts, scheduled events, sign-ups, rosters, attendance, reminders, and reviewed-result cards. Debriefs use a private retained event forum or an invitation-only participant thread in the results text channel. The separate debrief forum destination creates a post in the selected forum, inheriting its channel permissions. Disposable match forums are deleted only after any enabled external debrief exists.
 - Membership applications, private tickets, account linking, and team-request decision DMs.
 - Durable public panels, server seeding, League tracking, and player-statistics replies.
 - Membership observations and queued role changes with current actor, target, and hierarchy checks.

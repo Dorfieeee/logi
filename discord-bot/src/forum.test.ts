@@ -685,14 +685,20 @@ function publicDebriefFixture(destination: "results_thread" | "debrief_forum") {
 for (const destination of ["results_thread", "debrief_forum"] as const) {
     for (const deleteForum of [true, false])
         test(`${destination} exists durably before optional forum cleanup (${deleteForum})`, async () => {
-            const f = privateDebriefFixture()
+            const f =
+                destination === "debrief_forum"
+                    ? publicDebriefFixture(destination)
+                    : privateDebriefFixture()
             Object.assign(f.input, { resultMessageId: "result" })
             f.input.event = {
                 ...f.input.event,
                 debriefDestination: destination,
             }
             const id = await concludeEventForum({ ...f.input, deleteForum })
-            assert.equal(id, "private")
+            assert.equal(
+                id,
+                destination === "debrief_forum" ? "public-debrief" : "private"
+            )
             assert.ok(f.calls.indexOf("create") < f.calls.indexOf("remember"))
             assert.equal(f.calls.includes("delete forum"), deleteForum)
             if (deleteForum)
@@ -702,6 +708,42 @@ for (const destination of ["results_thread", "debrief_forum"] as const) {
                 )
         })
 }
+test("dedicated forum debrief respects the event toggle", async () => {
+    const f = publicDebriefFixture("debrief_forum")
+    await concludeEventForum({
+        ...f.input,
+        event: { ...f.input.event, createDebriefThread: false },
+        deleteForum: false,
+    })
+    assert.deepEqual(f.calls, [])
+})
+
+test("dedicated forum debrief reuses its saved post", async () => {
+    const f = publicDebriefFixture("debrief_forum")
+    const id = await concludeEventForum({ ...f.input, deleteForum: false })
+    await concludeEventForum({
+        ...f.input,
+        existingThreadId: id,
+        deleteForum: false,
+    })
+    assert.equal(f.calls.filter((call) => call === "create").length, 1)
+    assert.equal(f.calls.filter((call) => call === "remember").length, 2)
+})
+
+test("failed dedicated forum debrief preserves the match forum", async () => {
+    const f = publicDebriefFixture("debrief_forum")
+    await assert.rejects(
+        concludeEventForum({
+            ...f.input,
+            rememberThread: async () => {
+                throw new Error("storage failed")
+            },
+        }),
+        /storage failed/
+    )
+    assert.ok(!f.calls.includes("delete forum"))
+})
+
 test("result debrief recovers the already created thread after state persistence failed", async () => {
     const f = privateDebriefFixture()
     f.parent.threads.fetchActive = async () => ({

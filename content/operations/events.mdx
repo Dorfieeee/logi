@@ -236,9 +236,9 @@ Choose one of three debrief destinations:
 - **Inside the match forum**: Logi creates and pins a debrief topic there. The
   match forum must be enabled and retained; automatic deletion is unavailable.
 - **Thread under the results message**: after the result is published, Logi creates a separate private participant thread in the results text channel. Discord cannot attach a private thread directly to a message.
-- **Topic in a separate debrief forum**: for participant privacy, Logi instead creates a private thread in the configured results text channel (falling back to the event info or signup channel). Shared forum topics cannot have a private per-match audience.
+- **Topic in a separate debrief forum**: Logi automatically creates a post in the selected debrief forum after conclusion. Game-specific forum selections override the clan forum. Posts inherit the forum channel permissions.
 
-Debriefs invite attending signups and eligible roster participants. Explicitly declining participants lose thread membership; other members are left in place. Existing public debrief threads are replaced and deleted when synchronized. Private threads require a regular text channel; unsupported channel types fail without deleting the match forum.
+Private debriefs invite attending signups and eligible roster participants. Explicitly declining participants lose thread membership; other members are left in place. Separate forum debriefs remain posts in the configured forum. Private threads require a regular text channel; unsupported channel types fail without deleting the match forum.
 
 Set clan defaults and game overrides on **Settings → Channels and language →
 Event discussion defaults**. They are copied into new events and can be changed

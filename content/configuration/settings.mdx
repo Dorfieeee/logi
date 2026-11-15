@@ -859,11 +859,13 @@ enabled game can use clan defaults or its own override. New events copy these
 settings, and each event can override them without changing clan defaults.
 
 A debrief can be a topic inside the retained match forum, a private participant thread in
-the results text channel. The separate forum destination also uses a private
-participant thread in the results text channel to prevent public access.
+the results text channel, or a post in the selected separate debrief forum.
+Separate forum posts inherit that forum channel's permissions. Enable debrief
+creation and select the separate forum destination in clan or game defaults to
+create these posts automatically after conclusion.
 An in-forum debrief prevents automatic deletion of that forum. A results-message
 debrief requires an admin to publish the match results after the game; cleanup
-waits until that discussion exists. External debriefs require a regular results text channel with private-thread permissions for Logi. Private debriefs invite eligible match participants; Discord administrators and members with Manage Threads retain access.
+waits until that discussion exists. Private results debriefs require a regular results text channel with private-thread permissions for Logi. Separate forum posts require permission to create posts in the selected forum. Private debriefs invite eligible match participants; Discord administrators and members with Manage Threads retain access.
 See [Events and matches](/operations/events) for the complete workflow.
 
 ### Choosing Discord channels
