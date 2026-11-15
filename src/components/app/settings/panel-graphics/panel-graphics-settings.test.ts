@@ -161,7 +161,7 @@ test("the page shows every P8 section with the board's Czech copy", () => {
         "Vlastní",
         "Nahradit vlastním",
         "Obnovit výchozí",
-        "Zobrazeno 23 z 23 map · vlastní obrázek: PNG, JPG nebo WebP, čtverec aspoň 160 × 160, nejvýš 2 MB.",
+        "Zobrazeno 24 z 24 map · vlastní obrázek: PNG, JPG nebo WebP, čtverec aspoň 160 × 160, nejvýš 2 MB.",
         "Ikony frakcí",
         "Nahráno do Discordu ✓ · 12 emoji",
         "Hell Let Loose · národy",

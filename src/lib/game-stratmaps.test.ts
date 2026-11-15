@@ -3,15 +3,17 @@ import test from "node:test"
 
 import { getStratmapMapById, getStratmapMaps } from "./game-stratmaps"
 
-test("Wardogs offers its three named base maps", () => {
+test("Wardogs offers its four named base maps", () => {
     assert.deepEqual(
         getStratmapMaps("wardogs").map((map) => map.id),
-        ["bakurani", "ozeti", "zestafona"]
+        ["bakurani", "ozeti", "zestafona", "sabatulo"]
     )
 })
 
 test("Wardogs maps use their imported tactical basemaps", () => {
-    for (const map of getStratmapMaps("wardogs")) {
+    for (const map of getStratmapMaps("wardogs").filter(
+        (map) => map.id !== "sabatulo"
+    )) {
         assert.equal(map.imagePath, `/maps/wardogs/${map.id}.webp`)
     }
 
@@ -66,7 +68,7 @@ test("legacy Wardogs placeholder maps resolve to Bakurani", () => {
 test("new Wardogs maps use the named catalog while saved generic stratmaps still resolve", () => {
     assert.deepEqual(
         getStratmapMaps("wardogs").map((map) => map.id),
-        ["bakurani", "ozeti", "zestafona"]
+        ["bakurani", "ozeti", "zestafona", "sabatulo"]
     )
     assert.ok(getStratmapMapById("wardogs-placeholder", "wardogs"))
     assert.equal(getStratmapMapById("zestafona", "wardogs")?.name, "Zestafona")

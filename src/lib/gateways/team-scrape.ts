@@ -55,7 +55,7 @@ const resultSchema = z.object({
 })
 
 export async function scrapeTeamCatalogue(
-    access: SuperadminAccess,
+    access: SuperadminAccess | { secret: string },
     game: TeamGame
 ) {
     return scrapeTeams(
@@ -73,7 +73,11 @@ export async function scrapeTeamCatalogue(
                 do {
                     const page = teamRecordPageSchema.parse(
                         await fetchQuery(
-                            makeFunctionReference<"query">("teams:adminList"),
+                            makeFunctionReference<"query">(
+                                "actor" in access
+                                    ? "teams:adminList"
+                                    : "teamCatalogueSync:list"
+                            ),
                             {
                                 ...access,
                                 gameId,
@@ -147,7 +151,9 @@ export async function scrapeTeamCatalogue(
                 const result = storedSchema.parse(
                     await fetchAction(
                         makeFunctionReference<"action">(
-                            "imageAssets:storeNormalized"
+                            "actor" in access
+                                ? "imageAssets:storeNormalized"
+                                : "imageAssets:storeProviderLogo"
                         ),
                         {
                             ...access,
@@ -176,7 +182,9 @@ export async function scrapeTeamCatalogue(
                 resultSchema.parse(
                     await fetchMutation(
                         makeFunctionReference<"mutation">(
-                            "teams:importCatalogue"
+                            "actor" in access
+                                ? "teams:importCatalogue"
+                                : "teamCatalogueSync:commit"
                         ),
                         { ...access, gameId, teams }
                     )

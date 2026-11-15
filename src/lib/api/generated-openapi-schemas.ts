@@ -260,6 +260,9 @@ export const generatedOpenApiSchemas = {
                             {
                                 const: "zestafona",
                             },
+                            {
+                                const: "sabatulo",
+                            },
                         ],
                     },
                     layout: {

@@ -327,7 +327,10 @@ export function TacticalPlanEditor({
     const t = tacticalPlanCopy(locale)
     const plan = value?.mapId === mapId ? value : null
     const supported =
-        mapId === "bakurani" || mapId === "ozeti" || mapId === "zestafona"
+        mapId === "bakurani" ||
+        mapId === "ozeti" ||
+        mapId === "zestafona" ||
+        mapId === "sabatulo"
     const point = plan
         ? marker === "controlZone" || marker === "hotZone"
             ? plan[marker]

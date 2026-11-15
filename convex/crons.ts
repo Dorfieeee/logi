@@ -5,6 +5,14 @@ import { makeFunctionReference } from "convex/server"
 import { internal } from "./_generated/api"
 
 const crons = cronJobs()
+for (const gameId of ["wardogs", "hell_let_loose"] as const) {
+    crons.interval(
+        `refresh ${gameId} team catalogue`,
+        { hours: 24 },
+        makeFunctionReference<"action">("teamCatalogueSync:refresh"),
+        { gameId }
+    )
+}
 crons.interval(
     "sync bug reports to GitHub",
     { minutes: 1 },

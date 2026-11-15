@@ -274,6 +274,7 @@ export const WARDOGS_PLACEHOLDER_MAPS = [
             },
         ]
     ),
+    placeholderMap("sabatulo", "Sabatulo", "/maps/wardogs-placeholder.svg"),
 ]
 
 // Retain saved pre-catalog stratmaps without offering the generic ID for new maps.

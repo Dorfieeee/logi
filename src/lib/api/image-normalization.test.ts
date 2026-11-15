@@ -197,3 +197,32 @@ test("animated sources report their frames and oversized sources never decode", 
     )
     await assert.rejects(normalizeImage(bomb, "panel-banner"))
 })
+
+test("provider animated GIF logos become a single-frame PNG", async () => {
+    const frame = {
+        create: {
+            width: 8,
+            height: 8,
+            channels: 4 as const,
+            background: "red",
+        },
+    }
+    const bytes = await sharp(
+        [
+            await sharp(frame).png().toBuffer(),
+            await sharp({ create: { ...frame.create, background: "blue" } })
+                .png()
+                .toBuffer(),
+        ],
+        { join: { animated: true } }
+    )
+        .gif()
+        .toBuffer()
+    assert.equal((await inspectImage(bytes))?.pages, 2)
+    const result = await normalizeImage(bytes, "team-logo")
+    assert.equal(result.contentType, "image/png")
+    const metadata = await sharp(result.bytes).metadata()
+    assert.equal(metadata.format, "png")
+    assert.ok(!metadata.pages || metadata.pages === 1)
+    assert.equal(metadata.width, 8)
+})

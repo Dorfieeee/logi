@@ -91,3 +91,23 @@ test("HeLO rendered cards use the explicit Team Icon alt marker", () => {
     )
     assert.equal(team?.shortCode, "ESPT")
 })
+
+test("HeLO HTML includes teams without image elements and ignores headings", () => {
+    assert.deepEqual(
+        parseTeamSource(
+            "hell_let_loose",
+            "<table><tr><th>Tag</th><th>Name</th></tr><tr><td></td><td>NL</td><td>No Logo</td></tr></table>"
+        ),
+        [{ name: "No Logo", shortCode: "NL", logoUrl: null }]
+    )
+})
+test("Wardogs includes logo-free cards and preserves GIF source URLs", () => {
+    const teams = parseWardogsTeams(
+        '<a href="/teams/NL"><span class="line-clamp-2">No Logo</span></a><a href="/teams/GIF"><span class="line-clamp-2">Animated</span><img src="/api/logos/animated.gif"></a>'
+    )
+    assert.equal(teams[0]?.logoUrl, null)
+    assert.equal(
+        teams[1]?.logoUrl,
+        "https://wardogsleague.net/api/logos/animated.gif"
+    )
+})

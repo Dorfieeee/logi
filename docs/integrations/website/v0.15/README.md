@@ -324,7 +324,10 @@ team page. A unique active name/code match refreshes the logo while retaining te
 are normalized and stored with the same platform ownership, references, audit
 and website fan-out as ordinary catalogue creation. Websites see imported
 teams through the existing `/api/v1` catalogue reads with the `teams` grant;
-no bearer-key import endpoint or new write grant is exposed.
+no bearer-key import endpoint or new write grant is exposed. The same import
+workflow runs automatically every 24 hours for each game through a trusted
+internal worker. Logo-free teams are supported; imported GIF logos are stored
+as static first-frame PNGs.
 
 Competition team registration is also session-bound global administration:
 `POST /api/competitions` supports `registerTeams` with `competitionId` and
