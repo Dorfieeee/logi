@@ -76,7 +76,7 @@ function match(overrides: Partial<EventRecord> = {}): EventRecord {
         gameId: "hell_let_loose",
         kind: "match",
         matchType: "friendly",
-        name: "VLK vs ROG · Přátelák",
+        name: "VLK vs ROG Â· PÅ™Ã¡telÃ¡k",
         description: "Bring your A game",
         thumbnailUrl: "https://logi.test/thumb.png",
         announcementChannelId: "chan-ann",
@@ -173,6 +173,14 @@ function edit(event: EventRecord, change: (values: FlowValues) => FlowValues) {
         name: values.name,
     })
 }
+
+test("turning the signup thread off sends false in the event edit payload", () => {
+    const payload = edit(match({ createSignupThread: true }), (values) => ({
+        ...values,
+        createSignupThread: false,
+    }))
+    assert.equal(payload.createSignupThread, false)
+})
 
 test("a stored match reads back into the flow exactly", () => {
     const values = flowValuesFromEvent(match(), zone)

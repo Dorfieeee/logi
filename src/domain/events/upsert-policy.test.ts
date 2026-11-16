@@ -24,6 +24,21 @@ const input: EventUpsertInput = {
     pingClan: false,
 }
 
+for (const createSignupThread of [false, true]) {
+    test(`event updates save an explicit signup thread setting of ${createSignupThread}`, () => {
+        const existing = buildCreateEventRecord(
+            { ...input, createSignupThread: !createSignupThread },
+            now
+        )
+        const patch = buildUpdateEventPatch(
+            existing,
+            { ...input, createSignupThread },
+            now
+        )
+        assert.equal(patch.createSignupThread, createSignupThread)
+    })
+}
+
 test("Wardogs time and planning metadata validate, persist and explicitly clear", () => {
     const plan = emptyTacticalPlan("bakurani")
     const wd = {
