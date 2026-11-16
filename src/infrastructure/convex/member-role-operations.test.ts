@@ -1106,3 +1106,85 @@ test("dashboard recruits resolve an unambiguous category and preserve roles when
         []
     )
 })
+
+test("daily rechecks reject legacy category-less recruit intents instead of replaying clan-only roles", async () => {
+    const ctx = fixture()
+    ctx.db.tables.discordConfigs[0].membershipSettings.categories[0].includeClanRoleForRecruit = false
+    await invoke(assignments.upsertByServerDiscordId, ctx, {
+        ...save,
+        membershipCategoryId: undefined,
+        roleActor: actor,
+    })
+    const operation = ctx.db.tables.memberRoleOperations[0]
+    assert.deepEqual(operation.desiredRoleIds, ["recruit"])
+    // Before category resolution was fixed, this exact assignment/policy
+    // produced clan-only intent and allowed deleting the recruit role.
+    operation.desiredRoleIds = ["clan"]
+    operation.status = "applied"
+    operation.nextAttemptAt = 0
+    const claim = await invoke(operations.claimNext, ctx, {
+        secret,
+        guildId: save.serverDiscordId,
+    })
+    const args = { secret, ...claim, evidence: evidence() }
+    const prepared = await invoke(operations.prepare, ctx, args)
+    assert.equal(prepared.verdict, "superseded")
+    assert.deepEqual(prepared.desiredRoleIds, [])
+    assert.equal(
+        await invoke(operations.finish, ctx, {
+            ...args,
+            outcome: "applied",
+            reason: "verified",
+        }),
+        false
+    )
+    await invoke(operations.finish, ctx, {
+        ...args,
+        outcome: "superseded",
+        reason: "authority_or_state_changed",
+    })
+    assert.equal(operation.status, "superseded")
+    assert.equal(operation.nextAttemptAt, Number.MAX_SAFE_INTEGER)
+    // A fresh staff save is required; it gets the correct recruit-only roles.
+    await invoke(assignments.upsertByServerDiscordId, ctx, {
+        ...save,
+        assignmentId: ctx.db.tables.userAssignments[0]._id,
+        membershipCategoryId: undefined,
+        roleActor: actor,
+    })
+    assert.deepEqual(
+        ctx.db.tables.memberRoleOperations.at(-1)?.desiredRoleIds,
+        ["recruit"]
+    )
+})
+
+test("legacy unresolved-category scope cannot remove category roles", async () => {
+    const ctx = fixture()
+    ctx.db.tables.discordConfigs[0].membershipSettings.categories.push({
+        id: "other",
+        supportRoleIds: [],
+        recruitRoleIds: ["other-recruit"],
+        finalRoleIds: [],
+    })
+    await invoke(assignments.upsertByServerDiscordId, ctx, {
+        ...save,
+        membershipCategoryId: undefined,
+        roleActor: actor,
+    })
+    const operation = ctx.db.tables.memberRoleOperations[0]
+    operation.allowedRoleIds = ["clan", "member", "recruit", "other-recruit"]
+    const claim = await invoke(operations.claimNext, ctx, {
+        secret,
+        guildId: save.serverDiscordId,
+    })
+    assert.equal(
+        (
+            await invoke(operations.prepare, ctx, {
+                secret,
+                ...claim,
+                evidence: evidence(),
+            })
+        ).verdict,
+        "superseded"
+    )
+})

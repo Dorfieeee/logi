@@ -86,6 +86,14 @@ does not mean the roles have been applied. Unlinked players remain editable, wit
 an explicit denied role operation until their Discord identity is linked. Legacy
 API assignments and imports remain data-only and cannot mint role authority.
 
+Daily checks also validate the saved role set against the current role rules.
+Older requests with an incorrect saved role set become **Superseded** and stop
+changing Discord roles. After checking the category's recruit/final roles and
+whether each status includes the clan role, save the assignment again to create
+a fresh authorized request. A manual assignment without a linked category uses
+the only category matching its game and membership type; if there is no unique
+match, membership roles are left unchanged.
+
 Attempt history records an interrupted attempt as **Superseded** when a newer
 request replaces it. When the bot recovers an expired attempt, that attempt shows
 **Retry scheduled** with `lease_expired`; exhausting six attempts shows **Failed**

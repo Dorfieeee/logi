@@ -81,6 +81,17 @@ another retry is still pending. Already completed attempts are preserved, and
   create role authority. Their changed assignments can supersede an older operation.
   Reconciliation never derives a new grant from imported assignment data.
 
+Stored desired roles and removal scope are also compared against the current
+role derivation on every attempt, including daily rechecks. A request produced
+by older role-calculation code is superseded if either set differs, even when
+its assignment and configuration fingerprints still match. The worker does not
+rewrite that request or grant replacement authority: a new authenticated staff
+save is required. Category-less assignments use the sole matching category for
+their game and assignment type; an ambiguous or missing category authorizes no
+membership-role changes. Category clan-role exclusions apply to these manual
+assignments too. Bearer API writes remain data-only and cannot repair or replace
+Discord role authority.
+
 Existing group-role behavior is separate. Import filters do not become a continuous
 role writer. No kick, ban, general moderation or arbitrary role-edit API is added.
 

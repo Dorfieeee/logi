@@ -137,6 +137,36 @@ export function desiredMembershipRoles(
             : (category?.finalRoleIds ?? [])),
     ])
 }
+/** Resolve both grants and removal authority together; unknown categories own no roles. */
+export function managedMembershipRoleIntent(
+    policy: ManagedRolePolicy,
+    assignment: RoleAssignment | null,
+    options: { applicant?: boolean } = {}
+) {
+    const unresolvedCategory = Boolean(
+        assignment &&
+        assignment.status !== "pending" &&
+        !resolveRoleCategory(policy, assignment)
+    )
+    return {
+        allowedRoleIds: unresolvedCategory ? [] : policy.roleIds,
+        desiredRoleIds: desiredMembershipRoles(policy, assignment, options),
+    }
+}
+
+/** Policy fingerprints do not detect changes to the code deriving stored intent. */
+export function matchesManagedMembershipRoleIntent(
+    stored: { allowedRoleIds: string[]; desiredRoleIds: string[] },
+    current: { allowedRoleIds: string[]; desiredRoleIds: string[] }
+) {
+    return (
+        JSON.stringify(unique(stored.allowedRoleIds)) ===
+            JSON.stringify(unique(current.allowedRoleIds)) &&
+        JSON.stringify(unique(stored.desiredRoleIds)) ===
+            JSON.stringify(unique(current.desiredRoleIds))
+    )
+}
+
 export function planManagedRoleChanges(input: {
     observedRoleIds: string[]
     desiredManagedRoleIds: string[]
