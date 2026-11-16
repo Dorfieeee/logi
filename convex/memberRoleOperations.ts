@@ -1,7 +1,8 @@
 import {
     appliesAsRecruit,
     canExecuteManagedRoles,
-    desiredMembershipRoles,
+    managedMembershipRoleIntent,
+    matchesManagedMembershipRoleIntent,
     resolveRoleCategory,
     managedRolePolicy,
     planManagedRoleChanges,
@@ -216,11 +217,6 @@ export async function enqueueManagedRoles(
     const categoryId =
         (assignment && resolveRoleCategory(policy, assignment)?.id) ??
         input.before?.membershipCategoryId
-    const unresolvedCategory = Boolean(
-        assignment &&
-        assignment.status !== "pending" &&
-        !resolveRoleCategory(policy, assignment)
-    )
     if (
         (actor.kind === "application" || actor.kind === "rollback") &&
         (actor.userId !== discordUserId ||
@@ -274,9 +270,7 @@ export async function enqueueManagedRoles(
         categoryId,
         assignmentFingerprint: roleAssignmentFingerprint(assignment),
         policyFingerprint: JSON.stringify(policy),
-        allowedRoleIds: unresolvedCategory ? [] : policy.roleIds,
-        // A submitted application waits without the clan role (N4-40).
-        desiredRoleIds: desiredMembershipRoles(policy, assignment, {
+        ...managedMembershipRoleIntent(policy, assignment, {
             applicant: actor.kind === "application",
         }),
         departureRevision: observation?.departureRevision ?? "0",
@@ -320,6 +314,17 @@ async function evaluate(
         return "denied" as const
     }
     if (JSON.stringify(policy) !== operation.policyFingerprint)
+        return "superseded" as const
+    // An unchanged assignment/config can still carry intent derived by buggy
+    // older code. Never replay those grants/removals or silently replace them.
+    if (
+        !matchesManagedMembershipRoleIntent(
+            operation,
+            managedMembershipRoleIntent(policy, current, {
+                applicant: operation.actorKind === "application",
+            })
+        )
+    )
         return "superseded" as const
     const observation = await memberObservation(
         ctx,
