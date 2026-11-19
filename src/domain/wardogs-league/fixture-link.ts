@@ -5,10 +5,15 @@ export const wardogsFixtureUrlSchema = z
     .string()
     .trim()
     .max(250)
-    .regex(
-        /^$|^https:\/\/wardogsleague\.net\/matches\/[a-zA-Z0-9_-]{1,80}\/?$/,
-        "Invalid Wardogs League fixture URL."
-    )
+    .refine((value) => {
+        if (!value) return true
+        try {
+            matchUrl(value)
+            return true
+        } catch {
+            return false
+        }
+    }, "Invalid league fixture URL.")
 
 export function normalizeFixtureLink(input: {
     gameId?: string

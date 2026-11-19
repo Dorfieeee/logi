@@ -1,6 +1,6 @@
 export const teamAdminMessages = {
     teamCatalogAdmin: {
-        scrapeWardogs: "Drużyny złomu z Wardogs League",
+        scrapeWardogs: "Drużyny złomu z Global Wardogs League",
         scrapeHll: "Synchronizuj drużyny z HeLO (2024)",
         scrapingTeams: "Importowanie drużyn…",
         scrapeDescription:

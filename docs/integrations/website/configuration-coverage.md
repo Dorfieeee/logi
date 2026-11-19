@@ -393,3 +393,28 @@ a single game opens directly. The private picker only shows groups for the
 selected game and includes a **Change game** button. Recruits, full members,
 reserve members, and mercenaries can all use this command. Pending applications
 and paused memberships are excluded.
+
+## GWL synchronization and shared match defaults
+
+The `matchTemplates` settings slice reads/replaces named templates and defaults
+through `/api/v1/clan/settings`. `isDefault` selects a clan-wide or per-game default;
+`inheritFields` lists the supported common fields inherited from the all-games
+default. Dashboard and v1 use the same preparation/validation and reference filtering.
+
+`GET /api/v1/clan/league-fixtures?game=wardogs&provider=gwl` reads the connected
+clan's fixture and slot bindings, review flags and separate result/stat sync states.
+The existing explicit `league-fixtures` Wardogs read grant is required. Pagination
+is independent of the legacy provider projection. Raw match files and player IDs
+are excluded. Existing actor-backed event commands accept GWL links in
+`wardogsFixtureUrl` and share transactional uniqueness checks with the dashboard.
+
+Credential creation/rotation, team ownership verification and permission tests are
+deliberately dashboard-admin-only. Clan service keys cannot configure provider keys
+or change GWL authority; this is a credential-management exclusion. The platform
+`GWL_API_KEY` does not authorize clan synchronization. GWL public league reads
+require a separate personal key and are not exposed through private team keys.
+Legacy public league preview/overview routes remain historical; they are not GWL
+standings or public match scraping endpoints. The old provider collectors stopped.
+
+See [GWL implementation](../../gwl-integration-plan.md) and the
+[public workflow](../../../content/configuration/gwl-sync.mdx).

@@ -127,7 +127,7 @@ export const settingsHub_overview = {
             description: "Wie lange Logi gespielte Runden behält.",
         },
         league: {
-            title: "Wardogs League",
+            title: "Global Wardogs League",
             description:
                 "Liga-Matches verfolgen und Karten in Discord. Nur für Wardogs.",
         },

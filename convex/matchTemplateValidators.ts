@@ -6,6 +6,8 @@ import { v } from "convex/values"
  */
 const matchTemplateFields = {
     id: v.string(),
+    isDefault: v.optional(v.boolean()),
+    inheritFields: v.optional(v.array(v.string())),
     name: v.string(),
     kind: v.union(v.literal("match"), v.literal("training")),
     gameId: v.optional(v.string()),

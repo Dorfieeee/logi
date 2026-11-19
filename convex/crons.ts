@@ -9,8 +9,8 @@ for (const gameId of ["wardogs", "hell_let_loose"] as const) {
     crons.interval(
         `refresh ${gameId} team catalogue`,
         { hours: 24 },
-        makeFunctionReference<"action">("teamCatalogueSync:refresh"),
-        { gameId }
+        makeFunctionReference<"mutation">("staggeredJobs:enqueue"),
+        { job: gameId === "wardogs" ? "wardogs-teams" : "hll-teams" }
     )
 }
 crons.interval(
@@ -22,14 +22,8 @@ crons.interval(
 crons.interval(
     "import authenticated Wardogs team fixtures",
     { minutes: 1 },
-    makeFunctionReference<"action">("leagueAutoImportJobs:collectDue"),
-    {}
-)
-crons.interval(
-    "discover and refresh League fixtures",
-    { minutes: 15 },
-    makeFunctionReference<"action">("leagueDiscoveryJobs:collectDue"),
-    {}
+    makeFunctionReference<"mutation">("staggeredJobs:enqueue"),
+    { job: "gwl" }
 )
 // Walks the events updated since its last complete run, and every event once
 // a day; the inline rebuild on a reviewed-result change does the real work.
@@ -108,13 +102,6 @@ crons.interval(
     "evaluate seed plans",
     { minutes: 1 },
     internal.discordSeedTick.evaluate,
-    {}
-)
-
-crons.interval(
-    "collect all League fixtures and results for the WD League panels",
-    { minutes: 1 },
-    makeFunctionReference<"action">("leagueDiscoveryFixtureJobs:collectDue"),
     {}
 )
 

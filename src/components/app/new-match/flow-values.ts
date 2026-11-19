@@ -1,16 +1,17 @@
 import {
+    templatesFor,
+    resolveMatchDefaults,
+    type MatchTemplate,
+    type TemplateReminderStatus,
+    type TemplateSignupStatus,
+} from "@/domain/events/match-templates"
+import {
     getHllModeOptions,
     getHllTimeOptions,
     inferHllSelection,
     inferHllBaseMapId,
     resolveHllPresetCode,
 } from "@/lib/hll-map-presets"
-import {
-    templatesFor,
-    type MatchTemplate,
-    type TemplateReminderStatus,
-    type TemplateSignupStatus,
-} from "@/domain/events/match-templates"
 import {
     matchTeamSides,
     sortAssignments,
@@ -346,7 +347,9 @@ export function newFlowValues(input: {
         rewardRoleIds: [],
         stratmapIds: [],
     }
-    const template = templatesFor(input.templates, kind, gameId)[0]
+    const template =
+        resolveMatchDefaults(input.templates, gameId, kind) ??
+        templatesFor(input.templates, kind, gameId)[0]
     return template
         ? applyTemplateValues(base, template, input.groups, channelDefaults)
         : base

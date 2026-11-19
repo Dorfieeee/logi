@@ -71,7 +71,7 @@ export const settingsHub_sections = {
             "Where Logi collects results and statistics from. An API key is stored encrypted and nobody sees it again.",
     },
     league: {
-        title: "Wardogs League",
+        title: "Global Wardogs League",
         description: "Tracked league matches and their links to your events.",
     },
     website: {

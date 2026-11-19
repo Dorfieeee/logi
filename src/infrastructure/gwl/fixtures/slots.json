@@ -1,0 +1,26 @@
+{
+  "slots": [
+    {
+      "id": "test-slot-01",
+      "startsAt": "2027-01-18T19:00:00.000Z",
+      "region": "EU",
+      "map": "sabatulo",
+      "layer": "Default",
+      "weather": "fog",
+      "seatsFilled": 1,
+      "host": "test-team",
+      "joinedTeam": null
+    },
+    {
+      "id": "test-slot-02",
+      "startsAt": "2027-01-21T19:00:00.000Z",
+      "region": "EU",
+      "map": "europe",
+      "layer": "Church",
+      "weather": null,
+      "seatsFilled": 2,
+      "host": "stub-strikers",
+      "joinedTeam": "test-team"
+    }
+  ]
+}

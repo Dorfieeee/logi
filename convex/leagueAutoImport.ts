@@ -4,11 +4,16 @@ import {
     importedFieldsSchema,
     matchFixtureTeams,
     ownTeamFirst,
+    fixtureFields,
 } from "../src/domain/wardogs-league/team-api"
 import {
     ConvexEventCommandRepository,
     DelegatingEventScorePort,
 } from "../src/infrastructure/convex/event-command-repositories"
+import {
+    defaultMatchTemplate,
+    resolveMatchDefaults,
+} from "../src/domain/events/match-templates"
 import { ImportTeamFixtureUseCase } from "../src/application/wardogs-league/import-team-fixture"
 import { syncEventAssetReferences } from "../src/infrastructure/convex/event-asset-references"
 import { bindWardogsFixture } from "../src/infrastructure/convex/league-fixture-binding"
@@ -26,6 +31,7 @@ import { withGameOverrides } from "../src/domain/games/game"
 import { query, internalQuery } from "./_generated/server"
 import { systemClock } from "../src/domain/shared/clock"
 import { internalMutation } from "./integrationMutation"
+import { gwlDelay } from "../src/domain/gwl/contracts"
 import { trackedMatch } from "./leagueTrackingStore"
 import type { QueryCtx } from "./_generated/server"
 import { assetPublicUrl } from "./imageAssetStore"
@@ -87,6 +93,8 @@ export const read = query({
                 eventResultsChannelId: discord?.eventResultsChannelId ?? "",
             },
             hasKey: Boolean(config),
+            provider: config?.provider ?? "legacy",
+            testMode: config?.testMode ?? false,
             lastSuccessAt: config?.lastSuccessAt ?? null,
             error: config?.error ?? null,
             templates: templatesFor(server.matchTemplates, "match", "wardogs"),
@@ -95,6 +103,8 @@ export const read = query({
                 fixtureId: r.fixtureId,
                 eventId: r.eventId ?? null,
                 issue: r.issue ?? null,
+                resultState: r.resultState ?? null,
+                statsState: r.statsState ?? null,
             })),
         }
     },
@@ -104,6 +114,8 @@ export const save = mutation({
         ...access,
         settingsJson: v.string(),
         credentialJson: v.optional(v.string()),
+        provider: v.optional(v.literal("gwl")),
+        testMode: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const { server } = await authorizeDashboardAdmin(ctx, args)
@@ -112,12 +124,16 @@ export const save = mutation({
         const settings = autoImportSettingsSchema.parse(
             JSON.parse(args.settingsJson)
         )
-        const template = templatesFor(
-            server.matchTemplates,
-            "match",
-            "wardogs"
-        ).find((t) => t.id === settings.templateId)
-        if (settings.enabled && !template)
+        const template =
+            settings.templateId === "__defaults"
+                ? (resolveMatchDefaults(
+                      server.matchTemplates ?? [],
+                      "wardogs"
+                  ) ?? defaultMatchTemplate("__defaults", "GWL"))
+                : templatesFor(server.matchTemplates, "match", "wardogs").find(
+                      (t) => t.id === settings.templateId
+                  )
+        if (settings.enabled && settings.autoCreate && !template)
             throw new Error("Select a Wardogs match template.")
         if (
             template &&
@@ -136,7 +152,11 @@ export const save = mutation({
             credentialJson,
             enabled: settings.enabled,
             revision: (old?.revision ?? 0) + 1,
-            nextPollAt: Date.now(),
+            provider: args.provider ?? old?.provider,
+            testMode: args.testMode ?? old?.testMode,
+            cursor: args.credentialJson ? 0 : old?.cursor,
+            reconcileAt: args.credentialJson ? 0 : old?.reconcileAt,
+            nextPollAt: Date.now() + gwlDelay(args.guildId),
             leaseUntil: 0,
             fence: (old?.fence ?? 0) + 1,
             error: undefined,
@@ -156,7 +176,9 @@ export const claim = internalMutation({
                 q.eq("enabled", true).lte("nextPollAt", now)
             )
             .take(20)
-        const row = rows.find((r) => r.leaseUntil <= now)
+        const row = rows.find(
+            (r) => r.provider === "gwl" && !r.testMode && r.leaseUntil <= now
+        )
         if (!row) return null
         const guild = await getGuildByDiscordId(ctx, row.guildId)
         if (!guild?.enabledGames?.includes("wardogs")) {
@@ -167,7 +189,7 @@ export const claim = internalMutation({
         await ctx.db.patch(row._id, {
             fence,
             leaseUntil: now + 5 * 60_000,
-            nextPollAt: now + 15 * 60_000,
+            nextPollAt: now + 15 * 60_000 + gwlDelay(row.guildId, 60_000),
         })
         return { ...row, fence }
     },
@@ -178,6 +200,10 @@ export const finish = internalMutation({
         fence: v.number(),
         revision: v.number(),
         error: v.optional(v.string()),
+        retryAt: v.optional(v.number()),
+        cursor: v.optional(v.number()),
+        reconcileAt: v.optional(v.number()),
+        reconcileOffset: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const row = await ctx.db.get(args.id)
@@ -185,7 +211,28 @@ export const finish = internalMutation({
             return
         await ctx.db.patch(row._id, {
             leaseUntil: 0,
+            ...([
+                "invalid_key",
+                "key_revoked",
+                "key_expired",
+                "missing_scope",
+                "scope_lost",
+                "team_suspended",
+                "key_maker_left",
+                "key_maker_no_access",
+                "wrong_key_type",
+            ].includes(args.error ?? "")
+                ? { enabled: false }
+                : {}),
             error: args.error,
+            ...(args.retryAt ? { nextPollAt: args.retryAt } : {}),
+            ...(args.cursor !== undefined ? { cursor: args.cursor } : {}),
+            ...(args.reconcileOffset !== undefined
+                ? { reconcileOffset: args.reconcileOffset }
+                : {}),
+            ...(args.reconcileAt !== undefined
+                ? { reconcileAt: args.reconcileAt }
+                : {}),
             ...(!args.error ? { lastSuccessAt: Date.now() } : {}),
         })
     },
@@ -231,6 +278,7 @@ export const importFixture = internalMutation({
         ]
         const tracked = await trackedMatch(ctx, config.guildId, fixture.id)
         const current = old?.eventId ? await ctx.db.get(old.eventId) : null
+        if (current?.hostEventId) return
         if (
             current &&
             (!guildAliases.includes(current.guildId) ||
@@ -238,11 +286,22 @@ export const importFixture = internalMutation({
                 (current.kind ?? "match") !== "match")
         )
             throw new Error("Imported match scope mismatch.")
-        const template = old?.templateJson
+        if (!old && !defaults.autoCreate) return
+        const selectedTemplate = old?.templateJson
             ? matchTemplateSchema.parse(JSON.parse(old.templateJson))
-            : templatesFor(guild.matchTemplates, "match", "wardogs").find(
-                  (t) => t.id === settings.templateId
-              )
+            : settings.templateId === "__defaults"
+              ? (resolveMatchDefaults(guild.matchTemplates ?? [], "wardogs") ??
+                defaultMatchTemplate("__defaults", "GWL"))
+              : templatesFor(guild.matchTemplates, "match", "wardogs").find(
+                    (t) => t.id === settings.templateId
+                )
+        const template =
+            selectedTemplate?.isDefault && !old?.templateJson
+                ? (resolveMatchDefaults(
+                      guild.matchTemplates ?? [],
+                      "wardogs"
+                  ) ?? selectedTemplate)
+                : selectedTemplate
         if (!template) throw new Error("Default match template is missing.")
         const catalogue = await ctx.db
             .query("teamDirectory")
@@ -326,7 +385,8 @@ export const importFixture = internalMutation({
                 if (
                     (candidate.wardogsFixtureUrl &&
                         candidate.wardogsFixtureUrl !==
-                            `https://wardogsleague.net/matches/${fixture.id}`) ||
+                            (fixture.sourceUrl ??
+                                `https://wardogsleague.net/matches/${fixture.id}`)) ||
                     (bound && bound.fixtureId !== fixture.id) ||
                     (trackedBinding && trackedBinding.matchId !== fixture.id)
                 )
@@ -365,7 +425,8 @@ export const importFixture = internalMutation({
                 await bindWardogsFixture(
                     ctx,
                     eventId,
-                    `https://wardogsleague.net/matches/${fixture.id}`
+                    fixture.sourceUrl ??
+                        `https://wardogsleague.net/matches/${fixture.id}`
                 )
             },
             refreshSchedule: async (id) => {
@@ -449,7 +510,9 @@ export const importFixture = internalMutation({
                           ? importedFieldsSchema.parse(
                                 JSON.parse(old.baselineJson)
                             )
-                          : undefined,
+                          : fixture.sourceUrl?.startsWith("https://gwl.gg/")
+                            ? fixtureFields(fixture, template, settings)
+                            : undefined,
                       teamsBaseline: old.teamBaselineJson
                           ? z
                                 .array(matchTeamAssignmentSchema)
@@ -459,7 +522,9 @@ export const importFixture = internalMutation({
                   }
                 : undefined,
             manuallyManaged: Boolean(
-                (old?.eventId && !old.baselineJson) ||
+                (old?.eventId &&
+                    !old.baselineJson &&
+                    !fixture.sourceUrl?.startsWith("https://gwl.gg/")) ||
                 tracked?.ignored ||
                 tracked?.paused ||
                 (tracked?.eventId && tracked.eventId !== old?.eventId)

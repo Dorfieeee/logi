@@ -6,6 +6,7 @@ const text = z.string().trim().min(1).max(300)
 export const teamFixtureSchema = z.object({
     id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
     number: z.number().int().nonnegative(),
+    sourceUrl: z.string().url().optional(),
     status: text,
     scheduledAt: z.iso.datetime({ offset: true }).nullable(),
     map: z.string().max(300).nullable(),
@@ -21,7 +22,11 @@ export const teamFixtureSchema = z.object({
     participants: z
         .array(
             z.object({
-                team: z.object({ code: text, name: text }),
+                team: z.object({
+                    code: text,
+                    name: text,
+                    slug: text.optional(),
+                }),
                 faction: z.string().max(64).nullable(),
                 finishingPosition: z.number().int().nullable(),
                 points: z.number().nullable(),
@@ -37,21 +42,30 @@ export const teamFixturesSchema = z.object({
 })
 export type TeamFixture = z.infer<typeof teamFixtureSchema>
 const channel = z.string().regex(/^\d{1,32}$/)
-export const autoImportSettingsSchema = z.strictObject({
-    enabled: z.boolean(),
-    teamCode: z.string().trim().min(1).max(64),
-    templateId: z.string().trim().min(1).max(64),
-    registrationHoursBeforeStart: z
-        .number()
-        .int()
-        .min(1)
-        .max(24 * 30)
-        .default(168),
-    announcementChannelId: channel,
-    eventInfoChannelId: channel,
-    eventResultsChannelId: channel.optional(),
-    server: z.string().trim().max(200).optional(),
-})
+export const autoImportSettingsSchema = z
+    .strictObject({
+        enabled: z.boolean(),
+        autoCreate: z.boolean().default(true),
+        teamCode: z.string().trim().min(1).max(128),
+        templateId: z.string().trim().min(1).max(64),
+        registrationHoursBeforeStart: z
+            .number()
+            .int()
+            .min(1)
+            .max(24 * 30)
+            .default(168),
+        announcementChannelId: channel.or(z.literal("")),
+        eventInfoChannelId: channel.or(z.literal("")),
+        eventResultsChannelId: channel.optional(),
+        server: z.string().trim().max(200).optional(),
+    })
+    .refine(
+        (value) =>
+            !value.enabled ||
+            !value.autoCreate ||
+            Boolean(value.announcementChannelId && value.eventInfoChannelId),
+        "Choose announcement and information channels for automatic creation."
+    )
 export type AutoImportSettings = z.infer<typeof autoImportSettingsSchema>
 
 /** Provider-owned fields only. Never includes signups, roster, results or attendance. */
@@ -99,7 +113,8 @@ export function fixtureFields(
         registrationStart: schedule.registrationStart,
         name: `${fixture.participants.map((p) => p.team.code).join(" vs ")} · ${competition?.competition || template.name}`,
         description: [
-            `https://wardogsleague.net/matches/${fixture.id}`,
+            fixture.sourceUrl ??
+                `https://wardogsleague.net/matches/${fixture.id}`,
             ...fixture.participants.map(
                 (p) =>
                     `${p.team.name} (${p.team.code})${p.faction ? ` · ${p.faction}` : ""}`
@@ -120,7 +135,7 @@ export function fixtureFields(
                     fixture.participants
                         .find(
                             (p) =>
-                                p.team.code.toLowerCase() ===
+                                (p.team.slug ?? p.team.code).toLowerCase() ===
                                 settings.teamCode.toLowerCase()
                         )
                         ?.faction?.toLowerCase()
@@ -137,7 +152,9 @@ export function fixtureCommand(
     return {
         ...fixtureFields(fixture, template, settings),
         guildId,
-        wardogsFixtureUrl: `https://wardogsleague.net/matches/${fixture.id}`,
+        wardogsFixtureUrl:
+            fixture.sourceUrl ??
+            `https://wardogsleague.net/matches/${fixture.id}`,
         gameId: "wardogs",
         kind: "match",
         matchType: template.categoryId,
@@ -243,7 +260,7 @@ export function ownTeamFirst(
     code: string
 ): TeamFixture | null {
     const own = fixture.participants.filter(
-        (p) => p.team.code.toLowerCase() === code.toLowerCase()
+        (p) => (p.team.slug ?? p.team.code).toLowerCase() === code.toLowerCase()
     )
     if (own.length !== 1) return null
     return {

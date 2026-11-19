@@ -29,7 +29,9 @@ export function fixturePrefill(
                 fixture.participants[index]?.faction?.toLowerCase()
         ) ?? null
     return {
-        wardogsFixtureUrl: `https://wardogsleague.net/matches/${fixture.id}`,
+        wardogsFixtureUrl:
+            fixture.sourceUrl ??
+            `https://wardogsleague.net/matches/${fixture.id}`,
         ...(fixture.scheduledAt
             ? splitLocalDateTime(
                   toDateTimeLocalInTimeZone(fixture.scheduledAt, timezone)
@@ -47,7 +49,8 @@ export function fixturePrefill(
         opponentSide: side(1),
         extraSide: side(2),
         description: [
-            `https://wardogsleague.net/matches/${fixture.id}`,
+            fixture.sourceUrl ??
+                `https://wardogsleague.net/matches/${fixture.id}`,
             ...fixture.participants.map(
                 (p) =>
                     `${p.team.name} (${p.team.code})${p.faction ? ` · ${p.faction}` : ""}`

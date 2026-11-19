@@ -1,8 +1,11 @@
 import { wardogsPlayerMetrics } from "../src/domain/player-stats/collected-metrics"
 import type { ResultRevision } from "../src/domain/match-results/result-revision"
+import { providerSessionSchema } from "../src/domain/game-data/contracts"
+import type { ProviderSession } from "../src/domain/game-data/contracts"
 import { canonicalJson } from "../src/domain/game-data/canonical-json"
 import { storeWardogsMatchReport } from "./wardogsMatchReportStore"
 import { getUserByIdentifier, getUserStableId } from "./identity"
+import { findActivePlatformLink } from "./platformIdentityStore"
 import type { MutationCtx } from "./_generated/server"
 import { internalAuthSecret } from "./discord_shared"
 import { queueEventRecaps } from "./matchRecapStore"
@@ -15,32 +18,54 @@ export async function saveCollectedPlayerStats(
     event: Doc<"events">,
     revision: ResultRevision,
     previous: ResultRevision | null = null,
-    options: { queueRecaps?: boolean; refreshPerformance?: boolean } = {}
+    options: {
+        queueRecaps?: boolean
+        refreshPerformance?: boolean
+        sessions?: readonly ProviderSession[]
+        verifiedOnly?: boolean
+        retract?: boolean
+        sourceUrl?: string
+    } = {}
 ) {
-    if (event.gameId !== "wardogs" || revision.status === "provisional")
+    if (
+        event.gameId !== "wardogs" ||
+        (revision.status === "provisional" && !options.retract)
+    )
         return { players: 0, matchedPlayers: 0, changed: false }
     const links = [
         ...new Map(
             revision.sessionLinks.map((link) => [link.sessionId, link])
         ).values(),
     ]
-    const sessions = await Promise.all(
-        links.map(async (link) => {
-            const id = ctx.db.normalizeId("gameSessions", link.sessionId)
-            const row = id ? await ctx.db.get(id) : null
-            if (
-                !row ||
-                row.guildId !== event.guildId ||
-                row.gameId !== "wardogs" ||
-                !row.session.complete ||
-                row.session.sourceDigest !== link.sourceDigest
-            )
-                throw new Error(
-                    "Reviewed player-stat source is unavailable or changed."
+    const gwlBinding =
+        !links.length && event.wardogsFixtureUrl?.startsWith("https://gwl.gg/")
+            ? await ctx.db
+                  .query("leagueAutoImportFixtures")
+                  .withIndex("eventId", (q) => q.eq("eventId", event._id))
+                  .unique()
+            : null
+    const sessions =
+        options.sessions ??
+        (gwlBinding?.sessionJson
+            ? [providerSessionSchema.parse(JSON.parse(gwlBinding.sessionJson))]
+            : undefined) ??
+        (await Promise.all(
+            links.map(async (link) => {
+                const id = ctx.db.normalizeId("gameSessions", link.sessionId)
+                const row = id ? await ctx.db.get(id) : null
+                if (
+                    !row ||
+                    row.guildId !== event.guildId ||
+                    row.gameId !== "wardogs" ||
+                    !row.session.complete ||
+                    row.session.sourceDigest !== link.sourceDigest
                 )
-            return row.session
-        })
-    )
+                    throw new Error(
+                        "Reviewed player-stat source is unavailable or changed."
+                    )
+                return row.session
+            })
+        ))
     const players = wardogsPlayerMetrics(sessions)
     const assignments = await ctx.db
         .query("userAssignments")
@@ -53,10 +78,13 @@ export async function saveCollectedPlayerStats(
             )
         )
     ).filter((user) => user !== null)
-    const sourceUrl = `warcon:${links
-        .map((link) => link.sessionId)
-        .sort()
-        .join(",")}`
+    const sourceUrl =
+        options.sourceUrl ??
+        (gwlBinding ? `gwl:${gwlBinding.fixtureId}` : undefined) ??
+        `warcon:${links
+            .map((link) => link.sessionId)
+            .sort()
+            .join(",")}`
     const ids = new Set([
         ...players.map((p) => p.platformId),
         ...(previous?.players
@@ -93,9 +121,14 @@ export async function saveCollectedPlayerStats(
         const candidates = users.filter((user) =>
             user.platformIds?.includes(platformId)
         )
+        const verified =
+            options.verifiedOnly || gwlBinding
+                ? await findActivePlatformLink(ctx, platformId)
+                : null
         const userId =
             proof ??
-            (candidates.length === 1
+            verified?.logiUserId ??
+            (!options.verifiedOnly && !gwlBinding && candidates.length === 1
                 ? getUserStableId(candidates[0]!)
                 : undefined)
         if (userId) {

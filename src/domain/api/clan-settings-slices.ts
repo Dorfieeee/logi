@@ -10,6 +10,7 @@ import {
 } from "./settings-slices"
 import { membershipApplicationSettingsSlice } from "./membership-application-settings-slice"
 import { eventDiscussionsSettingsSlice } from "./event-discussions-settings-slice"
+import { matchTemplatesSettingsSlice } from "./match-templates-settings-slice"
 import { panelGraphicsSettingsSlice } from "./panel-graphics-settings-slice"
 import { matchMessagesSettingsSlice } from "./match-messages-settings-slice"
 import { discordPanelsSettingsSlice } from "./discord-panels-settings-slice"
@@ -19,6 +20,7 @@ import { commandsSettingsSlice } from "./commands-settings-slice"
 import { seedSettingsSlice } from "./seed-settings-slice"
 
 export const CLAN_SETTINGS_SLICES: readonly AnyClanSettingsSlice[] = [
+    matchTemplatesSettingsSlice as AnyClanSettingsSlice,
     selfGroupsSettingsSlice as AnyClanSettingsSlice,
     eventDiscussionsSettingsSlice as AnyClanSettingsSlice,
     panelGraphicsSettingsSlice,

@@ -1,0 +1,109 @@
+{
+  "events": [
+    {
+      "id": 1,
+      "type": "slot.posted",
+      "createdAt": "2027-01-14T01:00:00.000Z",
+      "team": "test-team",
+      "data": {
+        "slot": {
+          "id": "test-slot-01",
+          "startsAt": "2027-01-18T19:00:00.000Z",
+          "region": "EU",
+          "map": "sabatulo",
+          "layer": "Default",
+          "weather": "fog",
+          "seatsFilled": 1,
+          "host": "test-team",
+          "joinedTeam": null
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "slot.posted",
+      "createdAt": "2027-01-14T06:00:00.000Z",
+      "team": "test-team",
+      "data": {
+        "slot": {
+          "id": "test-slot-02",
+          "startsAt": "2027-01-21T19:00:00.000Z",
+          "region": "EU",
+          "map": "europe",
+          "layer": "Church",
+          "weather": null,
+          "seatsFilled": 2,
+          "host": "stub-strikers",
+          "joinedTeam": "test-team"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "match.locked",
+      "createdAt": "2027-01-14T11:00:00.000Z",
+      "team": "test-team",
+      "data": {
+        "match": {
+          "number": "9105",
+          "status": "scheduled",
+          "rated": false,
+          "region": "EU",
+          "map": "sabatulo",
+          "layer": "Default",
+          "weather": "clear",
+          "season": "Sandbox Season",
+          "startsAt": "2027-01-17T19:00:00.000Z",
+          "concludedAt": null,
+          "durationSeconds": null,
+          "host": "test-team",
+          "sides": [
+            {
+              "team": {
+                "slug": "test-team",
+                "name": "Test Team",
+                "tag": "TEST"
+              },
+              "faction": "lonestar",
+              "score": null,
+              "placement": null,
+              "points": null,
+              "eloDelta": null
+            },
+            {
+              "team": {
+                "slug": "example-eagles",
+                "name": "Example Eagles",
+                "tag": "EXEG"
+              },
+              "faction": null,
+              "score": null,
+              "placement": null,
+              "points": null,
+              "eloDelta": null
+            },
+            {
+              "team": {
+                "slug": "sample-sappers",
+                "name": "Sample Sappers",
+                "tag": "SMPL"
+              },
+              "faction": null,
+              "score": null,
+              "placement": null,
+              "points": null,
+              "eloDelta": null
+            }
+          ],
+          "lockedAt": "2027-01-14T19:00:00.000Z",
+          "serverPosted": false,
+          "readyTeams": [
+            "test-team"
+          ]
+        }
+      }
+    }
+  ],
+  "next": 3,
+  "hasMore": true
+}

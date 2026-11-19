@@ -70,7 +70,7 @@ export const settingsHub_sections = {
             "Odkud Logi sbírá výsledky a statistiky. API klíč se uloží šifrovaně a už ho nikdo neuvidí.",
     },
     league: {
-        title: "Wardogs League",
+        title: "Global Wardogs League",
         description:
             "Sledované ligové zápasy a jejich propojení s vašimi akcemi.",
     },

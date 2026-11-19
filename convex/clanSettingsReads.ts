@@ -10,6 +10,7 @@ import type { AnyClanSettingsSlice } from "../src/domain/api/settings-slices"
 import { readStoredPanelGraphics } from "./discordPanelGraphicsStore"
 import { readSeedSettingsApi } from "./discordSeedApiStore"
 import type { QueryCtx } from "./_generated/server"
+import { getGuildByDiscordId } from "./identity"
 
 /**
  * Reads of the `/api/v1` settings slices that live in their own table
@@ -50,6 +51,10 @@ async function readDiscordPanels(ctx: Pick<QueryCtx, "db">, guildId: string) {
 }
 
 export const CLAN_SETTINGS_READS: Readonly<Record<string, ClanSettingsRead>> = {
+    matchTemplates: async (ctx, guildId) => ({
+        templates:
+            (await getGuildByDiscordId(ctx, guildId))?.matchTemplates ?? [],
+    }),
     discordPanels: readDiscordPanels,
     panelGraphics: async (ctx, guildId) =>
         panelGraphicsApiView(await readStoredPanelGraphics(ctx, guildId)),

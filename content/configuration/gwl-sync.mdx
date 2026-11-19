@@ -1,0 +1,96 @@
+---
+title: Global Wardogs League
+description: Connect your team's GWL key, synchronize fixtures and import confirmed results and combat statistics.
+---
+
+# Global Wardogs League
+
+Open **Settings → Global Wardogs League** in a clan with Wardogs enabled.
+A clan administrator connects the team's GWL key. Logi detects the owning team
+from the key and stores the credential encrypted; it is never returned to clients.
+Leave the key blank when saving other settings to keep the existing credential.
+Saved keys cannot be viewed or copied back, even by a clan administrator. The
+password field clears on submission and when the dialog closes. To change the
+credential, enter a replacement key. The connection form lists every required
+scope and links to GWL’s key/permission instructions.
+
+## Set up the connection
+
+Make a live team key in GWL's **Team Settings → API access**, with:
+
+- `team.read` and `matches.read` for team identity and fixtures.
+- `events.read` for change notifications.
+- `matches.file` for the team's match combat files, including Steam IDs.
+- `slots.read` if Logi should automatically create matches when an opponent joins.
+
+Enable synchronization and optionally **Automatically create matches when an
+opponent joins**. Choose shared match defaults or an optional named template,
+registration timing and Discord channels. Set up defaults under **Settings →
+Match templates** first. Revoked, expired or permission-lost keys need replacement;
+fix the key's GWL permissions before retrying.
+
+A GWL test key returns invented teams, dates and players. Save it with
+synchronization disabled to validate the connection and see the detected test team.
+Test connections cannot create live events, import player stats or populate the
+global team catalogue. Replace it with a live key before enabling synchronization.
+The deployment's `GWL_API_KEY` is not a substitute for each clan's connection.
+
+## Match creation and updates
+
+When creating a Wardogs match, choose **Load upcoming matches** in the GWL field,
+select a fixture and fill from the API. You can also paste a numbered GWL match link.
+The fixture link is saved with the event to prevent duplicate creation.
+
+With automatic creation enabled, a slot with your team and at least one opponent
+becomes a Logi match. A slot still looking for both opponents is ignored. When it
+becomes a numbered match, Logi matches the clan's start time, host and existing
+teams to update the same event. Ambiguous transitions are flagged for review.
+GWL opponents are not automatically invited into a shared Logi match.
+
+GWL controls linked match facts: name, description, map, faction and scheduled
+registration/meeting/game times. Changes overwrite local edits to those fields.
+Signups, rosters, attendance and local Discord preferences remain managed in Logi.
+Changing defaults affects new matches, not existing matches.
+
+Discovery runs about every 15 minutes; unfinished fixtures are reconciled every
+three hours. Work is staggered rather than starting together: the GWL dispatcher
+waits 3.24 minutes, and each clan has its own stable delay. Updates are eventual,
+not instantaneous. Provider rate limits, retries and queue capacity can delay them.
+Cancellations and withdrawals flag the existing event for review rather than
+cancelling or deleting it. Review flags appear in the connection settings.
+
+## Results and player statistics
+
+Confirmed GWL results automatically finalize linked Logi matches. Reported results
+wait for confirmation. Later confirmed corrections replace the effective result
+and recalculate player totals without counting the match twice.
+
+If a confirmed result becomes disputed, Logi retracts the result and its player-total
+contributions until reconfirmed. Raw statistics and revision history are retained.
+Reconfirmation restores the effective result once.
+
+Player combat events are matched to verified Steam identities. Names alone never
+link accounts. Unmatched players stay in the match data for later reconciliation.
+Direct server statistics take precedence over GWL statistics for the same event.
+
+GWL match files are observed combat feeds, not full server reports. Logi derives
+kills and deaths; cash and playtime remain unknown. Players with no recorded
+combat events may be missing. File scores never override the confirmed GWL result.
+A score can finalize before its file is available; statistics retry separately.
+Raw file versions are retained in file storage rather than the event record.
+
+## Connected websites
+
+`GET /api/v1/clan/league-fixtures?game=wardogs&provider=gwl` returns the clan's
+GWL fixture/slot links and independent result/stat sync states. It requires an
+explicit Wardogs `league-fixtures` grant and omits keys, raw files and private
+player IDs. Native event commands accept the GWL fixture link under the existing
+`wardogsFixtureUrl` field. Configure keys and connection permissions in the
+dashboard; service keys cannot take over another team's GWL authority.
+
+## Old Wardogs League
+
+The discontinued provider's scheduled collectors have stopped. Existing old links
+and historical data remain separate; old match IDs cannot be assumed to identify
+GWL matches. The old league panels and legacy API projections are historical and
+are not a GWL standings service. Link new events to GWL explicitly.

@@ -125,7 +125,7 @@ export const settingsHub_overview = {
             description: "How long Logi keeps played games.",
         },
         league: {
-            title: "Wardogs League",
+            title: "Global Wardogs League",
             description:
                 "League match tracking and cards in Discord. Wardogs only.",
         },

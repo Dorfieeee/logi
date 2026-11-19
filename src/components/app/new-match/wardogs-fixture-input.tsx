@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { useId, useState } from "react"
+import { gwlCopy } from "../gwl-copy"
 import { z } from "zod"
 
 const copy = {
     fr: {
-        conflict: "Cette rencontre ou ce match est déjà associé. Ouvrez le match existant plutôt que d’en créer un autre.",
-        label: "Lien de la rencontre Wardogs (facultatif)", load: "Remplir depuis l’API Wardogs",
+        conflict:
+            "Cette rencontre ou ce match est déjà associé. Ouvrez le match existant plutôt que d’en créer un autre.",
+        label: "Lien de la rencontre Wardogs (facultatif)",
+        load: "Remplir depuis l’API Wardogs",
         help: "Associe ce match à sa rencontre de ligue pour éviter les imports en double. Les détails sont chargés avec la clé API d’équipe définie dans les paramètres de ligue ; seules les rencontres à venir ou récentes proposées par l’API sont accessibles.",
         failed: "Impossible de charger cette rencontre. Vérifiez le lien, la clé API et le code d’équipe. La rencontre doit figurer parmi celles à venir ou récentes de l’API. Vous pouvez enregistrer le lien sans charger les détails.",
     },
@@ -68,10 +71,34 @@ export function WardogsFixtureInput({
     onApply(preview: FixturePreview): void
     disabled?: boolean
 }) {
+    const g = gwlCopy(locale)
+    const [fixtures, setFixtures] = useState<
+        z.infer<typeof teamFixtureSchema>[]
+    >([])
     const t = copy[locale as keyof typeof copy] ?? copy.en
     const id = useId(),
         [busy, setBusy] = useState(false),
         [error, setError] = useState("")
+    const list = async () => {
+        setBusy(true)
+        setError("")
+        try {
+            const response = await fetch(
+                `/api/servers/${serverId}/league-auto-import?fixtures=1`,
+                { cache: "no-store" }
+            )
+            if (!response.ok) throw new Error()
+            setFixtures(
+                z
+                    .object({ fixtures: z.array(teamFixtureSchema) })
+                    .parse(await response.json()).fixtures
+            )
+        } catch {
+            setError(g.failed)
+        } finally {
+            setBusy(false)
+        }
+    }
     const load = async () => {
         setBusy(true)
         setError("")
@@ -97,14 +124,46 @@ export function WardogsFixtureInput({
     }
     return (
         <div className="space-y-2 rounded-lg border p-3">
-            <Label htmlFor={id}>{t.label}</Label>
+            <Label htmlFor={id}>{g.choose}</Label>
+            <Button
+                type="button"
+                variant="outline"
+                disabled={disabled || busy}
+                onClick={() => void list()}
+            >
+                {g.load}
+            </Button>
+            {fixtures.length > 0 && (
+                <select
+                    className="w-full rounded border p-2"
+                    aria-label={g.choose}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                >
+                    <option value="">{g.choose}</option>
+                    {fixtures.map((fixture) => (
+                        <option key={fixture.id} value={fixture.sourceUrl}>
+                            {fixture.scheduledAt
+                                ? new Date(fixture.scheduledAt).toLocaleString(
+                                      locale
+                                  )
+                                : "—"}{" "}
+                            ·{" "}
+                            {fixture.participants
+                                .map((p) => p.team.code)
+                                .join(" vs ")}{" "}
+                            · {fixture.map} · {fixture.status}
+                        </option>
+                    ))}
+                </select>
+            )}
             <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                     id={id}
                     value={value}
                     type="url"
                     maxLength={250}
-                    placeholder="https://wardogsleague.net/matches/…"
+                    placeholder="https://gwl.gg/matches/…"
                     disabled={disabled || busy}
                     onChange={(e) => {
                         onChange(e.target.value)
@@ -120,7 +179,7 @@ export function WardogsFixtureInput({
                     {busy ? "…" : t.load}
                 </Button>
             </div>
-            <p className="text-muted-foreground text-xs">{t.help}</p>
+            <p className="text-muted-foreground text-xs">{g.help}</p>
             {error && (
                 <p role="alert" className="text-destructive text-sm">
                     {error}

@@ -9,6 +9,8 @@ import {
 import { panelGraphicsPatchSchema } from "../src/domain/discord-publications/panel-graphics-settings"
 import { PANEL_GRAPHICS_API_ERRORS } from "../src/domain/api/panel-graphics-settings-slice"
 import { discordPanelsPatchSchema } from "../src/domain/api/discord-panels-settings-slice"
+import { prepareMatchTemplates } from "../src/infrastructure/convex/match-template-store"
+import { matchTemplatesSaveSchema } from "../src/lib/validation/match-templates"
 import { CLAN_SETTINGS_READS, type ClanSettingsRead } from "./clanSettingsReads"
 import { seedSettingsPatchSchema } from "../src/domain/api/seed-settings-slice"
 import { preparePanelGraphicsChange } from "./discordPanelGraphicsWrites"
@@ -16,6 +18,7 @@ import { prepareSeedSettingsChange } from "./discordSeedApiStore"
 import type { MutationCtx } from "./_generated/server"
 import { panelSaveStore } from "./discordPanelStore"
 import { attachableAsset } from "./imageAssetStore"
+import { getGuildByDiscordId } from "./identity"
 
 /**
  * Stores of the `/api/v1` settings slices that live in their own table
@@ -44,6 +47,44 @@ export type ClanSettingsStore = {
 
 export const CLAN_SETTINGS_STORES: Readonly<Record<string, ClanSettingsStore>> =
     {
+        matchTemplates: {
+            read: CLAN_SETTINGS_READS.matchTemplates,
+            prepare: async (ctx, guildId, patch) => {
+                const guild = await getGuildByDiscordId(ctx, guildId)
+                if (!guild)
+                    return {
+                        ok: false,
+                        error: {
+                            status: 404,
+                            code: "not_found",
+                            message: "Clan not found.",
+                        },
+                    }
+                const prepared = await prepareMatchTemplates(
+                    ctx,
+                    guild._id,
+                    matchTemplatesSaveSchema.parse(patch).templates
+                )
+                if (!prepared.ok)
+                    return {
+                        ok: false,
+                        error: {
+                            status: 400,
+                            code: "invalid_templates",
+                            message: prepared.error,
+                        },
+                    }
+                return {
+                    ok: true,
+                    commit: async () => {
+                        await ctx.db.patch(guild._id, {
+                            matchTemplates: prepared.templates,
+                            updatedAt: new Date().toISOString(),
+                        })
+                    },
+                }
+            },
+        },
         discordPanels: {
             read: CLAN_SETTINGS_READS.discordPanels,
             prepare: async (ctx, guildId, patch) => {

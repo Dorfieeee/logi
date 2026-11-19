@@ -137,3 +137,21 @@ editor are for review only; remove an attachment with its trash action before
 saving if it should not be sent.
 
 > **Screenshot placeholder — presets:** Show the Squad preset editor with two squads and role slots, next to a Topic preset form with map, side, and topic fields.
+
+## Shared match defaults
+
+In **Settings → Match templates**, mark a template **Use as match defaults**.
+Use **All games** for the clan baseline and a game-specific default for overrides.
+Only one default is allowed for each game and event kind. In a game default,
+check **Use clan default** for settings that should inherit; unchecked settings
+use that template's values. Game-specific group and preset IDs never inherit
+from the all-games default.
+
+Manual creation, GWL imports and accepted shared matches use these defaults.
+Explicitly selecting a named template overrides them. Existing templates are
+preserved, and editing defaults does not rewrite saved events. Shared matches
+retain the host's match facts and use the invited clan's local preferences.
+
+Connected websites can read or replace the template list through
+`GET/PATCH /api/v1/clan/settings`, under the `matchTemplates` slice. The same
+validation and clan/game reference filtering applies as in the dashboard.

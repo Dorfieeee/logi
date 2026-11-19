@@ -22,6 +22,13 @@ import {
     discordPublicPanels,
 } from "./discordPublicationTable"
 import {
+    gwlFileVersions,
+    gwlBudgets,
+    gwlReadCache,
+    leagueAutoImportSettings,
+    leagueAutoImportFixtures,
+} from "./leagueAutoImportTables"
+import {
     imageAssetKind,
     imageContentType,
     matchTeamAssignment,
@@ -49,10 +56,6 @@ import {
     discordSeedPlans,
     discordSeedRuns,
 } from "./discordSeedTable"
-import {
-    leagueAutoImportSettings,
-    leagueAutoImportFixtures,
-} from "./leagueAutoImportTables"
 import {
     commandSettingsValidator,
     discordCommandRegistrations,
@@ -2248,6 +2251,9 @@ export default defineSchema({
     })
         .index("guildId_sourceRef", ["guildId", "sourceRef"])
         .index("keyId", ["keyId"]),
+    gwlFileVersions,
+    gwlBudgets,
+    gwlReadCache,
     leagueAutoImportSettings,
     leagueAutoImportFixtures,
     leagueTrackingSettings,
