@@ -262,6 +262,8 @@ export function compareRosterCandidates(
     context: CandidateRankingContext,
     slot?: SlotContext,
     options?: {
+        sort?: "role" | "score" | "kd"
+        gameId?: string
         assignedElsewhereUserIds?: Set<string>
     }
 ) {
@@ -299,6 +301,21 @@ export function compareRosterCandidates(
         return leftAttendanceRank - rightAttendanceRank
     }
 
+    if (options?.sort === "score" || options?.sort === "kd") {
+        const metric = (user: AppUser) =>
+            options.sort === "kd"
+                ? getKd(user)
+                : getUserScoreForGuild(
+                      user,
+                      context.serverDiscordId,
+                      options.gameId
+                  )
+        return (
+            metric(rightUser) - metric(leftUser) ||
+            leftUser.name.localeCompare(rightUser.name)
+        )
+    }
+
     const leftSignupRank = getSignupMatchRank(
         leftUserId,
         slot,
@@ -329,8 +346,16 @@ export function compareRosterCandidates(
         return leftGroupRank - rightGroupRank
     }
 
-    const leftScore = getUserScoreForGuild(leftUser, context.serverDiscordId)
-    const rightScore = getUserScoreForGuild(rightUser, context.serverDiscordId)
+    const leftScore = getUserScoreForGuild(
+        leftUser,
+        context.serverDiscordId,
+        options?.gameId
+    )
+    const rightScore = getUserScoreForGuild(
+        rightUser,
+        context.serverDiscordId,
+        options?.gameId
+    )
     if (leftScore !== rightScore) {
         return rightScore - leftScore
     }

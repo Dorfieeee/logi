@@ -1,5 +1,21 @@
 export const rostersMessages = {
     roster: {
+        scoresHelp:
+            "Statistiky zápasů jsou průměry z dostupné historie. — znamená chybějící historii.",
+        scoresTitle: "Skóre",
+        sortPlayers: "Řazení hráčů",
+        sortRole: "Vhodnost pro roli",
+        sortScore: "Skóre",
+        sortKd: "K/D",
+        sortName: "Jméno",
+        allGroups: "Všechny skupiny",
+        noPlayers: "Žádní hráči neodpovídají filtrům.",
+        matchesLabel: "Zápasy",
+        killsLabel: "Zabití",
+        deathsLabel: "Úmrtí",
+        combatLabel: "Boj",
+        supportLabel: "Podpora",
+
         noPresets: "Nejprve vytvořte předvolbu družstev pro tuto soupisku.",
         createPreset: "Vytvořit předvolbu družstev",
 

@@ -20,8 +20,10 @@ import {
 } from "./discord-channel-select"
 import { autoImportSettingsSchema } from "@/domain/wardogs-league/team-api"
 import { matchTemplateSchema } from "@/lib/validation/match-templates"
+import { gwlSaveFailureSchema } from "@/domain/gwl/save-feedback"
 import { useCallback, useEffect, useId, useState } from "react"
 import { autoImportCopy } from "./league-auto-import-copy"
+import { gwlSaveErrorMessage } from "./gwl-save-feedback"
 import { Checkbox } from "@/components/ui/checkbox"
 import { gwlStatusCopy } from "./gwl-status-copy"
 import { Button } from "@/components/ui/button"
@@ -179,12 +181,32 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                     ...(submittedKey ? { apiKey: submittedKey } : {}),
                 }),
             })
-            if (!response.ok) throw new Error()
+            if (!response.ok) {
+                const failure = gwlSaveFailureSchema.safeParse(
+                    await response.json().catch(() => null)
+                )
+                setMessage(
+                    gwlSaveErrorMessage(
+                        locale,
+                        failure.success
+                            ? failure.data
+                            : { error: "save_failed" }
+                    )
+                )
+                return
+            }
             setApiKey("")
             await load()
             setMessage(t.saved)
-        } catch {
-            setMessage(t.failed)
+        } catch (error) {
+            setMessage(
+                gwlSaveErrorMessage(locale, {
+                    error:
+                        error instanceof z.ZodError
+                            ? "invalid_settings"
+                            : "save_failed",
+                })
+            )
         } finally {
             setBusy(false)
         }

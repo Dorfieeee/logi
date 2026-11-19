@@ -94,3 +94,16 @@ The discontinued provider's scheduled collectors have stopped. Existing old link
 and historical data remain separate; old match IDs cannot be assumed to identify
 GWL matches. The old league panels and legacy API projections are historical and
 are not a GWL standings service. Link new events to GWL explicitly.
+
+## If the connection will not save
+
+The form reports the failing check separately: missing GWL permissions (including
+which scope), an inactive/rejected key, a personal key used instead of a team key,
+Discord channel access, registration timing, rate limits, or secure credential
+storage not being configured by the Logi administrator. Test keys require live
+synchronization to be disabled. Personal keys are for public league data and
+cannot replace a team key on this screen.
+
+These errors contain fixed messages and permission names only; provider error
+bodies and key values are never returned. The password field clears after every
+submission, including failed attempts, so enter the key again when retrying.
