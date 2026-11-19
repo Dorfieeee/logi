@@ -29,12 +29,17 @@ export async function GET(request: Request) {
         )
     try {
         const data = await fetchQuery(
-            makeFunctionReference<"query">("leagueFixtureReads:list"),
+            makeFunctionReference<"query">(
+                input.provider === "gwl"
+                    ? "leagueFixtureReads:listGwl"
+                    : "leagueFixtureReads:list"
+            ),
             {
                 secret: getInternalAuthSecret(),
                 keyHash: hashApiKey(auth.key),
                 guildId: auth.guildId,
-                ...input,
+                cursor: input.cursor,
+                limit: input.limit,
             }
         )
         return data

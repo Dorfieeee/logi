@@ -186,3 +186,37 @@ test("template caps, reminders and roster settings are tidied", () => {
     assert.equal(training.signupGroupLimits, undefined)
     assert.equal(training.squadPresetId, undefined)
 })
+
+test("shared defaults inherit selected fields and strip game-specific IDs from clan defaults", async () => {
+    const { resolveMatchDefaults } = await import("./match-templates")
+    const base = {
+        ...friendly,
+        id: "base",
+        gameId: undefined,
+        isDefault: true,
+        durationMinutes: 90,
+        squadPresetId: "hll-preset",
+    }
+    const game = {
+        ...friendly,
+        id: "wd",
+        gameId: "wardogs" as const,
+        isDefault: true,
+        durationMinutes: 30,
+        meetingMinutesBeforeStart: 10,
+        inheritFields: ["durationMinutes"],
+        squadPresetId: "wd-preset",
+    }
+    const resolved = resolveMatchDefaults([base, game], "wardogs")!
+    assert.equal(resolved.durationMinutes, 90)
+    assert.equal(resolved.meetingMinutesBeforeStart, 10)
+    assert.equal(resolved.squadPresetId, "wd-preset")
+    assert.equal(
+        resolveMatchDefaults([base], "wardogs")?.squadPresetId,
+        undefined
+    )
+    assert.equal(
+        normalizeMatchTemplates([base, { ...base, id: "duplicate" }]).ok,
+        false
+    )
+})

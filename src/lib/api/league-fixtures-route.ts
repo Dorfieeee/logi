@@ -28,8 +28,10 @@ export function parseLeagueFixtureQuery(request: Request) {
         params.getAll("game").length !== 1 ||
         params.get("game") !== "wardogs" ||
         [...params.keys()].some(
-            (k) => !["game", "cursor", "limit"].includes(k)
+            (k) => !["game", "cursor", "limit", "provider"].includes(k)
         ) ||
+        params.getAll("provider").length > 1 ||
+        (params.has("provider") && params.get("provider") !== "gwl") ||
         params.getAll("cursor").length > 1 ||
         params.getAll("limit").length > 1
     )
@@ -43,5 +45,11 @@ export function parseLeagueFixtureQuery(request: Request) {
         (cursor !== null && (!cursor || cursor.length > 4096))
     )
         return null
-    return { cursor, limit: Number(raw) }
+    return {
+        cursor,
+        limit: Number(raw),
+        ...(params.get("provider") === "gwl"
+            ? { provider: "gwl" as const }
+            : {}),
+    }
 }

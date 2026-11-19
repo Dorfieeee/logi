@@ -1,0 +1,236 @@
+{
+  "upcoming": [
+    {
+      "number": "9105",
+      "status": "scheduled",
+      "rated": false,
+      "region": "EU",
+      "map": "sabatulo",
+      "layer": "Default",
+      "weather": "clear",
+      "season": "Sandbox Season",
+      "startsAt": "2027-01-17T19:00:00.000Z",
+      "concludedAt": null,
+      "durationSeconds": null,
+      "host": "test-team",
+      "sides": [
+        {
+          "team": {
+            "slug": "test-team",
+            "name": "Test Team",
+            "tag": "TEST"
+          },
+          "faction": "lonestar",
+          "score": null,
+          "placement": null,
+          "points": null,
+          "eloDelta": null
+        },
+        {
+          "team": {
+            "slug": "example-eagles",
+            "name": "Example Eagles",
+            "tag": "EXEG"
+          },
+          "faction": null,
+          "score": null,
+          "placement": null,
+          "points": null,
+          "eloDelta": null
+        },
+        {
+          "team": {
+            "slug": "sample-sappers",
+            "name": "Sample Sappers",
+            "tag": "SMPL"
+          },
+          "faction": null,
+          "score": null,
+          "placement": null,
+          "points": null,
+          "eloDelta": null
+        }
+      ],
+      "lockedAt": "2027-01-14T19:00:00.000Z",
+      "serverPosted": false,
+      "readyTeams": [
+        "test-team"
+      ]
+    },
+    {
+      "number": "9106",
+      "status": "scheduled",
+      "rated": false,
+      "region": "EU",
+      "map": "kavkazi",
+      "layer": "Farmland",
+      "weather": null,
+      "season": "Sandbox Season",
+      "startsAt": "2027-01-20T19:00:00.000Z",
+      "concludedAt": null,
+      "durationSeconds": null,
+      "host": "stub-strikers",
+      "sides": [
+        {
+          "team": {
+            "slug": "stub-strikers",
+            "name": "Stub Strikers",
+            "tag": "STUB"
+          },
+          "faction": "lonestar",
+          "score": null,
+          "placement": null,
+          "points": null,
+          "eloDelta": null
+        },
+        {
+          "team": {
+            "slug": "test-team",
+            "name": "Test Team",
+            "tag": "TEST"
+          },
+          "faction": null,
+          "score": null,
+          "placement": null,
+          "points": null,
+          "eloDelta": null
+        },
+        {
+          "team": {
+            "slug": "mock-mortars",
+            "name": "Mock Mortars",
+            "tag": "MOCK"
+          },
+          "faction": null,
+          "score": null,
+          "placement": null,
+          "points": null,
+          "eloDelta": null
+        }
+      ],
+      "lockedAt": "2027-01-17T19:00:00.000Z",
+      "serverPosted": true,
+      "readyTeams": []
+    }
+  ],
+  "recent": [
+    {
+      "number": "9104",
+      "status": "reported",
+      "rated": false,
+      "region": "EU",
+      "map": "europe",
+      "layer": "River",
+      "weather": null,
+      "season": "Sandbox Season",
+      "startsAt": "2027-01-14T19:00:00.000Z",
+      "concludedAt": null,
+      "durationSeconds": 3360,
+      "host": "lorem-lancers",
+      "sides": [
+        {
+          "team": {
+            "slug": "lorem-lancers",
+            "name": "Lorem Lancers",
+            "tag": "LORM"
+          },
+          "faction": "lonestar",
+          "score": 74,
+          "placement": 2,
+          "points": 2,
+          "eloDelta": null
+        },
+        {
+          "team": {
+            "slug": "test-team",
+            "name": "Test Team",
+            "tag": "TEST"
+          },
+          "faction": "valkyra",
+          "score": 100,
+          "placement": 1,
+          "points": 3,
+          "eloDelta": null
+        },
+        {
+          "team": {
+            "slug": "ipsum-infantry",
+            "name": "Ipsum Infantry",
+            "tag": "IPSM"
+          },
+          "faction": "manticore",
+          "score": 38,
+          "placement": 3,
+          "points": 1,
+          "eloDelta": null
+        }
+      ],
+      "lockedAt": "2027-01-11T19:00:00.000Z",
+      "serverPosted": true,
+      "readyTeams": [
+        "lorem-lancers",
+        "test-team",
+        "ipsum-infantry"
+      ]
+    },
+    {
+      "number": "9103",
+      "status": "confirmed",
+      "rated": true,
+      "region": "EU",
+      "map": "north-america",
+      "layer": "Houses",
+      "weather": "rain",
+      "season": "Sandbox Season",
+      "startsAt": "2027-01-11T19:00:00.000Z",
+      "concludedAt": "2027-01-11T21:59:00.000Z",
+      "durationSeconds": 3540,
+      "host": "test-team",
+      "sides": [
+        {
+          "team": {
+            "slug": "test-team",
+            "name": "Test Team",
+            "tag": "TEST"
+          },
+          "faction": "lonestar",
+          "score": 65,
+          "placement": 2,
+          "points": 2,
+          "eloDelta": 0
+        },
+        {
+          "team": {
+            "slug": "dummy-dragoons",
+            "name": "Dummy Dragoons",
+            "tag": "DUMY"
+          },
+          "faction": "valkyra",
+          "score": 100,
+          "placement": 1,
+          "points": 3,
+          "eloDelta": 18
+        },
+        {
+          "team": {
+            "slug": "fixture-falcons",
+            "name": "Fixture Falcons",
+            "tag": "FIXT"
+          },
+          "faction": "manticore",
+          "score": 34,
+          "placement": 3,
+          "points": 1,
+          "eloDelta": -16
+        }
+      ],
+      "lockedAt": "2027-01-08T19:00:00.000Z",
+      "serverPosted": true,
+      "readyTeams": [
+        "test-team",
+        "dummy-dragoons",
+        "fixture-falcons"
+      ]
+    }
+  ]
+}

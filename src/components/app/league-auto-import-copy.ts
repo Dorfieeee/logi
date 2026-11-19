@@ -8,12 +8,13 @@ const fr = {
         "Trop de matchs à vérifier de manière fiable ; associez la rencontre manuellement.",
     configure: "Configurer les imports automatiques",
     enabled: "Créer automatiquement les rencontres de mon équipe",
-    intro: "Connectez la clé API Wardogs League de votre équipe. Les prochaines rencontres programmées deviennent des matchs Logi ; par défaut, les inscriptions ouvrent 7 jours avant le début.",
+    intro: "Connectez la clé API Global Wardogs League de votre équipe. Les prochaines rencontres programmées deviennent des matchs Logi ; par défaut, les inscriptions ouvrent 7 jours avant le début.",
     key: "Clé API Wardogs",
     keySaved:
         "Clé enregistrée. Laissez vide pour la conserver ; saisissez une nouvelle clé pour la remplacer.",
-    teamCode: "Code de votre équipe dans Wardogs League",
-    team_not_in_fixture: "Le code d’équipe configuré ne figure pas dans cette rencontre",
+    teamCode: "Code de votre équipe dans Global Wardogs League",
+    team_not_in_fixture:
+        "Le code d’équipe configuré ne figure pas dans cette rencontre",
     template: "Modèle de match par défaut",
     noTemplates:
         "Créez d’abord un modèle de match Wardogs dans Paramètres → Modèles de match.",
@@ -32,7 +33,7 @@ const fr = {
     last: "Dernier import réussi",
     importFailed:
         "Le dernier import a échoué. Vérifiez la clé et le modèle ; Logi réessaiera automatiquement.",
-    sync: "Les changements de l’API mettent à jour les champs non modifiés localement. Les modifications locales, inscriptions, compositions et résultats validés sont conservés. Les rencontres annulées sont signalées pour vérification. Les équipes manquantes utilisent les noms de l’API jusqu’à leur association au catalogue.",
+    sync: "GWL contrôle les détails liés. Les résultats confirmés sont finalisés automatiquement ; les litiges retirent résultats et totaux jusqu’à confirmation. Les statistiques serveur sont prioritaires. Annulations et retraits nécessitent une vérification. Contrôle toutes les 15 minutes, rapprochement toutes les trois heures, avec décalage des tâches.",
     templateDetails:
         "Le modèle fournit le rassemblement, la clôture des inscriptions, la durée, les groupes, rappels, mentions et paramètres de forum et de salons vocaux. Les changements des valeurs par défaut s’appliquent aux nouveaux imports.",
     issues: "Rencontres à vérifier",
@@ -54,11 +55,11 @@ const en = {
         "Too many matches to check safely; link the fixture manually.",
     configure: "Configure automatic imports",
     enabled: "Automatically create my team's fixtures",
-    intro: "Connect your Wardogs League team API key. Upcoming scheduled fixtures become Logi matches; registration opens 7 days before kickoff by default.",
-    key: "Wardogs API key",
+    intro: "Connect your Global Wardogs League team API key. Upcoming scheduled fixtures become Logi matches; registration opens 7 days before kickoff by default.",
+    key: "GWL API key",
     keySaved:
         "Key saved. Leave blank to keep it; enter a new key to replace it.",
-    teamCode: "Your team code in Wardogs League",
+    teamCode: "Your team code in Global Wardogs League",
     team_not_in_fixture: "Configured team code is missing from this fixture",
     template: "Default match template",
     noTemplates:
@@ -78,7 +79,7 @@ const en = {
     last: "Last successful import",
     importFailed:
         "The last import failed. Check the key and template; Logi will retry automatically.",
-    sync: "API changes update untouched fields. Local edits, sign-ups, rosters and reviewed results are preserved. Cancelled fixtures are flagged for review. Missing teams use the API names until matched to the catalogue.",
+    sync: "GWL controls linked match details. Confirmed results finalize automatically; disputes retract results and totals until reconfirmed. Direct server stats take precedence. Cancellations and withdrawals need review. Changes are checked every 15 minutes, with three-hour reconciliation and staggered scheduling.",
     templateDetails:
         "The template supplies meeting time, registration deadline, duration, signup groups, reminders, pings, forum and voice-channel settings. Changes to defaults apply to new imports.",
     issues: "Fixtures needing review",
@@ -100,11 +101,11 @@ const cs: AutoImportCopy = {
         "Příliš mnoho zápasů pro bezpečné ověření; propojte utkání ručně.",
     configure: "Nastavit automatický import",
     enabled: "Automaticky vytvářet zápasy mého týmu",
-    intro: "Připojte API klíč týmu z Wardogs League. Z plánovaných zápasů vzniknou zápasy v Logi; registrace se standardně otevře 7 dní před začátkem.",
+    intro: "Připojte API klíč týmu z Global Wardogs League. Z plánovaných zápasů vzniknou zápasy v Logi; registrace se standardně otevře 7 dní před začátkem.",
     key: "API klíč Wardogs",
     keySaved:
         "Klíč je uložen. Prázdné pole jej ponechá; nový klíč jej nahradí.",
-    teamCode: "Kód vašeho týmu ve Wardogs League",
+    teamCode: "Kód vašeho týmu ve Global Wardogs League",
     team_not_in_fixture: "Nastavený kód týmu není v tomto zápase",
     template: "Výchozí šablona zápasu",
     noTemplates:
@@ -124,7 +125,7 @@ const cs: AutoImportCopy = {
     last: "Poslední úspěšný import",
     importFailed:
         "Poslední import selhal. Zkontrolujte klíč a šablonu; Logi jej automaticky zopakuje.",
-    sync: "Změny API aktualizují neupravená pole. Ruční úpravy, přihlášky, sestavy a potvrzené výsledky zůstanou zachovány. Zrušené zápasy vyžadují kontrolu. Chybějící týmy používají názvy z API do přiřazení ke katalogu.",
+    sync: "GWL řídí údaje propojených zápasů. Potvrzené výsledky se automaticky uzavřou; spory stáhnou výsledky i součty do nového potvrzení. Přednost mají statistiky serveru. Zrušení a odstoupení vyžadují kontrolu. Kontrola každých 15 minut, úplná synchronizace každé tři hodiny, s rozloženým spouštěním.",
     templateDetails:
         "Šablona určuje sraz, konec registrace, délku zápasu, skupiny, připomínky, zmínky, fórum a hlasové kanály. Změny výchozího nastavení platí pro nové importy.",
     issues: "Zápasy ke kontrole",
@@ -150,7 +151,7 @@ const de: AutoImportCopy = {
     key: "Wardogs-API-Schlüssel",
     keySaved:
         "Schlüssel gespeichert. Leer lassen zum Beibehalten; ein neuer Schlüssel ersetzt ihn.",
-    teamCode: "Dein Teamcode in Wardogs League",
+    teamCode: "Dein Teamcode in Global Wardogs League",
     team_not_in_fixture: "Der konfigurierte Teamcode fehlt in dieser Begegnung",
     template: "Standard-Spielvorlage",
     noTemplates:
@@ -170,7 +171,7 @@ const de: AutoImportCopy = {
     last: "Letzter erfolgreicher Import",
     importFailed:
         "Der letzte Import ist fehlgeschlagen. Prüfe Schlüssel und Vorlage; Logi versucht es automatisch erneut.",
-    sync: "API-Änderungen aktualisieren unveränderte Felder. Lokale Änderungen, Anmeldungen, Aufstellungen und bestätigte Ergebnisse bleiben erhalten. Abgesagte Spiele werden zur Prüfung markiert. Fehlende Teams verwenden bis zur Zuordnung die API-Namen.",
+    sync: "GWL steuert verknüpfte Spieldaten. Bestätigte Ergebnisse schließen automatisch ab; bei Streit werden Ergebnis und Summen bis zur Bestätigung zurückgezogen. Serverstatistiken haben Vorrang. Absagen und Rückzüge erfordern Prüfung. Prüfung alle 15 Minuten, Abgleich alle drei Stunden, zeitversetzt.",
     templateDetails:
         "Die Vorlage bestimmt Treffpunktzeit, Anmeldeschluss, Dauer, Gruppen, Erinnerungen, Erwähnungen, Forum und Sprachkanäle. Geänderte Standardwerte gelten für neue Importe.",
     issues: "Spiele zur Prüfung",
@@ -192,10 +193,10 @@ const pl: AutoImportCopy = {
         "Za dużo meczów do bezpiecznego sprawdzenia; połącz spotkanie ręcznie.",
     configure: "Skonfiguruj automatyczny import",
     enabled: "Automatycznie twórz mecze mojego zespołu",
-    intro: "Połącz klucz API zespołu Wardogs League. Zaplanowane spotkania staną się meczami Logi; zapisy domyślnie otwierają się 7 dni przed rozpoczęciem.",
+    intro: "Połącz klucz API zespołu Global Wardogs League. Zaplanowane spotkania staną się meczami Logi; zapisy domyślnie otwierają się 7 dni przed rozpoczęciem.",
     key: "Klucz API Wardogs",
     keySaved: "Klucz zapisany. Puste pole zachowa go; nowy klucz go zastąpi.",
-    teamCode: "Kod twojego zespołu w Wardogs League",
+    teamCode: "Kod twojego zespołu w Global Wardogs League",
     team_not_in_fixture: "Skonfigurowanego kodu zespołu nie ma w tym spotkaniu",
     template: "Domyślny szablon meczu",
     noTemplates:
@@ -215,7 +216,7 @@ const pl: AutoImportCopy = {
     last: "Ostatni udany import",
     importFailed:
         "Ostatni import nie powiódł się. Sprawdź klucz i szablon; Logi spróbuje ponownie automatycznie.",
-    sync: "Zmiany API aktualizują nieedytowane pola. Lokalne zmiany, zapisy, składy i zatwierdzone wyniki pozostają zachowane. Odwołane mecze wymagają sprawdzenia. Brakujące zespoły używają nazw z API do przypisania w katalogu.",
+    sync: "GWL zarządza danymi połączonych meczów. Potwierdzone wyniki kończą mecz automatycznie; spór wycofuje wynik i sumy do ponownego potwierdzenia. Statystyki serwera mają pierwszeństwo. Anulowanie i wycofanie wymagają przeglądu. Kontrola co 15 minut, uzgadnianie co trzy godziny, z rozłożonym startem.",
     templateDetails:
         "Szablon określa zbiórkę, zamknięcie zapisów, czas trwania, grupy, przypomnienia, wzmianki, forum i kanały głosowe. Zmiany ustawień domyślnych dotyczą nowych importów.",
     issues: "Mecze do sprawdzenia",
@@ -228,5 +229,7 @@ const pl: AutoImportCopy = {
         "Zaimportowany mecz został usunięty; nie zostanie odtworzony",
 }
 export function autoImportCopy(locale: string): AutoImportCopy {
-    return ({ en, cs, de, pl, fr } as Record<string, AutoImportCopy>)[locale] ?? en
+    return (
+        ({ en, cs, de, pl, fr } as Record<string, AutoImportCopy>)[locale] ?? en
+    )
 }

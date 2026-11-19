@@ -120,7 +120,7 @@ export const settingsHub_overview = {
             description: "Jak dlouho Logi drží odehrané hry.",
         },
         league: {
-            title: "Wardogs League",
+            title: "Global Wardogs League",
             description:
                 "Sledování ligových zápasů a karty v Discordu. Jen pro Wardogs.",
         },

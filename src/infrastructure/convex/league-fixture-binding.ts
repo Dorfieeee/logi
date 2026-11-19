@@ -45,21 +45,23 @@ export async function bindWardogsFixture(
         .unique()
     if (other && other.fixtureId !== fixture.id)
         throw new Error("This match is already linked to another fixture.")
-    const tracked = await trackedMatch(ctx, guildId, fixture.id)
-    if (tracked?.eventId && tracked.eventId !== eventId)
-        throw new Error(
-            "This Wardogs fixture is already linked to another match."
-        )
-    const prior = await ctx.db
-        .query("leagueTrackedMatches")
-        .withIndex("event", (q) =>
-            q.eq("guildId", guildId).eq("eventId", String(eventId))
-        )
-        .unique()
-    if (prior && prior.matchId !== fixture.id)
-        throw new Error("This match is already linked to another fixture.")
-    const link = tracked ?? (await ensureTracked(ctx, guildId, fixture.id))
-    await ctx.db.patch(link._id, { eventId: String(eventId) })
+    if (!fixture.url.startsWith("https://gwl.gg/")) {
+        const tracked = await trackedMatch(ctx, guildId, fixture.id)
+        if (tracked?.eventId && tracked.eventId !== eventId)
+            throw new Error(
+                "This Wardogs fixture is already linked to another match."
+            )
+        const prior = await ctx.db
+            .query("leagueTrackedMatches")
+            .withIndex("event", (q) =>
+                q.eq("guildId", guildId).eq("eventId", String(eventId))
+            )
+            .unique()
+        if (prior && prior.matchId !== fixture.id)
+            throw new Error("This match is already linked to another fixture.")
+        const link = tracked ?? (await ensureTracked(ctx, guildId, fixture.id))
+        await ctx.db.patch(link._id, { eventId: String(eventId) })
+    }
     if (old) await ctx.db.patch(old._id, { eventId, updatedAt: Date.now() })
     else
         await ctx.db.insert("leagueAutoImportFixtures", {

@@ -13,6 +13,10 @@ import {
     normalizeEventDoc,
     normalizeDoc,
 } from "../src/infrastructure/convex/server-read-model"
+import {
+    resolveMatchDefaults,
+    templateSchedule,
+} from "../src/domain/events/match-templates"
 import { refreshSharedMatchPresentation } from "../src/infrastructure/convex/shared-match-logos"
 import { configureSharedMatchLocal } from "../src/infrastructure/convex/configure-shared-match"
 import { syncEventAssetReferences } from "../src/infrastructure/convex/event-asset-references"
@@ -336,6 +340,13 @@ export const respond = mutation({
             args.settings === undefined
                 ? undefined
                 : sharedMatchSettingsSchema.parse(args.settings)
+        const defaults = resolveMatchDefaults(
+            guestClan?.matchTemplates ?? [],
+            resolveGameScope(host.gameId)
+        )
+        const defaultSchedule = defaults
+            ? templateSchedule(defaults, host.gameStart)
+            : null
         const localEventId = await ctx.db.insert("events", {
             name: host.name,
             registrationEnd: host.registrationEnd,
@@ -344,7 +355,9 @@ export const respond = mutation({
             gameEnd: host.gameEnd,
             ...sharedMatchPatch(host),
             registrationStart: sharedRegistrationStart(
-                args.registrationStart ?? host.registrationStart,
+                args.registrationStart ??
+                    defaultSchedule?.registrationStart ??
+                    host.registrationStart,
                 host.registrationEnd
             ),
             hostEventId: host._id,
@@ -367,6 +380,21 @@ export const respond = mutation({
             ),
             useGeneralSignup: offered.length === 0,
             ...eventDiscussionDefaults(config, resolveGameScope(host.gameId)),
+            ...(defaults
+                ? {
+                      allowedSignupStatuses: defaults.allowedSignupStatuses,
+                      signupReminderStatuses: defaults.signupReminderStatuses,
+                      attendanceReminderHours: defaults.attendanceReminderHours,
+                      pingMode: defaults.pingMode,
+                      pingRoleIds: defaults.pingRoleIds,
+                      pingClan: defaults.pingMode === "clan",
+                      createParticipantRoles: defaults.createParticipantRoles,
+                      createSquadVoiceChannels:
+                          defaults.createSquadVoiceChannels,
+                      createForumChannel: defaults.createForumChannel,
+                      allowRankedSignup: defaults.allowRankedSignup,
+                  }
+                : {}),
         })
         await ctx.db.patch(invitation._id, {
             status: "accepted",

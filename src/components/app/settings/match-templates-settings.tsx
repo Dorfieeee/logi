@@ -1,6 +1,7 @@
 "use client"
 
 import { ManageGroupsLink } from "@/components/app/manage-groups-link"
+import { matchDefaultsCopy } from "./match-defaults-copy"
 
 import {
     AlertTriangle,
@@ -14,7 +15,7 @@ import {
     Users,
     type LucideIcon,
 } from "lucide-react"
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -299,6 +300,7 @@ export function MatchTemplatesSettings({
     locale: string
     dictionary: Dictionary
 }) {
+    const defaultsText = matchDefaultsCopy(locale)
     const text = dictionary.matchTemplates
     const router = useRouter()
     const [templates, setTemplates] = useState(savedTemplates)
@@ -413,19 +415,15 @@ export function MatchTemplatesSettings({
         }
     }
 
-    const gameGroups = useMemo(
-        () =>
-            selected?.gameId
-                ? groups
-                      .filter(
-                          (group) =>
-                              (group.gameId ?? "hell_let_loose") ===
-                              selected.gameId
-                      )
-                      .sort((left, right) => left.order - right.order)
-                : [],
-        [groups, selected?.gameId]
-    )
+    const selectedGameId = selected?.gameId
+    const gameGroups = selectedGameId
+        ? groups
+              .filter(
+                  (group) =>
+                      (group.gameId ?? "hell_let_loose") === selectedGameId
+              )
+              .sort((left, right) => left.order - right.order)
+        : []
     const gamePresets = squadPresets.filter(
         (preset) =>
             selected?.gameId &&
@@ -437,9 +435,11 @@ export function MatchTemplatesSettings({
             ? "cs-CZ"
             : locale === "de"
               ? "de-DE"
-              : locale === "fr" ? "fr-FR" : locale === "pl"
-                ? "pl-PL"
-                : "en-GB"
+              : locale === "fr"
+                ? "fr-FR"
+                : locale === "pl"
+                  ? "pl-PL"
+                  : "en-GB"
     const exampleFormat = new Intl.DateTimeFormat(intl, {
         weekday: "short",
         hour: "2-digit",
@@ -1384,6 +1384,81 @@ export function MatchTemplatesSettings({
                                 ]}
                             />
                         </Row>
+                        <Row
+                            label={defaultsText.title}
+                            hint={defaultsText.hint}
+                            htmlFor="tpl-default"
+                        >
+                            <Switch
+                                id="tpl-default"
+                                checked={selected.isDefault ?? false}
+                                onCheckedChange={(value) => {
+                                    setTemplates((current) =>
+                                        current.map((template) =>
+                                            template.id === selected.id
+                                                ? {
+                                                      ...template,
+                                                      isDefault: value,
+                                                  }
+                                                : value &&
+                                                    template.kind ===
+                                                        selected.kind &&
+                                                    template.gameId ===
+                                                        selected.gameId
+                                                  ? {
+                                                        ...template,
+                                                        isDefault: false,
+                                                    }
+                                                  : template
+                                        )
+                                    )
+                                }}
+                            />
+                        </Row>
+                        {selected.isDefault && selected.gameId && (
+                            <Row
+                                label={defaultsText.inherit}
+                                hint={defaultsText.inheritHint}
+                            >
+                                <div className="grid gap-2">
+                                    {defaultsText.fields.map((field) => (
+                                        <label
+                                            key={field.key}
+                                            className="flex items-center gap-2 text-sm"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    selected.inheritFields?.includes(
+                                                        field.key
+                                                    ) ?? false
+                                                }
+                                                onChange={(e) =>
+                                                    update({
+                                                        inheritFields: e.target
+                                                            .checked
+                                                            ? [
+                                                                  ...(selected.inheritFields ??
+                                                                      []),
+                                                                  field.key,
+                                                              ]
+                                                            : (
+                                                                  selected.inheritFields ??
+                                                                  []
+                                                              ).filter(
+                                                                  (key) =>
+                                                                      key !==
+                                                                      field.key
+                                                              ),
+                                                    })
+                                                }
+                                            />
+                                            {field.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </Row>
+                        )}
                         <Row label={text.basics.game} htmlFor="tpl-game">
                             <Select
                                 value={selected.gameId ?? ALL_GAMES}

@@ -30,6 +30,9 @@ const MAX_MINUTES = 24 * 60
  */
 export type MatchTemplate = {
     id: string
+    /** Base or per-game defaults; optional named templates remain available. */
+    isDefault?: boolean
+    inheritFields?: string[]
     name: string
     kind: EventKind
     /** Missing means every game the clan plays. */
@@ -86,6 +89,7 @@ export function normalizeMatchTemplates(
     | { ok: false; error: MatchTemplateError; index?: number } {
     if (templates.length > MAX_MATCH_TEMPLATES)
         return { ok: false, error: "too_many" }
+    const defaults = new Set<string>()
     const ids = new Set<string>()
     const normalized: MatchTemplate[] = []
     for (const [index, template] of templates.entries()) {
@@ -93,6 +97,12 @@ export function normalizeMatchTemplates(
         if (!id || ids.has(id))
             return { ok: false, error: "duplicate_id", index }
         ids.add(id)
+        if (template.isDefault) {
+            const scope = `${template.kind}:${template.gameId ?? "all"}`
+            if (defaults.has(scope))
+                return { ok: false, error: "duplicate_id", index }
+            defaults.add(scope)
+        }
         const name = template.name.trim().slice(0, MAX_NAME_LENGTH)
         if (!name) return { ok: false, error: "missing_name", index }
         if (
@@ -126,6 +136,8 @@ export function normalizeMatchTemplates(
         }
         normalized.push({
             id,
+            isDefault: template.isDefault,
+            inheritFields: template.inheritFields,
             name,
             kind: template.kind,
             gameId: template.gameId,
@@ -251,4 +263,64 @@ export function defaultMatchTemplate(id: string, name: string): MatchTemplate {
         createForumChannel: true,
         createSquadVoiceChannels: false,
     }
+}
+
+/** Resolve explicit game overrides over the clan baseline without applying game-specific IDs globally. */
+export function resolveMatchDefaults(
+    templates: readonly MatchTemplate[],
+    gameId: GameId,
+    kind: EventKind = "match"
+): MatchTemplate | undefined {
+    const base = templates.find(
+        (t) => t.isDefault && !t.gameId && t.kind === kind
+    )
+    const game = templates.find(
+        (t) => t.isDefault && t.gameId === gameId && t.kind === kind
+    )
+    if (!base && !game) return undefined
+    const resolved = { ...(game ?? base!) }
+    if (base && game) {
+        for (const key of game.inheritFields ?? []) {
+            if (key === "registrationHoursBeforeMeeting")
+                resolved.registrationHoursBeforeMeeting =
+                    base.registrationHoursBeforeMeeting
+            if (key === "meetingMinutesBeforeStart")
+                resolved.meetingMinutesBeforeStart =
+                    base.meetingMinutesBeforeStart
+            if (key === "durationMinutes")
+                resolved.durationMinutes = base.durationMinutes
+            if (key === "announcementHoursBeforeStart")
+                resolved.announcementHoursBeforeStart =
+                    base.announcementHoursBeforeStart
+            if (key === "allowedSignupStatuses")
+                resolved.allowedSignupStatuses = base.allowedSignupStatuses
+            if (key === "signupReminderStatuses")
+                resolved.signupReminderStatuses = base.signupReminderStatuses
+            if (key === "attendanceReminderHours")
+                resolved.attendanceReminderHours = base.attendanceReminderHours
+            if (key === "pingMode") {
+                resolved.pingMode = base.pingMode
+                resolved.pingRoleIds = base.pingRoleIds
+            }
+            if (key === "createForumChannel")
+                resolved.createForumChannel = base.createForumChannel
+            if (key === "createSquadVoiceChannels")
+                resolved.createSquadVoiceChannels =
+                    base.createSquadVoiceChannels
+            if (key === "createParticipantRoles")
+                resolved.createParticipantRoles = base.createParticipantRoles
+            if (key === "useGeneralSignup")
+                resolved.useGeneralSignup = base.useGeneralSignup
+            if (key === "allowRankedSignup")
+                resolved.allowRankedSignup = base.allowRankedSignup
+        }
+    }
+    if (!game) {
+        resolved.signupGroupIds = undefined
+        resolved.signupGroupLimits = undefined
+        resolved.squadPresetId = undefined
+        resolved.topicPresetId = undefined
+        resolved.categoryId = undefined
+    }
+    return { ...resolved, gameId }
 }

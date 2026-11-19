@@ -7,7 +7,7 @@ import { load } from "cheerio"
 import { z } from "zod"
 
 export const TEAM_SOURCES = {
-    wardogs: "https://wardogsleague.net/teams?all=1",
+    wardogs: "https://gwl.gg/teams",
     hell_let_loose: "https://helo-system.de/v3/series/2024/teams",
 } as const
 export const sourceTeamSchema = z.object({
@@ -18,28 +18,20 @@ export const sourceTeamSchema = z.object({
 export type SourceTeam = z.infer<typeof sourceTeamSchema>
 const sourceTeamsSchema = z.array(sourceTeamSchema).min(1).max(500)
 
-/** Parse only rendered team cards, excluding navigation and React hydration data. */
+/** GWL's rendered cards expose a display name and tag; the URL slug is not the tag. */
 export function parseWardogsTeams(html: string): SourceTeam[] {
     const $ = load(html)
     const teams: SourceTeam[] = []
-    $('a[href^="/teams/"]').each((_, element) => {
+    $('a.tcd-link[href^="/teams/"]').each((_, element) => {
         const card = $(element)
-        const name = card.find("span.line-clamp-2").text()
-        if (!name) return
-        const code = decodeURIComponent(
-            card.attr("href")!.slice("/teams/".length)
-        )
-        const src =
-            card.find('img[src^="/api/logos/"]').first().attr("src") ??
-            card
-                .find('img[src^="https://wardogsleague.net/api/logos/"]')
-                .first()
-                .attr("src")
-        teams.push({
-            name,
-            shortCode: code,
-            logoUrl: src ? new URL(src, TEAM_SOURCES.wardogs).href : null,
-        })
+        const name = card.find(".tcd-name h2").text().trim()
+        const shortCode = card.find(".tcd-name > span").text().trim()
+        // Only the crest is a logo: banners, country flags and placeholder SVGs are not.
+        const src = card.find(".tcd-crest image").first().attr("href")
+        const logoUrl = src ? new URL(src, TEAM_SOURCES.wardogs).href : null
+        if (logoUrl && !allowedTeamSourceUrl(logoUrl))
+            throw new Error("Unsupported GWL logo URL")
+        teams.push({ name, shortCode, logoUrl })
     })
     return sourceTeamsSchema.parse(teams)
 }
@@ -104,9 +96,11 @@ export function allowedTeamSourceUrl(url: string): boolean {
             !parsed.username &&
             !parsed.password &&
             !parsed.port &&
-            ((parsed.hostname === "wardogsleague.net" &&
+            ((parsed.hostname === "gwl.gg" &&
                 (parsed.pathname === "/teams" ||
-                    parsed.pathname.startsWith("/api/logos/"))) ||
+                    /^\/logos\/[a-zA-Z0-9_-]+\.(?:webp|png|jpe?g|gif)$/.test(
+                        parsed.pathname
+                    ))) ||
                 (parsed.hostname === "helo-system.de" &&
                     parsed.pathname === "/v3/series/2024/teams") ||
                 (parsed.hostname === "floriansw.github.io" &&

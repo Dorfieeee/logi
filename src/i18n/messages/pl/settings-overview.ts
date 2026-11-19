@@ -126,7 +126,7 @@ export const settingsHub_overview = {
             description: "Jak długo Logi utrzymuje uruchomione gry.",
         },
         league: {
-            title: "Wardogs League",
+            title: "Global Wardogs League",
             description:
                 "Śledzenie meczów ligowych i karty w Discord. Tylko Wardogi.",
         },

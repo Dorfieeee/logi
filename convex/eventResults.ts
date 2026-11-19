@@ -23,9 +23,11 @@ import { rankSourceCandidates } from "../src/domain/match-results/source-candida
 import type { ResultRevision } from "../src/domain/match-results/result-revision"
 import { confirmResult } from "../src/application/match-results/confirm-result"
 import { providerSessionSchema } from "../src/domain/game-data/contracts"
+import { resultFaction } from "../src/domain/match-results/result-sides"
 import { permitsFixtureStatistics } from "../src/domain/leagues/portal"
 import { saveCollectedPlayerStats } from "./collectedPlayerStatsStore"
 import { resolveGameScope, isGameId } from "../src/domain/games/game"
+import { gwlMatchSchema } from "../src/domain/gwl/contracts"
 import { assertMembershipSecret } from "./membershipAccess"
 import { query, type QueryCtx } from "./_generated/server"
 import type { MutationCtx } from "./_generated/server"
@@ -137,13 +139,29 @@ async function buildDraft(
     )
     if (!sessions.length && !command.participants && event.eventResult)
         return legacyResultDraft(event.eventResult)
-    const participants =
+    let participants =
         command.participants ??
         (sessions.length === 1 ? sessions[0].session.participants : null)
     if (!participants)
         throw new Error(
             "Enter explicit scores when using zero or multiple sessions."
         )
+    if (event.wardogsFixtureUrl?.startsWith("https://gwl.gg/")) {
+        const binding = await ctx.db
+            .query("leagueAutoImportFixtures")
+            .withIndex("eventId", (q) => q.eq("eventId", event._id))
+            .unique()
+        if (binding?.matchJson) {
+            const match = gwlMatchSchema.parse(JSON.parse(binding.matchJson))
+            if (match.status !== "confirmed")
+                throw new Error("Wait for GWL to confirm this result.")
+            participants = match.sides.map((side) => ({
+                id: resultFaction(side.faction) ?? side.team.slug,
+                label: side.faction ?? side.team.name ?? side.team.slug,
+                score: side.score,
+            }))
+        }
+    }
     return resultDraftSchema.parse({
         origin: command.participants ? "manual" : "collected",
         participants,

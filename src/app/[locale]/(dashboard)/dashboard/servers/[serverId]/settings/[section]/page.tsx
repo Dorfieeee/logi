@@ -33,14 +33,12 @@ import { MaintenanceImports } from "@/components/app/settings/maintenance-import
 import { MembershipSettingsForm } from "@/components/app/membership-settings-form"
 import { settingsHref } from "@/components/app/settings/settings-section-meta"
 import { settingsSnapshot } from "@/components/app/settings/settings-snapshot"
-import { WardogsLeaguePreview } from "@/components/app/wardogs-league-preview"
 import { CalendarFeedSettings } from "@/components/app/calendar-feed-settings"
 import { WebsiteSettings } from "@/components/app/settings/website-settings"
 import { PresetsOverview } from "@/components/app/settings/presets-overview"
 import { GameDataConnections } from "@/components/app/game-data-connections"
 import { getPanelGraphicsPageData } from "@/lib/read-models/panel-graphics"
 import { TicketSettingsForm } from "@/components/app/ticket-settings-form"
-import { LeagueTrackingForm } from "@/components/app/league-tracking-form"
 import { panelCompetitions } from "@/lib/read-models/panel-competitions"
 import { HelperDataActions } from "@/components/app/helper-data-actions"
 import { getDiscordConfigByGuild } from "@/lib/server-discord-settings"
@@ -459,30 +457,7 @@ export default async function ServerSettingsSectionPage({
             )
             break
         case "league":
-            content = (
-                <div className="space-y-6">
-                    <LeagueAutoImportSettings serverId={serverId} />
-                    <LeagueTrackingForm
-                        serverId={serverId}
-                        dictionary={dictionary}
-                        events={context.events
-                            .filter(
-                                (event) =>
-                                    event.gameId === "wardogs" &&
-                                    event.kind === "match"
-                            )
-                            .sort((a, b) =>
-                                b.gameStart.localeCompare(a.gameStart)
-                            )
-                            .map((event) => ({
-                                id: event.id,
-                                name: event.name,
-                                startsAt: event.gameStart,
-                            }))}
-                    />
-                    <WardogsLeaguePreview serverId={serverId} />
-                </div>
-            )
+            content = <LeagueAutoImportSettings serverId={serverId} />
             break
         case "website":
             content = (

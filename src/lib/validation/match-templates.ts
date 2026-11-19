@@ -22,6 +22,26 @@ const minutes = z
 
 export const matchTemplateSchema = z.strictObject({
     id,
+    isDefault: z.boolean().optional(),
+    inheritFields: z
+        .array(
+            z.enum([
+                "registrationHoursBeforeMeeting",
+                "meetingMinutesBeforeStart",
+                "durationMinutes",
+                "announcementHoursBeforeStart",
+                "allowedSignupStatuses",
+                "signupReminderStatuses",
+                "attendanceReminderHours",
+                "pingMode",
+                "createForumChannel",
+                "createSquadVoiceChannels",
+                "createParticipantRoles",
+                "useGeneralSignup",
+                "allowRankedSignup",
+            ])
+        )
+        .optional(),
     name: z.string().trim().min(1).max(60),
     kind: z.enum(["match", "training"]),
     gameId: z.string().trim().min(1).optional(),

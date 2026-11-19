@@ -32,6 +32,7 @@ import { externalRegistrationPaths } from "@/lib/api/external-registration-opena
 import { wardogsMatchResponseSchemas } from "@/lib/api/wardogs-match-openapi"
 import { warconEnvelopeSchema } from "@/domain/game-data/warcon-contracts"
 import { clanResultSummarySchema } from "@/domain/api/result-summaries"
+import { gwlMatchSchema, gwlSlotSchema } from "@/domain/gwl/contracts"
 import { leagueFixtureSchema } from "@/domain/wardogs-league/fixture"
 import { leagueReadSchema } from "@/domain/wardogs-league/contracts"
 import { PANEL_WINDOW } from "@/domain/wardogs-league/all-fixtures"
@@ -158,6 +159,18 @@ const publicCompetitionDivisionSchema = {
 
 const summaryResponseSchemas = {
     ...historyResponseSchemas,
+    GwlFixture: z.toJSONSchema(
+        z.object({
+            id: z.string(),
+            eventId: z.string().nullable(),
+            issue: z.string().nullable(),
+            resultState: z.string(),
+            statsState: z.string(),
+            updatedAt: z.number(),
+            fixture: gwlMatchSchema.nullable(),
+            slot: gwlSlotSchema.nullable(),
+        })
+    ),
     LeagueFixture: z.toJSONSchema(leagueFixtureSchema),
     LeagueMatchRead: z.toJSONSchema(leagueReadSchema),
     LeagueOverview: z.toJSONSchema(leagueOverviewSchema),
@@ -334,7 +347,9 @@ const responses = {
         content: { "application/json": { schema: error } },
     },
 }
-const { "200": _genericSuccessResponse, ...nonSuccessResponses } = responses
+const nonSuccessResponses = Object.fromEntries(
+    Object.entries(responses).filter(([status]) => status !== "200")
+)
 type OpenApiOperation = { responses?: Record<string, unknown> }
 
 function resourceSchemaName(resource: string) {
@@ -1839,7 +1854,7 @@ paths["/clan/league-fixtures"] = {
         tags: ["Clan API — Matches"],
         summary: "List this guild's tracked Wardogs League fixtures",
         description:
-            "Requires explicit league-fixtures and wardogs grants. Bounded collection of automatically watched or explicitly included fixtures, with optional native event binding, source provenance and independent freshness. Unknown results remain null. Use the collection as the baseline and sync-records with resource league-fixtures for current details; Logi retains no update/removal replay log. A fixture ID is the external League match ID, not a native event ID. Administration, channel selection and native-event binding require a current dashboard administrator; service keys cannot grant or alter tracking policy. Native event writes retain their separate actor-backed event-commands contract. Responses are no-store.",
+            "Requires explicit league-fixtures and wardogs grants. Bounded collection of automatically watched or explicitly included fixtures, with optional native event binding, source provenance and independent freshness. Unknown results remain null. Use the collection as the baseline and sync-records with resource league-fixtures for current details; Logi retains no update/removal replay log. A fixture ID is the external League match ID, not a native event ID. Administration, channel selection and native-event binding require a current dashboard administrator; service keys cannot grant or alter tracking policy. Native event writes retain their separate actor-backed event-commands contract. Use provider=gwl for the connected clan’s GWL fixtures, slot bindings and result/stat sync states. This projection omits raw combat events, private player identifiers and API keys. GWL credentials are configured by a dashboard administrator only. Without provider, this endpoint retains its legacy archived League projection. Responses are no-store.",
         security: [{ clanApiKey: [] }],
         "x-logi-read-access": {
             resource: "league-fixtures",
@@ -1847,6 +1862,13 @@ paths["/clan/league-fixtures"] = {
             explicitGrantRequired: true,
         },
         parameters: [
+            {
+                name: "provider",
+                in: "query",
+                schema: { type: "string", enum: ["gwl"] },
+                description:
+                    "GWL connection projection; omit for the legacy League projection.",
+            },
             {
                 name: "game",
                 in: "query",
@@ -1886,7 +1908,14 @@ paths["/clan/league-fixtures"] = {
                                         items: {
                                             type: "array",
                                             items: {
-                                                $ref: "#/components/schemas/LeagueFixture",
+                                                oneOf: [
+                                                    {
+                                                        $ref: "#/components/schemas/LeagueFixture",
+                                                    },
+                                                    {
+                                                        $ref: "#/components/schemas/GwlFixture",
+                                                    },
+                                                ],
                                             },
                                         },
                                         nextCursor: {

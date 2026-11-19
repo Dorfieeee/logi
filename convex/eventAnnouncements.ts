@@ -160,9 +160,11 @@ export const getContext = query({
             : null
         const leagueLabel = competition
             ? `${competition.name}${fixture?.round ? ` · ${fixture.round}` : ""}`
-            : tracked
-              ? "Wardogs League"
-              : null
+            : event.wardogsFixtureUrl?.startsWith("https://gwl.gg/")
+              ? "Global Wardogs League"
+              : tracked
+                ? "Wardogs League"
+                : null
         const gameId = resolveGameScope(event.gameId)
         const results = panels.find(
             (panel) =>
@@ -280,9 +282,11 @@ export const getImageContext = query({
                 timeZone: effective.timezone,
                 league: competition
                     ? `${competition.name}${fixture?.round ? ` · ${fixture.round}` : ""}`
-                    : tracked
-                      ? "Wardogs League"
-                      : null,
+                    : event.wardogsFixtureUrl?.startsWith("https://gwl.gg/")
+                      ? "Global Wardogs League"
+                      : tracked
+                        ? "Wardogs League"
+                        : null,
                 result: facts?.imageResult,
             }),
         }

@@ -32,7 +32,11 @@ export function planFixtureImport(input: {
         )
     )
         return { kind: "review" as const, issue: "cancelled_or_postponed" }
-    if (existing?.concluded) return { kind: "skip" as const }
+    if (
+        existing?.concluded &&
+        !fixture.sourceUrl?.startsWith("https://gwl.gg/")
+    )
+        return { kind: "skip" as const }
     if (!fixture.scheduledAt)
         return { kind: "review" as const, issue: "missing_kickoff" }
     if (
@@ -41,19 +45,25 @@ export function planFixtureImport(input: {
             Date.parse(fixture.scheduledAt) <= input.now)
     )
         return { kind: "skip" as const }
-    if (existing && fixture.status.toUpperCase() !== "SCHEDULED")
+    if (
+        existing &&
+        fixture.status.toUpperCase() !== "SCHEDULED" &&
+        !fixture.sourceUrl?.startsWith("https://gwl.gg/")
+    )
         return { kind: "skip" as const }
     const fields = fixtureFields(fixture, input.template, input.settings)
     return existing
         ? {
               kind: "update" as const,
               fields,
-              ...mergeFixtureFields(
-                  existing.current,
-                  existing.baseline,
-                  fields,
-                  existing.overrides
-              ),
+              ...(fixture.sourceUrl?.startsWith("https://gwl.gg/")
+                  ? { patch: fields, overrides: [] }
+                  : mergeFixtureFields(
+                        existing.current,
+                        existing.baseline,
+                        fields,
+                        existing.overrides
+                    )),
           }
         : { kind: "create" as const, fields }
 }
@@ -138,7 +148,13 @@ export class ImportTeamFixtureUseCase {
             await this.ports.save({ issue: "match_deleted" })
             return
         }
-        if (previous?.eventId && current && !previous.baseline) return
+        if (
+            previous?.eventId &&
+            current &&
+            !previous.baseline &&
+            !fixture.sourceUrl?.startsWith("https://gwl.gg/")
+        )
+            return
         if (input.manuallyManaged) {
             await this.ports.save({ issue: "manually_managed" })
             return
@@ -178,13 +194,15 @@ export class ImportTeamFixtureUseCase {
             await this.ports.save({ issue: plan.issue })
             return
         }
-        const teamOverride = Boolean(
-            previous?.overrides.includes("matchTeams") ||
-            (current &&
-                previous?.teamsBaseline &&
-                JSON.stringify(current.matchTeams ?? []) !==
-                    JSON.stringify(previous.teamsBaseline))
-        )
+        const teamOverride =
+            !fixture.sourceUrl?.startsWith("https://gwl.gg/") &&
+            Boolean(
+                previous?.overrides.includes("matchTeams") ||
+                (current &&
+                    previous?.teamsBaseline &&
+                    JSON.stringify(current.matchTeams ?? []) !==
+                        JSON.stringify(previous.teamsBaseline))
+            )
         let eventId = previous?.eventId
         let changed = false
         if (plan.kind === "create") {

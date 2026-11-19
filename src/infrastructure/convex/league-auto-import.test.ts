@@ -33,10 +33,13 @@ async function setup() {
         ...access,
         settingsJson: JSON.stringify(settings),
         credentialJson,
+        provider: "gwl",
     })
     return ctx
 }
 async function run(ctx: ReturnType<typeof testContext>, patch = {}) {
+    for (const row of ctx.db.tables.leagueAutoImportSettings ?? [])
+        row.nextPollAt = 0
     const config = await invoke(claim, ctx, {})
     assert.ok(config)
     await invoke(importFixture, ctx, {
@@ -56,7 +59,24 @@ test("settings require current clan admin and Wardogs; credentials never appear 
     await assert.rejects(invoke(read, ctx, { ...access, secret: "bad" }))
     const state = await invoke(read, ctx, access)
     assert.equal(state.hasKey, true)
-    assert.equal(JSON.stringify(state).includes("ciphertext"), false)
+    const publicState = JSON.stringify(state)
+    for (const forbidden of ["ciphertext", "credentialJson", "apiKey", "nonce"])
+        assert.equal(publicState.includes(forbidden), false, forbidden)
+    assert.deepEqual(
+        Object.keys(state).sort(),
+        [
+            "settings",
+            "defaults",
+            "hasKey",
+            "provider",
+            "testMode",
+            "lastSuccessAt",
+            "error",
+            "templates",
+            "available",
+            "records",
+        ].sort()
+    )
     ctx.db.tables.guilds[0].enabledGames = ["hell_let_loose"]
     await assert.rejects(
         invoke(save, ctx, {
@@ -183,6 +203,7 @@ test("defaults change new imports only, and registrationStart reaches the shared
             registrationHoursBeforeStart: 240,
         }),
     })
+    ctx.db.tables.leagueAutoImportSettings[0].nextPollAt = 0
     const next = await invoke(claim, ctx, {})
     await invoke(importFixture, ctx, {
         id: next._id,

@@ -127,7 +127,7 @@ export const settingsHub_overview = {
             description: "Durée de conservation des parties jouées dans Logi.",
         },
         league: {
-            title: "Wardogs League",
+            title: "Global Wardogs League",
             description:
                 "Suivi des matchs de ligue et fiches Discord. Wardogs uniquement.",
         },

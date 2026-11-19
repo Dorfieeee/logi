@@ -73,7 +73,7 @@ export const settingsHub_sections = {
             "Sources des résultats et statistiques collectés par Logi. Les clés API sont stockées chiffrées et ne sont plus consultables.",
     },
     league: {
-        title: "Wardogs League",
+        title: "Global Wardogs League",
         description: "Matchs de ligue suivis et liens avec vos événements.",
     },
     website: {

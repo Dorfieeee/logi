@@ -23,10 +23,12 @@ import { matchTemplateSchema } from "@/lib/validation/match-templates"
 import { useCallback, useEffect, useId, useState } from "react"
 import { autoImportCopy } from "./league-auto-import-copy"
 import { Checkbox } from "@/components/ui/checkbox"
+import { gwlStatusCopy } from "./gwl-status-copy"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { useLocale } from "next-intl"
+import { gwlCopy } from "./gwl-copy"
 import { z } from "zod"
 
 const stateSchema = z.object({
@@ -38,6 +40,7 @@ const stateSchema = z.object({
     }),
     settings: autoImportSettingsSchema.nullable(),
     hasKey: z.boolean(),
+    testMode: z.boolean().optional(),
     available: z.boolean(),
     lastSuccessAt: z.number().nullable(),
     error: z.string().nullable(),
@@ -47,6 +50,8 @@ const stateSchema = z.object({
             fixtureId: z.string(),
             eventId: z.string().nullable(),
             issue: z.string().nullable(),
+            resultState: z.string().nullable().optional(),
+            statsState: z.string().nullable().optional(),
         })
     ),
 })
@@ -54,6 +59,8 @@ type State = z.infer<typeof stateSchema>
 export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
     const locale = useLocale(),
         t = autoImportCopy(locale),
+        g = gwlCopy(locale),
+        statusText = gwlStatusCopy(locale),
         id = useId()
     const base = `/api/servers/${serverId}/league-auto-import`
     const [state, setState] = useState<State | null>(null)
@@ -62,6 +69,7 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
         [loading, setLoading] = useState(false)
     const [message, setMessage] = useState("")
     const [apiKey, setApiKey] = useState("")
+    const [autoCreate, setAutoCreate] = useState(true)
     const [enabled, setEnabled] = useState(false),
         [templateId, setTemplateId] = useState("")
     const [teamCode, setTeamCode] = useState("")
@@ -105,8 +113,9 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
             const value = await load(),
                 settings = value.settings
             setEnabled(settings?.enabled ?? false)
+            setAutoCreate(settings?.autoCreate ?? true)
             setTeamCode(settings?.teamCode ?? value.defaults.teamCode)
-            setTemplateId(settings?.templateId ?? value.templates[0]?.id ?? "")
+            setTemplateId(settings?.templateId ?? "__defaults")
             setHours(settings?.registrationHoursBeforeStart ?? 168)
             setServer(settings?.server ?? "")
             setAnnouncement(
@@ -148,11 +157,14 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
         event.preventDefault()
         setBusy(true)
         setMessage("")
+        const submittedKey = apiKey.trim()
+        setApiKey("")
         try {
             const settings = autoImportSettingsSchema.parse({
                 enabled,
+                autoCreate,
                 templateId,
-                teamCode,
+                teamCode: teamCode || "detected-from-key",
                 registrationHoursBeforeStart: hours,
                 announcementChannelId: announcement,
                 eventInfoChannelId: info,
@@ -164,7 +176,7 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     settings,
-                    ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+                    ...(submittedKey ? { apiKey: submittedKey } : {}),
                 }),
             })
             if (!response.ok) throw new Error()
@@ -225,20 +237,50 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                                     }
                                 />
                                 <Label htmlFor={`${id}-enabled`}>
-                                    {t.enabled}
+                                    {g.sync}
                                 </Label>
                             </div>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={autoCreate}
+                                    onChange={(e) =>
+                                        setAutoCreate(e.target.checked)
+                                    }
+                                />
+                                {g.auto}
+                            </label>
+                            <p className="text-muted-foreground text-sm">
+                                {g.scopes}{" "}
+                                <a
+                                    className="underline"
+                                    href="https://gwl.gg/handbook/api"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    {g.docs}
+                                </a>
+                            </p>
+                            {state?.testMode && <p role="status">{g.test}</p>}
                             <div className="space-y-2">
                                 <Label htmlFor={`${id}-key`}>{t.key}</Label>
                                 <Input
                                     id={`${id}-key`}
                                     type="password"
+                                    aria-describedby={`${id}-key-help`}
+                                    spellCheck={false}
                                     autoComplete="new-password"
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
                                     required={!state?.hasKey}
                                     maxLength={4096}
                                 />
+                                <p
+                                    id={`${id}-key-help`}
+                                    className="text-muted-foreground text-sm"
+                                >
+                                    {g.secret}
+                                </p>
                                 {state?.hasKey && (
                                     <p className="text-muted-foreground text-sm">
                                         {t.keySaved}
@@ -247,16 +289,13 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor={`${id}-team-code`}>
-                                    {t.teamCode}
+                                    {g.team}
                                 </Label>
                                 <Input
                                     id={`${id}-team-code`}
                                     value={teamCode}
-                                    maxLength={64}
-                                    required
-                                    onChange={(e) =>
-                                        setTeamCode(e.target.value)
-                                    }
+                                    maxLength={128}
+                                    readOnly
                                 />
                             </div>
                             <div className="space-y-2">
@@ -271,6 +310,9 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                                         <SelectValue placeholder={t.select} />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="__defaults">
+                                            {g.defaults}
+                                        </SelectItem>
                                         {state?.templates.map((template) => (
                                             <SelectItem
                                                 key={template.id}
@@ -281,9 +323,7 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                {!state?.templates.length && (
-                                    <p className="text-sm">{t.noTemplates}</p>
-                                )}
+
                                 <p className="text-muted-foreground text-sm">
                                     {t.templateDetails}
                                 </p>
@@ -357,10 +397,9 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                             <Button
                                 type="submit"
                                 disabled={
-                                    !teamCode.trim() ||
-                                    !templateId ||
-                                    !announcement ||
-                                    !info
+                                    enabled &&
+                                    autoCreate &&
+                                    (!templateId || !announcement || !info)
                                 }
                             >
                                 {busy ? t.saving : t.save}
@@ -377,6 +416,36 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                     {message}
                 </p>
             )}
+            {state?.records.some(
+                (record) => record.resultState || record.statsState
+            ) && (
+                <ul className="space-y-2 text-sm">
+                    {state.records
+                        .filter(
+                            (record) =>
+                                record.eventId &&
+                                (record.resultState || record.statsState)
+                        )
+                        .map((record) => (
+                            <li key={record.fixtureId}>
+                                <a
+                                    className="underline"
+                                    href={`/${locale}/dashboard/servers/${serverId}/matches/${record.eventId}`}
+                                >
+                                    #{record.fixtureId}
+                                </a>{" "}
+                                · {statusText.result}:{" "}
+                                {statusText.states[
+                                    record.resultState as keyof typeof statusText.states
+                                ] ?? statusText.states.pending}{" "}
+                                · {statusText.stats}:{" "}
+                                {statusText.states[
+                                    record.statsState as keyof typeof statusText.states
+                                ] ?? statusText.states.pending}
+                            </li>
+                        ))}
+                </ul>
+            )}
             {issues.length > 0 && (
                 <div className="space-y-2">
                     <h4 className="font-medium">{t.issues}</h4>
@@ -386,7 +455,9 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                                 #{r.fixtureId}:{" "}
                                 {r.issue && r.issue in t
                                     ? t[r.issue as keyof typeof t]
-                                    : t.importFailed}
+                                    : (statusText.issues[
+                                          r.issue as keyof typeof statusText.issues
+                                      ] ?? t.importFailed)}
                                 {r.eventId && (
                                     <>
                                         {" "}

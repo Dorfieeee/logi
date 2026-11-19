@@ -37,7 +37,14 @@ import {
     TriangleAlert,
     X,
 } from "lucide-react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -50,17 +57,18 @@ import {
     type ReminderAudience,
 } from "@/domain/events/new-match-flow"
 import {
+    templatesFor,
+    resolveMatchDefaults,
+    type MatchTemplate,
+    type TemplateSignupStatus,
+} from "@/domain/events/match-templates"
+import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import {
-    templatesFor,
-    type MatchTemplate,
-    type TemplateSignupStatus,
-} from "@/domain/events/match-templates"
 import {
     formatHllPresetLabel,
     getHllModeOptions,
@@ -369,6 +377,179 @@ function startingValues(props: NewMatchFlowProps): FlowValues {
     })
 }
 
+function SideSelect({
+    value,
+    onChange,
+    label,
+    sides,
+    noSideLabel,
+    sideLabel,
+}: {
+    value: string | null
+    onChange: (side: string | null) => void
+    label: string
+    sides: readonly string[]
+    noSideLabel: string
+    sideLabel: (side: string | null) => string | null
+}) {
+    return (
+        <Select
+            value={value ?? NO_SIDE}
+            onValueChange={(next) => onChange(next === NO_SIDE ? null : next)}
+        >
+            <SelectTrigger
+                aria-label={label}
+                size="sm"
+                className="h-8 rounded-lg text-[13px]"
+            >
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value={NO_SIDE}>{noSideLabel}</SelectItem>
+                {value && !sides.includes(value) ? (
+                    <SelectItem value={value}>{value}</SelectItem>
+                ) : null}
+                {sides.map((side) => (
+                    <SelectItem key={side} value={side}>
+                        {sideLabel(side)}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    )
+}
+
+function NumberField({
+    id,
+    label,
+    value,
+    unit,
+    onChange,
+    max,
+    fractional = false,
+}: {
+    id: string
+    label: string
+    value: number
+    unit: string
+    onChange: (value: number) => void
+    max: number
+    fractional?: boolean
+}) {
+    return (
+        <div className="flex flex-col gap-1.5">
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <div className="flex items-center gap-2">
+                <Input
+                    id={id}
+                    type="number"
+                    inputMode={fractional ? "decimal" : "numeric"}
+                    min={0}
+                    max={max}
+                    step={fractional ? "any" : 1}
+                    value={fractional ? Math.round(value * 100) / 100 : value}
+                    onChange={(event) => {
+                        const next = Number(event.target.value)
+                        if (
+                            Number.isFinite(next) &&
+                            (fractional || Number.isInteger(next)) &&
+                            next >= 0 &&
+                            next <= max
+                        )
+                            onChange(next)
+                    }}
+                    className="h-9 w-20"
+                />
+                <span className="text-muted-foreground text-xs leading-tight">
+                    {unit}
+                </span>
+            </div>
+        </div>
+    )
+}
+
+function ChannelSelect({
+    id,
+    label,
+    value,
+    options,
+    onChange,
+    noneLabel,
+    disabled = false,
+    fallbackLabel,
+}: {
+    id: string
+    label: string
+    value: string
+    options: Array<{ id: string; name: string }>
+    onChange: (id: string) => void
+    noneLabel: string
+    disabled?: boolean
+    fallbackLabel: string
+}) {
+    return (
+        <div className="flex flex-col gap-1.5">
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <Select
+                value={value || NONE}
+                disabled={disabled}
+                onValueChange={(next) => onChange(next === NONE ? "" : next)}
+            >
+                <SelectTrigger id={id} className="h-9 w-full">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value={NONE}>{noneLabel}</SelectItem>
+                    {value && !options.some((option) => option.id === value) ? (
+                        <SelectItem value={value}>
+                            <span className="text-muted-foreground">#</span>{" "}
+                            {fallbackLabel}
+                        </SelectItem>
+                    ) : null}
+                    {options.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                            <span className="text-muted-foreground">#</span>{" "}
+                            {option.name}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+    )
+}
+
+function SwitchRow({
+    id,
+    label,
+    checked,
+    onChange,
+    hint,
+}: {
+    id: string
+    label: string
+    checked: boolean
+    onChange: (checked: boolean) => void
+    hint?: React.ReactNode
+}) {
+    return (
+        <div className="flex items-start gap-3">
+            <Switch
+                id={id}
+                checked={checked}
+                onCheckedChange={onChange}
+                className="mt-0.5"
+                aria-describedby={hint ? `${id}-hint` : undefined}
+            />
+            <span className="flex flex-col gap-0.5 leading-5">
+                <Label htmlFor={id} className="text-sm font-normal">
+                    {label}
+                </Label>
+                {hint ? <Hint id={`${id}-hint`}>{hint}</Hint> : null}
+            </span>
+        </div>
+    )
+}
+
 /**
  * The new-match flow (design D2): five steps (match, time, sign-ups,
  * Discord, review) with the Discord preview beside them. Work in progress is
@@ -403,7 +584,9 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
     const [localValues, setValues] = useState<FlowValues>(initial)
     const values = props.demo?.values ?? localValues
     const valuesRef = useRef(values)
-    valuesRef.current = values
+    useLayoutEffect(() => {
+        valuesRef.current = values
+    }, [values])
     const [groups, setGroups] = useState(initialGroups)
     const gameDefinition = props.gameCatalogue.find(
         (game) => game.id === values.gameId
@@ -447,7 +630,9 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
     const [leaveOpen, setLeaveOpen] = useState(false)
     const saving = useRef<Promise<unknown> | null>(null)
     const draftIdRef = useRef(draftId)
-    draftIdRef.current = draftId
+    useLayoutEffect(() => {
+        draftIdRef.current = draftId
+    }, [draftId])
 
     // Counts edits so a save only clears "dirty" for the values it sent.
     const edits = useRef(0)
@@ -734,9 +919,21 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
         )
     }
 
+    const requestEventJson = JSON.stringify(
+        flowEventPayload(values, {
+            timezone,
+            name,
+            ownTeamId: ownTeam?.id ?? null,
+        })
+    )
+    const requestEventRef = useRef(requestEventJson)
+    useLayoutEffect(() => {
+        requestEventRef.current = requestEventJson
+    }, [requestEventJson])
+    const isDemo = Boolean(props.demo)
     const write = useCallback(
         async (publish: boolean) => {
-            if (props.demo)
+            if (isDemo)
                 return { ok: true, body: { eventId: "onboarding-example" } }
             const response = await fetch(
                 `/api/servers/${serverId}/event-drafts`,
@@ -748,11 +945,7 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                             ? { eventId: draftIdRef.current }
                             : {}),
                         publish,
-                        event: flowEventPayload(values, {
-                            timezone,
-                            name,
-                            ownTeamId: ownTeam?.id ?? null,
-                        }),
+                        event: JSON.parse(requestEventRef.current),
                     }),
                 }
             )
@@ -764,10 +957,11 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
             } | null
             return { ok: response.ok && Boolean(body?.eventId), body }
         },
-        [serverId, values, name, timezone, ownTeam?.id, props.demo]
+        [serverId, isDemo]
     )
 
     const rememberDraft = useCallback((eventId: string) => {
+        draftIdRef.current = eventId
         setDraftId(eventId)
         const url = new URL(window.location.href)
         if (url.searchParams.get("draftId") !== eventId) {
@@ -1095,7 +1289,8 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
         const keep =
             current && (!current.gameId || current.gameId === gameId)
                 ? current
-                : templatesFor(templates, values.kind, gameId)[0]
+                : (resolveMatchDefaults(templates, gameId, values.kind) ??
+                  templatesFor(templates, values.kind, gameId)[0])
         setValues(
             keep
                 ? applyTemplateValues(next, keep, groups, channelDefaults)
@@ -1106,7 +1301,18 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
 
     function pickTemplate(entry: MatchTemplate) {
         setValues((current) =>
-            applyTemplateValues(current, entry, groups, channelDefaults)
+            applyTemplateValues(
+                current,
+                entry.isDefault
+                    ? (resolveMatchDefaults(
+                          templates,
+                          current.gameId,
+                          current.kind
+                      ) ?? entry)
+                    : entry,
+                groups,
+                channelDefaults
+            )
         )
         markDirty()
     }
@@ -1201,36 +1407,6 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
               : saveState.kind === "failed"
                 ? t.autosave.failed
                 : t.autosave.idle
-
-    const sideSelect = (
-        value: string | null,
-        onChange: (side: string | null) => void,
-        label: string
-    ) => (
-        <Select
-            value={value ?? NO_SIDE}
-            onValueChange={(next) => onChange(next === NO_SIDE ? null : next)}
-        >
-            <SelectTrigger
-                aria-label={label}
-                size="sm"
-                className="h-8 rounded-lg text-[13px]"
-            >
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value={NO_SIDE}>{t.match.noSide}</SelectItem>
-                {value && !sides.includes(value) ? (
-                    <SelectItem value={value}>{value}</SelectItem>
-                ) : null}
-                {sides.map((side) => (
-                    <SelectItem key={side} value={side}>
-                        {sideLabel(side)}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-    )
 
     const reviewRows = flowReviewRows(values, summaryContext, schedule)
     const squadPreset = props.squadPresets.find(
@@ -1331,107 +1507,6 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
         >
             <span className="text-muted-foreground">{label}</span>
             <span className="text-right font-medium">{value}</span>
-        </div>
-    )
-
-    const numberField = (
-        id: string,
-        label: string,
-        value: number,
-        unit: string,
-        onChange: (value: number) => void,
-        max: number,
-        fractional = false
-    ) => (
-        <div className="flex flex-col gap-1.5">
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
-            <div className="flex items-center gap-2">
-                <Input
-                    id={id}
-                    type="number"
-                    inputMode={fractional ? "decimal" : "numeric"}
-                    min={0}
-                    max={max}
-                    step={fractional ? "any" : 1}
-                    value={fractional ? Math.round(value * 100) / 100 : value}
-                    onChange={(event) => {
-                        const next = Number(event.target.value)
-                        if (
-                            Number.isFinite(next) &&
-                            (fractional || Number.isInteger(next)) &&
-                            next >= 0 &&
-                            next <= max
-                        )
-                            onChange(next)
-                    }}
-                    className="h-9 w-20"
-                />
-                <span className="text-muted-foreground text-xs leading-tight">
-                    {unit}
-                </span>
-            </div>
-        </div>
-    )
-
-    const channelSelect = (
-        id: string,
-        label: string,
-        value: string,
-        options: Array<{ id: string; name: string }>,
-        onChange: (id: string) => void,
-        noneLabel: string,
-        disabled = false
-    ) => (
-        <div className="flex flex-col gap-1.5">
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
-            <Select
-                value={value || NONE}
-                disabled={disabled}
-                onValueChange={(next) => onChange(next === NONE ? "" : next)}
-            >
-                <SelectTrigger id={id} className="h-9 w-full">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value={NONE}>{noneLabel}</SelectItem>
-                    {value && !options.some((option) => option.id === value) ? (
-                        <SelectItem value={value}>
-                            <span className="text-muted-foreground">#</span>{" "}
-                            {channelName(value) ?? value}
-                        </SelectItem>
-                    ) : null}
-                    {options.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                            <span className="text-muted-foreground">#</span>{" "}
-                            {option.name}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-    )
-
-    const switchRow = (
-        id: string,
-        label: string,
-        checked: boolean,
-        onChange: (checked: boolean) => void,
-        hint?: React.ReactNode
-    ) => (
-        <div className="flex items-start gap-3">
-            <Switch
-                id={id}
-                checked={checked}
-                onCheckedChange={onChange}
-                className="mt-0.5"
-                aria-describedby={hint ? `${id}-hint` : undefined}
-            />
-            <span className="flex flex-col gap-0.5 leading-5">
-                <Label htmlFor={id} className="text-sm font-normal">
-                    {label}
-                </Label>
-                {hint ? <Hint id={`${id}-hint`}>{hint}</Hint> : null}
-            </span>
         </div>
     )
 
@@ -1920,11 +1995,16 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                             </span>
                                         </span>
                                         <span className="flex shrink-0 items-center gap-1">
-                                            {sideSelect(
-                                                values.ownSide,
-                                                setOwnSide,
-                                                t.match.yourSide
-                                            )}
+                                            {
+                                                <SideSelect
+                                                    value={values.ownSide}
+                                                    onChange={setOwnSide}
+                                                    label={t.match.yourSide}
+                                                    sides={sides}
+                                                    noSideLabel={t.match.noSide}
+                                                    sideLabel={sideLabel}
+                                                />
+                                            }
                                             {storedOwn
                                                 ? refreshButton(
                                                       storedOwn.teamId
@@ -1958,11 +2038,27 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                     </span>
                                                 </span>
                                                 <span className="flex shrink-0 items-center gap-1">
-                                                    {sideSelect(
-                                                        values.opponentSide,
-                                                        setOpponentSide,
-                                                        t.match.opponentSide
-                                                    )}
+                                                    {
+                                                        <SideSelect
+                                                            value={
+                                                                values.opponentSide
+                                                            }
+                                                            onChange={
+                                                                setOpponentSide
+                                                            }
+                                                            label={
+                                                                t.match
+                                                                    .opponentSide
+                                                            }
+                                                            sides={sides}
+                                                            noSideLabel={
+                                                                t.match.noSide
+                                                            }
+                                                            sideLabel={
+                                                                sideLabel
+                                                            }
+                                                        />
+                                                    }
                                                     {refreshButton(
                                                         values.opponent.teamId
                                                     )}
@@ -2039,14 +2135,31 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                     </span>
                                                 </span>
                                                 <span className="flex shrink-0 items-center gap-1">
-                                                    {sideSelect(
-                                                        values.extraSide,
-                                                        (extraSide) =>
-                                                            update({
-                                                                extraSide,
-                                                            }),
-                                                        t.match.otherSide
-                                                    )}
+                                                    {
+                                                        <SideSelect
+                                                            value={
+                                                                values.extraSide
+                                                            }
+                                                            onChange={(
+                                                                extraSide
+                                                            ) =>
+                                                                update({
+                                                                    extraSide,
+                                                                })
+                                                            }
+                                                            label={
+                                                                t.match
+                                                                    .otherSide
+                                                            }
+                                                            sides={sides}
+                                                            noSideLabel={
+                                                                t.match.noSide
+                                                            }
+                                                            sideLabel={
+                                                                sideLabel
+                                                            }
+                                                        />
+                                                    }
                                                     {refreshButton(
                                                         values.extraTeam.teamId
                                                     )}
@@ -2850,43 +2963,53 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                                 </div>
                                             ) : null}
                                         </div>
-                                        {numberField(
-                                            "nm-reg",
-                                            t.time.registrationEnd,
-                                            values.registrationHours,
-                                            t.time.hoursBeforeMeeting,
-                                            (registrationHours) =>
-                                                update({ registrationHours }),
-                                            720,
-                                            true
-                                        )}
-                                        {isMatch
-                                            ? numberField(
-                                                  "nm-meet",
-                                                  t.time.meeting,
-                                                  values.meetingMinutes,
-                                                  t.time.minutesBeforeStart,
-                                                  (meetingMinutes) =>
-                                                      update({
-                                                          meetingMinutes,
-                                                      }),
-                                                  1440
-                                              )
-                                            : null}
-                                        {numberField(
-                                            "nm-dur",
-                                            t.time.duration,
-                                            values.durationMinutes,
-                                            t.time.minutes,
-                                            (durationMinutes) =>
-                                                update({
-                                                    durationMinutes: Math.max(
-                                                        1,
-                                                        durationMinutes
-                                                    ),
-                                                }),
-                                            1440
-                                        )}
+                                        {
+                                            <NumberField
+                                                id={"nm-reg"}
+                                                label={t.time.registrationEnd}
+                                                value={values.registrationHours}
+                                                unit={t.time.hoursBeforeMeeting}
+                                                onChange={(registrationHours) =>
+                                                    update({
+                                                        registrationHours,
+                                                    })
+                                                }
+                                                max={720}
+                                                fractional={true}
+                                            />
+                                        }
+                                        {isMatch ? (
+                                            <NumberField
+                                                id={"nm-meet"}
+                                                label={t.time.meeting}
+                                                value={values.meetingMinutes}
+                                                unit={t.time.minutesBeforeStart}
+                                                onChange={(meetingMinutes) =>
+                                                    update({
+                                                        meetingMinutes,
+                                                    })
+                                                }
+                                                max={1440}
+                                            />
+                                        ) : null}
+                                        {
+                                            <NumberField
+                                                id={"nm-dur"}
+                                                label={t.time.duration}
+                                                value={values.durationMinutes}
+                                                unit={t.time.minutes}
+                                                onChange={(durationMinutes) =>
+                                                    update({
+                                                        durationMinutes:
+                                                            Math.max(
+                                                                1,
+                                                                durationMinutes
+                                                            ),
+                                                    })
+                                                }
+                                                max={1440}
+                                            />
+                                        }
                                     </div>
                                 ) : null}
                                 {timeRow(
@@ -3503,44 +3626,68 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                             </h2>
                             <div className="flex flex-col gap-2">
                                 <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-3">
-                                    {channelSelect(
-                                        "nm-ch",
-                                        t.discord.announcement,
-                                        values.announcementChannelId,
-                                        textChannels,
-                                        (announcementChannelId) =>
-                                            update({ announcementChannelId }),
-                                        t.discord.defaultChannel,
-                                        isEdit
-                                    )}
-                                    {isMatch
-                                        ? channelSelect(
-                                              "nm-ch2",
-                                              t.discord.roster,
-                                              values.eventInfoChannelId,
-                                              textChannels,
-                                              (eventInfoChannelId) =>
-                                                  update({
-                                                      eventInfoChannelId,
-                                                  }),
-                                              t.discord.defaultChannel,
-                                              isEdit
-                                          )
-                                        : null}
-                                    {isMatch
-                                        ? channelSelect(
-                                              "nm-results",
-                                              t.discord.results,
-                                              values.eventResultsChannelId,
-                                              textChannels,
-                                              (eventResultsChannelId) =>
-                                                  update({
-                                                      eventResultsChannelId,
-                                                  }),
-                                              t.discord.defaultChannel,
-                                              isEdit
-                                          )
-                                        : null}
+                                    {
+                                        <ChannelSelect
+                                            id={"nm-ch"}
+                                            label={t.discord.announcement}
+                                            value={values.announcementChannelId}
+                                            options={textChannels}
+                                            onChange={(announcementChannelId) =>
+                                                update({
+                                                    announcementChannelId,
+                                                })
+                                            }
+                                            noneLabel={t.discord.defaultChannel}
+                                            disabled={isEdit}
+                                            fallbackLabel={
+                                                channelName(
+                                                    values.announcementChannelId
+                                                ) ??
+                                                values.announcementChannelId
+                                            }
+                                        />
+                                    }
+                                    {isMatch ? (
+                                        <ChannelSelect
+                                            id={"nm-ch2"}
+                                            label={t.discord.roster}
+                                            value={values.eventInfoChannelId}
+                                            options={textChannels}
+                                            onChange={(eventInfoChannelId) =>
+                                                update({
+                                                    eventInfoChannelId,
+                                                })
+                                            }
+                                            noneLabel={t.discord.defaultChannel}
+                                            disabled={isEdit}
+                                            fallbackLabel={
+                                                channelName(
+                                                    values.eventInfoChannelId
+                                                ) ?? values.eventInfoChannelId
+                                            }
+                                        />
+                                    ) : null}
+                                    {isMatch ? (
+                                        <ChannelSelect
+                                            id={"nm-results"}
+                                            label={t.discord.results}
+                                            value={values.eventResultsChannelId}
+                                            options={textChannels}
+                                            onChange={(eventResultsChannelId) =>
+                                                update({
+                                                    eventResultsChannelId,
+                                                })
+                                            }
+                                            noneLabel={t.discord.defaultChannel}
+                                            disabled={isEdit}
+                                            fallbackLabel={
+                                                channelName(
+                                                    values.eventResultsChannelId
+                                                ) ??
+                                                values.eventResultsChannelId
+                                            }
+                                        />
+                                    ) : null}
                                 </div>
                                 {isEdit ? (
                                     <Hint>{t.discord.channelsLocked}</Hint>
@@ -3587,25 +3734,44 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                 {isMatch ? (
                                     isEdit ? (
                                         <div className="flex flex-col gap-2">
-                                            {switchRow(
-                                                "nm-signup-thread",
-                                                t.discord.signupThread,
-                                                values.createSignupThread,
-                                                (createSignupThread) =>
-                                                    update({
-                                                        createSignupThread,
-                                                    }),
-                                                t.discord.signupThreadHint
-                                            )}
-                                            {switchRow(
-                                                "nm-forum",
-                                                t.discord.forum,
-                                                values.createForumChannel,
-                                                (createForumChannel) =>
-                                                    update({
-                                                        createForumChannel,
-                                                    })
-                                            )}
+                                            {
+                                                <SwitchRow
+                                                    id={"nm-signup-thread"}
+                                                    label={
+                                                        t.discord.signupThread
+                                                    }
+                                                    checked={
+                                                        values.createSignupThread
+                                                    }
+                                                    onChange={(
+                                                        createSignupThread
+                                                    ) =>
+                                                        update({
+                                                            createSignupThread,
+                                                        })
+                                                    }
+                                                    hint={
+                                                        t.discord
+                                                            .signupThreadHint
+                                                    }
+                                                />
+                                            }
+                                            {
+                                                <SwitchRow
+                                                    id={"nm-forum"}
+                                                    label={t.discord.forum}
+                                                    checked={
+                                                        values.createForumChannel
+                                                    }
+                                                    onChange={(
+                                                        createForumChannel
+                                                    ) =>
+                                                        update({
+                                                            createForumChannel,
+                                                        })
+                                                    }
+                                                />
+                                            }
                                             {values.createForumChannel ? (
                                                 <div className="ml-12 flex flex-col gap-2">
                                                     {!props.forumCategoryConfigured ? (
@@ -3748,32 +3914,61 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                 ) : null}
                                 {isEdit ? (
                                     <div className="flex flex-col gap-2">
-                                        {switchRow(
-                                            "nm-voice",
-                                            t.discord.voice,
-                                            values.createSquadVoiceChannels,
-                                            (createSquadVoiceChannels) =>
-                                                update({
-                                                    createSquadVoiceChannels,
-                                                })
-                                        )}
+                                        {
+                                            <SwitchRow
+                                                id={"nm-voice"}
+                                                label={t.discord.voice}
+                                                checked={
+                                                    values.createSquadVoiceChannels
+                                                }
+                                                onChange={(
+                                                    createSquadVoiceChannels
+                                                ) =>
+                                                    update({
+                                                        createSquadVoiceChannels,
+                                                    })
+                                                }
+                                            />
+                                        }
                                         {values.createSquadVoiceChannels ? (
                                             <div className="ml-12">
-                                                {channelSelect(
-                                                    "nm-voice-category",
-                                                    t.discord.voiceCategory,
-                                                    values.squadVoiceCategoryId ??
-                                                        "",
-                                                    categoryChannels,
-                                                    (squadVoiceCategoryId) =>
-                                                        update({
-                                                            squadVoiceCategoryId:
-                                                                squadVoiceCategoryId ||
-                                                                undefined,
-                                                        }),
-                                                    t.discord
-                                                        .voiceCategoryDefault
-                                                )}
+                                                {
+                                                    <ChannelSelect
+                                                        id={"nm-voice-category"}
+                                                        label={
+                                                            t.discord
+                                                                .voiceCategory
+                                                        }
+                                                        value={
+                                                            values.squadVoiceCategoryId ??
+                                                            ""
+                                                        }
+                                                        options={
+                                                            categoryChannels
+                                                        }
+                                                        onChange={(
+                                                            squadVoiceCategoryId
+                                                        ) =>
+                                                            update({
+                                                                squadVoiceCategoryId:
+                                                                    squadVoiceCategoryId ||
+                                                                    undefined,
+                                                            })
+                                                        }
+                                                        noneLabel={
+                                                            t.discord
+                                                                .voiceCategoryDefault
+                                                        }
+                                                        fallbackLabel={
+                                                            channelName(
+                                                                values.squadVoiceCategoryId ??
+                                                                    ""
+                                                            ) ??
+                                                            values.squadVoiceCategoryId ??
+                                                            ""
+                                                        }
+                                                    />
+                                                }
                                             </div>
                                         ) : null}
                                     </div>
@@ -3800,42 +3995,63 @@ export function NewMatchFlow(props: NewMatchFlowProps) {
                                         </Label>
                                     </div>
                                 )}
-                                {isEdit
-                                    ? switchRow(
-                                          "nm-roles",
-                                          t.discord.participantRoles,
-                                          values.createParticipantRoles ?? true,
-                                          (createParticipantRoles) =>
-                                              update({
-                                                  createParticipantRoles,
-                                              }),
-                                          (values.createParticipantRoles ??
-                                              true) ||
-                                              !(
-                                                  initial.createParticipantRoles ??
-                                                  true
-                                              )
-                                              ? t.discord.participantRolesHint
-                                              : t.discord
-                                                    .participantRolesOffHint
-                                      )
-                                    : null}
+                                {isEdit ? (
+                                    <SwitchRow
+                                        id={"nm-roles"}
+                                        label={t.discord.participantRoles}
+                                        checked={
+                                            values.createParticipantRoles ??
+                                            true
+                                        }
+                                        onChange={(createParticipantRoles) =>
+                                            update({
+                                                createParticipantRoles,
+                                            })
+                                        }
+                                        hint={
+                                            (values.createParticipantRoles ??
+                                                true) ||
+                                            !(
+                                                initial.createParticipantRoles ??
+                                                true
+                                            )
+                                                ? t.discord.participantRolesHint
+                                                : t.discord
+                                                      .participantRolesOffHint
+                                        }
+                                    />
+                                ) : null}
                             </div>
                             {isEdit && isMatch ? (
                                 <div className="flex flex-col gap-1.5">
-                                    {channelSelect(
-                                        "nm-meeting",
-                                        t.discord.meetingChannel,
-                                        values.meetingChannelId ?? "",
-                                        voiceChannels,
-                                        (meetingChannelId) =>
-                                            update({
-                                                meetingChannelId:
-                                                    meetingChannelId ||
-                                                    undefined,
-                                            }),
-                                        t.discord.meetingChannelDefault
-                                    )}
+                                    {
+                                        <ChannelSelect
+                                            id={"nm-meeting"}
+                                            label={t.discord.meetingChannel}
+                                            value={
+                                                values.meetingChannelId ?? ""
+                                            }
+                                            options={voiceChannels}
+                                            onChange={(meetingChannelId) =>
+                                                update({
+                                                    meetingChannelId:
+                                                        meetingChannelId ||
+                                                        undefined,
+                                                })
+                                            }
+                                            noneLabel={
+                                                t.discord.meetingChannelDefault
+                                            }
+                                            fallbackLabel={
+                                                channelName(
+                                                    values.meetingChannelId ??
+                                                        ""
+                                                ) ??
+                                                values.meetingChannelId ??
+                                                ""
+                                            }
+                                        />
+                                    }
                                     <Hint>{t.discord.meetingChannelHint}</Hint>
                                 </div>
                             ) : null}

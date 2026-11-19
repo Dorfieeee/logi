@@ -31,6 +31,15 @@ export async function GET(_request: Request, context: Context) {
     const args = await access((await context.params).serverId)
     if (!args) return json({ error: "Forbidden." }, 403)
     try {
+        if (new URL(_request.url).searchParams.get("fixtures") === "1")
+            return json(
+                await fetchAction(
+                    makeFunctionReference<"action">(
+                        "leagueAutoImportJobs:listFixtures"
+                    ),
+                    args
+                )
+            )
         return json(
             await fetchQuery(
                 makeFunctionReference<"query">("leagueAutoImport:read"),

@@ -7,20 +7,25 @@ import {
 import assert from "node:assert/strict"
 import test from "node:test"
 
-test("Wardogs cards yield decoded code, name and absolute logo, excluding navigation", () => {
+test("GWL cards use the displayed tag rather than the slug and ignore navigation", () => {
     assert.deepEqual(
         parseWardogsTeams(
-            `<a href="/teams">Teams</a><a href="/teams/A%26B"><img src="/api/logos/team-logos/a.png"><span class="line-clamp-2">Alpha &amp; Beta</span></a><script>fake teams</script>`
+            `<a href="/teams">Teams</a><a href="/teams/fake">Navigation</a><a class="tcd-link" href="/teams/alpha-beta"><img src="/banners/alpha-beta.webp"><img src="/flags/gb.svg"><svg class="tcd-crest"><image href="/logos/alpha-beta.webp?v=123&amp;w=128"></image></svg><div class="tcd-name"><h2>Alpha &amp; Beta</h2><span>A&amp;B</span></div></a><script>fake teams</script>`
         ),
         [
             {
                 name: "Alpha & Beta",
                 shortCode: "A&B",
-                logoUrl: "https://wardogsleague.net/api/logos/team-logos/a.png",
+                logoUrl: "https://gwl.gg/logos/alpha-beta.webp?v=123&w=128",
             },
         ]
     )
     assert.throws(() => parseWardogsTeams("<html>Provider error</html>"))
+    assert.throws(() =>
+        parseWardogsTeams(
+            '<a class="tcd-link" href="/teams/bad"><div class="tcd-name"><h2>Missing tag</h2></div></a>'
+        )
+    )
 })
 test("HeLO maps name, tag and icon and rejects malformed data", () => {
     assert.deepEqual(
@@ -52,31 +57,33 @@ test("HeLO maps name, tag and icon and rejects malformed data", () => {
 })
 test("logo network access is confined to HTTPS provider paths", () => {
     for (const url of [
-        "http://wardogsleague.net/api/logos/a",
+        "http://gwl.gg/logos/a.webp",
         "https://localhost/a",
         "https://127.0.0.1/a",
         "https://floriansw.github.io/other/a",
-        "https://wardogsleague.net.evil.test/api/logos/a",
-        "https://user:pass@wardogsleague.net/api/logos/a",
-        "https://wardogsleague.net:3210/api/logos/a",
-        "https://wardogsleague.net/api/logos/../../private",
+        "https://gwl.gg.evil.test/logos/a.webp",
+        "https://user:pass@gwl.gg/logos/a.webp",
+        "https://gwl.gg:3210/logos/a.webp",
+        "https://gwl.gg/logos/../../private",
+        "https://gwl.gg/banners/a.webp",
+        "https://gwl.gg/logos/a.svg",
+        "https://wardogsleague.net/api/logos/a.gif",
     ])
         assert.equal(allowedTeamSourceUrl(url), false, url)
     assert.equal(
-        allowedTeamSourceUrl(
-            "https://wardogsleague.net/api/logos/team-logos/a.gif"
-        ),
+        allowedTeamSourceUrl("https://gwl.gg/logos/team-a.webp?v=123&w=128"),
         true
     )
+    assert.equal(allowedTeamSourceUrl("https://gwl.gg/teams"), true)
 })
 
-test("Wardogs selects the provider logo rather than unrelated images in a card", () => {
-    const [team] = parseWardogsTeams(
-        '<a href="/teams/PMF"><img src="/brand/badge.svg"><span class="line-clamp-2">Pardon My French</span><img alt="" width="48" height="48" class="block shrink-0 object-cover h-12 w-12 text-[11px]" src="/api/logos/team-logos/example.png"></a>'
-    )
-    assert.equal(
-        team?.logoUrl,
-        "https://wardogsleague.net/api/logos/team-logos/example.png"
+test("GWL rejects an untrusted crest origin", () => {
+    assert.throws(
+        () =>
+            parseWardogsTeams(
+                '<a class="tcd-link" href="/teams/a"><div class="tcd-name"><h2>Alpha</h2><span>A</span></div><svg class="tcd-crest"><image href="https://other.test/logos/a.webp"></image></svg></a>'
+            ),
+        /Unsupported GWL logo URL/
     )
 })
 
@@ -101,13 +108,12 @@ test("HeLO HTML includes teams without image elements and ignores headings", () 
         [{ name: "No Logo", shortCode: "NL", logoUrl: null }]
     )
 })
-test("Wardogs includes logo-free cards and preserves GIF source URLs", () => {
-    const teams = parseWardogsTeams(
-        '<a href="/teams/NL"><span class="line-clamp-2">No Logo</span></a><a href="/teams/GIF"><span class="line-clamp-2">Animated</span><img src="/api/logos/animated.gif"></a>'
-    )
-    assert.equal(teams[0]?.logoUrl, null)
-    assert.equal(
-        teams[1]?.logoUrl,
-        "https://wardogsleague.net/api/logos/animated.gif"
+test("GWL includes logo-free cards without importing placeholder crests or banners", () => {
+    assert.deepEqual(
+        parseTeamSource(
+            "wardogs",
+            '<a class="tcd-link" href="/teams/no-logo"><img src="/banners/no-logo.webp"><svg class="tcd-crest"><path d="M0 0"></path></svg><div class="tcd-name"><h2>No Logo</h2><span>NL</span></div></a>'
+        ),
+        [{ name: "No Logo", shortCode: "NL", logoUrl: null }]
     )
 })

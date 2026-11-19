@@ -20,6 +20,17 @@ export async function storeWardogsMatchReport(
         .unique()
     if (!sessions.length) {
         if (existing) await ctx.db.delete(existing._id)
+        if (revision.status === "provisional") {
+            const preview = await ctx.db
+                .query("publicPreviews")
+                .withIndex("entity", (q) =>
+                    q
+                        .eq("entityType", "match")
+                        .eq("entityId", String(event._id))
+                )
+                .unique()
+            if (preview) await ctx.db.delete(preview._id)
+        }
         if (event.wardogsReportId)
             await ctx.db.patch(event._id, { wardogsReportId: undefined })
         return Boolean(existing || event.wardogsReportId)

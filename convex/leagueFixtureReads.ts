@@ -111,3 +111,40 @@ export const overview = query({
         return leagueOverviewSchema.parse(panels)
     },
 })
+
+/** GWL connection state is served without credentials, raw combat events or private IDs. */
+export const listGwl = query({
+    args: {
+        secret: v.string(),
+        keyHash: v.string(),
+        guildId: v.string(),
+        cursor: v.union(v.string(), v.null()),
+        limit: v.number(),
+    },
+    handler: async (ctx, args) => {
+        assertSessionGateway(args.secret)
+        if (!(await fixtureKeyAllowed(ctx, args.keyHash, args.guildId)))
+            return null
+        if (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > 100)
+            throw new Error("Invalid pagination")
+        const page = await ctx.db
+            .query("leagueAutoImportFixtures")
+            .withIndex("guildId", (q) => q.eq("guildId", args.guildId))
+            .paginate({ cursor: args.cursor, numItems: args.limit })
+        return {
+            items: page.page
+                .filter((row) => row.matchJson || row.slotJson)
+                .map((row) => ({
+                    id: row.fixtureId,
+                    eventId: row.eventId ?? null,
+                    issue: row.issue ?? null,
+                    resultState: row.resultState ?? "pending",
+                    statsState: row.statsState ?? "pending",
+                    updatedAt: row.updatedAt,
+                    fixture: row.matchJson ? JSON.parse(row.matchJson) : null,
+                    slot: row.slotJson ? JSON.parse(row.slotJson) : null,
+                })),
+            nextCursor: page.isDone ? null : page.continueCursor,
+        }
+    },
+})
