@@ -17,6 +17,7 @@ import {
     providerKeySchema,
 } from "../src/domain/game-data/credentials.schema"
 import { autoImportSettingsSchema } from "../src/domain/wardogs-league/team-api"
+import { gwlSaveFailure } from "../src/infrastructure/gwl/save-errors"
 import { ownTeamFirst } from "../src/domain/wardogs-league/team-api"
 import { gwlGet, GwlError } from "../src/infrastructure/gwl/client"
 import { gwlSession, gwlFixture } from "../src/domain/gwl/mapping"
@@ -27,8 +28,8 @@ import { makeFunctionReference } from "convex/server"
 import type { ActionCtx } from "./_generated/server"
 import type { Doc } from "./_generated/dataModel"
 import { dashboardActor } from "./dashboardActor"
+import { ConvexError, v } from "convex/values"
 import { createHash } from "node:crypto"
-import { v } from "convex/values"
 import { z } from "zod"
 
 export const save = action({
@@ -39,67 +40,84 @@ export const save = action({
         settingsJson: v.string(),
         apiKey: v.optional(v.string()),
     },
-    handler: async (ctx, args): Promise<{ ok: boolean }> => {
+    handler: async (ctx, args): Promise<{ ok: true }> => {
         const { apiKey, ...input } = args
         // Authorize before contacting the provider; the mutation checks authority again.
         const existing = await ctx.runQuery(
             makeFunctionReference<"query">("leagueAutoImport:read"),
             { secret: args.secret, guildId: args.guildId, actor: args.actor }
         )
-        const settings = autoImportSettingsSchema.parse(
-            JSON.parse(args.settingsJson)
-        )
-        if (!apiKey && existing.testMode && settings.enabled)
-            throw new GwlError("test_key_cannot_sync_live_data")
-        let testMode: boolean | undefined
-        let credentialJson: string | undefined
-        if (apiKey) {
-            const key = providerKeySchema.parse(apiKey)
-            const keyring = parseKeyring(process.env.LOGI_CREDENTIAL_KEYRING)
-            if (!keyring)
-                throw new Error("Credential encryption is not configured.")
-            const team = await gwlGet(key, "/team", gwlTeamSchema)
-            if (!team.data) throw new GwlError("empty_response")
-            testMode = team.test
-            if (testMode && settings.enabled)
+        try {
+            const settings = autoImportSettingsSchema.parse(
+                JSON.parse(args.settingsJson)
+            )
+            if (!apiKey && existing.testMode && settings.enabled)
                 throw new GwlError("test_key_cannot_sync_live_data")
-            if (
-                existing.records.length &&
-                existing.settings?.teamCode &&
-                existing.settings.teamCode !== team.data.slug &&
-                existing.provider === "gwl"
-            )
-                throw new GwlError("team_change_requires_unlinking")
-            settings.teamCode = team.data.slug
-            await gwlGet(key, "/team/fixtures?limit=1", gwlFixturesSchema)
-            await gwlGet(key, "/team/events?limit=1", gwlEventsSchema)
-            if (settings.autoCreate)
-                await gwlGet(key, "/team/slots", gwlSlotsSchema)
-            try {
-                await gwlGet(key, "/team/matches/0/file", gwlFileSchema)
-            } catch (error) {
-                if (!(error instanceof GwlError && error.code === "not_found"))
-                    throw error
-            }
-            credentialJson = JSON.stringify(
-                encryptCredential(
-                    keyring,
-                    key,
-                    `wardogs-team-fixtures:${args.guildId}`
+            let testMode: boolean | undefined
+            let credentialJson: string | undefined
+            if (apiKey) {
+                const key = providerKeySchema.parse(apiKey)
+                const keyring = parseKeyring(
+                    process.env.LOGI_CREDENTIAL_KEYRING
                 )
-            )
-        }
-        if (!apiKey && existing.settings && existing.provider === "gwl")
-            settings.teamCode = existing.settings.teamCode
-        return ctx.runMutation(
-            makeFunctionReference<"mutation">("leagueAutoImport:save"),
-            {
-                ...input,
-                settingsJson: JSON.stringify(settings),
-                credentialJson,
-                ...(apiKey ? { provider: "gwl", testMode } : {}),
+                if (!keyring)
+                    throw new Error("Credential encryption is not configured.")
+                const team = await gwlGet(key, "/team", gwlTeamSchema)
+                if (!team.data) throw new GwlError("empty_response")
+                testMode = team.test
+                if (testMode && settings.enabled)
+                    throw new GwlError("test_key_cannot_sync_live_data")
+                if (
+                    existing.records.length &&
+                    existing.settings?.teamCode &&
+                    existing.settings.teamCode !== team.data.slug &&
+                    existing.provider === "gwl"
+                )
+                    throw new GwlError("team_change_requires_unlinking")
+                settings.teamCode = team.data.slug
+                const fixtures = await gwlGet(
+                    key,
+                    "/team/fixtures?limit=1",
+                    gwlFixturesSchema
+                )
+                await gwlGet(key, "/team/events?limit=1", gwlEventsSchema)
+                if (settings.autoCreate)
+                    await gwlGet(key, "/team/slots", gwlSlotsSchema)
+                try {
+                    await gwlGet(
+                        key,
+                        `/team/matches/${fixtures.data?.recent[0]?.number ?? fixtures.data?.upcoming[0]?.number ?? "1"}/file`,
+                        gwlFileSchema
+                    )
+                } catch (error) {
+                    if (!(
+                        error instanceof GwlError && error.code === "not_found"
+                    ))
+                        throw error
+                }
+                credentialJson = JSON.stringify(
+                    encryptCredential(
+                        keyring,
+                        key,
+                        `wardogs-team-fixtures:${args.guildId}`
+                    )
+                )
             }
-        )
+            if (!apiKey && existing.settings && existing.provider === "gwl")
+                settings.teamCode = existing.settings.teamCode
+            await ctx.runMutation(
+                makeFunctionReference<"mutation">("leagueAutoImport:save"),
+                {
+                    ...input,
+                    settingsJson: JSON.stringify(settings),
+                    credentialJson,
+                    ...(apiKey ? { provider: "gwl", testMode } : {}),
+                }
+            )
+            return { ok: true }
+        } catch (error) {
+            throw new ConvexError(gwlSaveFailure(error))
+        }
     },
 })
 export const collectDue = internalAction({
@@ -458,5 +476,21 @@ export const listFixtures = action({
             args
         )
         return { fixtures: result.data.upcoming.map(gwlFixture) }
+    },
+})
+
+/** Operator-only health check: returns status, never keyring contents or IDs. */
+export const encryptionStatus = internalAction({
+    args: {},
+    handler: async (): Promise<{ status: "missing" | "valid" | "invalid" }> => {
+        try {
+            return {
+                status: parseKeyring(process.env.LOGI_CREDENTIAL_KEYRING)
+                    ? "valid"
+                    : "missing",
+            }
+        } catch {
+            return { status: "invalid" }
+        }
     },
 })

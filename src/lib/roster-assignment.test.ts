@@ -390,3 +390,73 @@ test("autoFillRosterAssignments breaks signup ties by score before K/D", () => {
     )
     assert.equal(kdFirst.squads[0]?.players[0]?.id, "high-score")
 })
+
+test("candidate sorting switches metrics while preserving availability priority", async () => {
+    const { compareRosterCandidates } = await import("./roster-assignment")
+    const { context } = allocationFixture(2)
+    const left = context.usersById.get("player-0")!
+    left.performance = {
+        matchesPlayed: 1,
+        averages: {
+            kills: 10,
+            deaths: 2,
+            killDeathRatio: 5,
+            offense: 0,
+            defense: 0,
+            support: 0,
+        },
+    }
+    context.signupGroupByUserId.set("player-0", "Infantry")
+    const slot = { squadGroup: "Infantry" }
+    assert.ok(
+        compareRosterCandidates("player-0", "player-1", context, slot, {
+            sort: "role",
+        }) < 0
+    )
+    assert.ok(
+        compareRosterCandidates("player-0", "player-1", context, slot, {
+            sort: "score",
+        }) > 0
+    )
+    assert.ok(
+        compareRosterCandidates("player-0", "player-1", context, slot, {
+            sort: "kd",
+        }) < 0
+    )
+    assert.ok(
+        compareRosterCandidates("player-0", "player-1", context, slot, {
+            sort: "kd",
+            assignedElsewhereUserIds: new Set(["player-0"]),
+        }) > 0
+    )
+    context.participantStatusByUserId.set("player-0", "not_attending")
+    assert.ok(
+        compareRosterCandidates("player-0", "player-1", context, slot, {
+            sort: "kd",
+        }) > 0
+    )
+    assert.ok(
+        compareRosterCandidates("missing", "player-1", context, slot, {
+            sort: "score",
+        }) > 0
+    )
+})
+
+test("explicit score sort uses the roster game rather than a legacy HLL score", async () => {
+    const { compareRosterCandidates } = await import("./roster-assignment")
+    const { context } = allocationFixture(2)
+    context.usersById.get("player-0")!.scores[
+        JSON.stringify(["guild", "wardogs"])
+    ] = 50
+    assert.ok(
+        compareRosterCandidates("player-0", "player-1", context, undefined, {
+            sort: "score",
+            gameId: "wardogs",
+        }) < 0
+    )
+    assert.ok(
+        compareRosterCandidates("player-0", "player-1", context, undefined, {
+            sort: "score",
+        }) > 0
+    )
+})

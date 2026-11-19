@@ -1,5 +1,21 @@
 export const rostersMessages = {
     roster: {
+        scoresHelp:
+            "Match metrics are averages over the recorded history available here. — means no history.",
+        scoresTitle: "Scores",
+        sortPlayers: "Sort players",
+        sortRole: "Best role fit",
+        sortScore: "Score",
+        sortKd: "K/D",
+        sortName: "Name",
+        allGroups: "All groups",
+        noPlayers: "No players match your filters.",
+        matchesLabel: "Matches",
+        killsLabel: "Kills",
+        deathsLabel: "Deaths",
+        combatLabel: "Combat",
+        supportLabel: "Support",
+
         noPresets: "Create a squad preset to start building this roster.",
         createPreset: "Create a squad preset",
 

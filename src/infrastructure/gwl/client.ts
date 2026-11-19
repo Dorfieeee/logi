@@ -1,3 +1,4 @@
+import { gwlScopeForPath } from "../../domain/gwl/save-feedback"
 import { GwlError } from "../../domain/gwl/errors"
 import { z } from "zod"
 export { GwlError } from "../../domain/gwl/errors"
@@ -68,11 +69,14 @@ export async function gwlGet<T>(
         const retry = Number(response.headers.get("Retry-After"))
         throw new GwlError(
             error.success ? error.data.error.code : "unavailable",
-            Number.isFinite(retry) ? Math.max(0, retry) * 1000 : 0
+            Number.isFinite(retry) ? Math.max(0, retry) * 1000 : 0,
+            gwlScopeForPath(path)
         )
     }
+    const parsed = schema.safeParse(body)
+    if (!parsed.success) throw new GwlError("invalid_response")
     return {
-        data: schema.parse(body),
+        data: parsed.data,
         etag: response.headers.get("ETag") ?? undefined,
         test,
     }

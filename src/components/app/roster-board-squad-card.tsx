@@ -321,6 +321,9 @@ export function SquadCard({
     defaultExpanded?: boolean
 }) {
     const [slotPickerOpen, setSlotPickerOpen] = useState<number | null>(null)
+    const [candidateSort, setCandidateSort] = useState<"role" | "score" | "kd">(
+        "role"
+    )
     const [slotSearches, setSlotSearches] = useState<Record<number, string>>({})
     const [slotVisibleCounts, setSlotVisibleCounts] = useState<
         Record<number, number>
@@ -719,7 +722,11 @@ export function SquadCard({
                                     roleName: player.roleName,
                                     roleIcon: player.roleIcon,
                                 },
-                                { assignedElsewhereUserIds }
+                                {
+                                    assignedElsewhereUserIds,
+                                    sort: candidateSort,
+                                    gameId: board.gameId,
+                                }
                             )
                         )
                     const visibleCount = slotVisibleCounts[playerIndex] ?? 5
@@ -1082,6 +1089,59 @@ export function SquadCard({
                                                         }
                                                     </p>
                                                 ) : null}
+                                                <div className="px-2 pb-2">
+                                                    <Select
+                                                        value={candidateSort}
+                                                        onValueChange={(
+                                                            value
+                                                        ) => {
+                                                            if (
+                                                                value ===
+                                                                    "role" ||
+                                                                value ===
+                                                                    "score" ||
+                                                                value === "kd"
+                                                            )
+                                                                setCandidateSort(
+                                                                    value
+                                                                )
+                                                        }}
+                                                    >
+                                                        <SelectTrigger
+                                                            className="h-8 w-full text-xs"
+                                                            aria-label={
+                                                                dictionary
+                                                                    .roster
+                                                                    .sortPlayers
+                                                            }
+                                                        >
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="role">
+                                                                {
+                                                                    dictionary
+                                                                        .roster
+                                                                        .sortRole
+                                                                }
+                                                            </SelectItem>
+                                                            <SelectItem value="score">
+                                                                {
+                                                                    dictionary
+                                                                        .roster
+                                                                        .sortScore
+                                                                }
+                                                            </SelectItem>
+                                                            <SelectItem value="kd">
+                                                                {
+                                                                    dictionary
+                                                                        .roster
+                                                                        .sortKd
+                                                                }
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
                                                 <Command shouldFilter={false}>
                                                     <CommandInput
                                                         value={

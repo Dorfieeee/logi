@@ -1,5 +1,21 @@
 export const rostersMessages = {
     roster: {
+        scoresHelp:
+            "Spielwerte sind Durchschnitte des verfügbaren Verlaufs. — bedeutet keinen Verlauf.",
+        scoresTitle: "Punkte",
+        sortPlayers: "Spieler sortieren",
+        sortRole: "Passende Rolle",
+        sortScore: "Punkte",
+        sortKd: "K/D",
+        sortName: "Name",
+        allGroups: "Alle Gruppen",
+        noPlayers: "Keine Spieler entsprechen den Filtern.",
+        matchesLabel: "Spiele",
+        killsLabel: "Kills",
+        deathsLabel: "Tode",
+        combatLabel: "Kampf",
+        supportLabel: "Unterstützung",
+
         noPresets: "Erstelle zuerst eine Truppenvorlage für diese Aufstellung.",
         createPreset: "Truppenvorlage erstellen",
 

@@ -1,5 +1,21 @@
 export const rostersMessages = {
     roster: {
+        scoresHelp:
+            "Les statistiques sont les moyennes de l’historique disponible. — indique un historique absent.",
+        scoresTitle: "Scores",
+        sortPlayers: "Trier les joueurs",
+        sortRole: "Rôle adapté",
+        sortScore: "Score",
+        sortKd: "K/D",
+        sortName: "Nom",
+        allGroups: "Tous les groupes",
+        noPlayers: "Aucun joueur ne correspond aux filtres.",
+        matchesLabel: "Matchs",
+        killsLabel: "Éliminations",
+        deathsLabel: "Morts",
+        combatLabel: "Combat",
+        supportLabel: "Soutien",
+
         noPresets:
             "Créez un modèle d’escouades pour commencer cette composition.",
         createPreset: "Créer un modèle d’escouades",

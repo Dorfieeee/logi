@@ -1,5 +1,21 @@
 export const rostersMessages = {
     roster: {
+        scoresHelp:
+            "Statystyki to średnie z dostępnej historii. — oznacza brak historii.",
+        scoresTitle: "Punkty",
+        sortPlayers: "Sortuj graczy",
+        sortRole: "Dopasowanie do roli",
+        sortScore: "Punkty",
+        sortKd: "K/D",
+        sortName: "Nazwa",
+        allGroups: "Wszystkie grupy",
+        noPlayers: "Brak graczy pasujących do filtrów.",
+        matchesLabel: "Mecze",
+        killsLabel: "Zabójstwa",
+        deathsLabel: "Zgony",
+        combatLabel: "Walka",
+        supportLabel: "Wsparcie",
+
         noPresets: "Najpierw utwórz szablon drużyn dla tego składu.",
         createPreset: "Utwórz szablon drużyn",
 

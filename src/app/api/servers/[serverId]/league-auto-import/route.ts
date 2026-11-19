@@ -5,10 +5,12 @@ import { autoImportSettingsSchema } from "@/domain/wardogs-league/team-api"
 import { providerKeySchema } from "@/domain/game-data/credentials.schema"
 import { currentDashboardActor } from "@/lib/gateways/dashboard-actor"
 import { clanAdminWriteDenied } from "@/lib/api/clan-admin-route"
+import { gwlSaveFailureSchema } from "@/domain/gwl/save-feedback"
 import { readBoundedJson } from "@/lib/api/request-json"
 import { fetchAction, fetchQuery } from "convex/nextjs"
 import { makeFunctionReference } from "convex/server"
 import { getInternalAuthSecret } from "@/lib/env"
+import { ConvexError } from "convex/values"
 import { z } from "zod"
 
 type Context = { params: Promise<{ serverId: string }> }
@@ -61,7 +63,11 @@ export async function PUT(request: Request, context: Context) {
     const args = await access(serverId)
     if (!args) return json({ error: "Forbidden." }, 403)
     try {
-        const input = inputSchema.parse(await readBoundedJson(request, 12_000))
+        const parsed = inputSchema.safeParse(
+            await readBoundedJson(request, 12_000)
+        )
+        if (!parsed.success) return json({ error: "invalid_settings" }, 400)
+        const input = parsed.data
         if (input.settings.enabled) {
             for (const id of new Set(
                 [
@@ -70,8 +76,12 @@ export async function PUT(request: Request, context: Context) {
                     input.settings.eventResultsChannelId,
                 ].filter((id): id is string => Boolean(id))
             )) {
-                const channel = await verifyPublicChannel(args.guildId, id)
+                const channel = await verifyPublicChannel(
+                    args.guildId,
+                    id
+                ).catch(() => null)
                 if (
+                    !channel ||
                     channel.guildId !== args.guildId ||
                     !channel.canPublish ||
                     ![0, 5].includes(channel.type)
@@ -79,18 +89,24 @@ export async function PUT(request: Request, context: Context) {
                     return json({ error: "channel_access" }, 400)
             }
         }
-        return json(
-            await fetchAction(
-                makeFunctionReference<"action">("leagueAutoImportJobs:save"),
-                {
-                    ...args,
-                    settingsJson: JSON.stringify(input.settings),
-                    apiKey: input.apiKey,
-                }
-            )
+        const result = await fetchAction(
+            makeFunctionReference<"action">("leagueAutoImportJobs:save"),
+            {
+                ...args,
+                settingsJson: JSON.stringify(input.settings),
+                apiKey: input.apiKey,
+            }
         )
-    } catch {
-        return json({ error: "save_failed" }, 400)
+        const failure = gwlSaveFailureSchema.safeParse(result)
+        return failure.success ? json(failure.data, 400) : json({ ok: true })
+    } catch (error) {
+        const failure = gwlSaveFailureSchema.safeParse(
+            error instanceof ConvexError ? error.data : null
+        )
+        return json(
+            failure.success ? failure.data : { error: "save_failed" },
+            400
+        )
     }
 }
 
