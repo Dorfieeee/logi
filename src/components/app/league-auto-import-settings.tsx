@@ -80,9 +80,14 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
     const [announcement, setAnnouncement] = useState(""),
         [info, setInfo] = useState(""),
         [results, setResults] = useState("")
+    const [channelsFailed, setChannelsFailed] = useState(false)
+    const [channelRetry, setChannelRetry] = useState(0)
     const [channels, setChannels] = useState<SelectableDiscordChannel[]>([])
     const readState = useCallback(async () => {
-        const response = await fetch(base, { cache: "no-store" })
+        const response = await fetch(base, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(10_000),
+        })
         if (!response.ok) throw new Error()
         const value = stateSchema.parse(await response.json())
         return value
@@ -93,6 +98,7 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
         return value
     }
     useEffect(() => {
+        if (open) return
         let active = true
         void readState()
             .then((value) => {
@@ -104,13 +110,15 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
         return () => {
             active = false
         }
-    }, [readState, t.loadFailed])
+    }, [readState, t.loadFailed, open])
     const edit = async (next: boolean) => {
         setOpen(next)
         setApiKey("")
         if (!next) return
         setMessage("")
+        setChannelsFailed(false)
         setLoading(true)
+        setState(null)
         try {
             const value = await load(),
                 settings = value.settings
@@ -132,10 +140,23 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                 settings?.eventResultsChannelId ??
                     value.defaults.eventResultsChannelId
             )
-            const response = await fetch(
-                `/api/servers/${serverId}/discord-metadata`
-            )
-            if (response.ok) {
+        } catch {
+            setMessage(t.loadFailed)
+        } finally {
+            setLoading(false)
+        }
+    }
+    useEffect(() => {
+        if (!open) return
+        const controller = new AbortController()
+        void fetch(`/api/servers/${serverId}/discord-metadata`, {
+            signal: AbortSignal.any([
+                controller.signal,
+                AbortSignal.timeout(10_000),
+            ]),
+        })
+            .then(async (response) => {
+                if (!response.ok) throw new Error()
                 const data = z
                     .object({
                         channels: z.array(
@@ -147,14 +168,13 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                         ),
                     })
                     .parse(await response.json())
-                setChannels(data.channels)
-            }
-        } catch {
-            setMessage(t.loadFailed)
-        } finally {
-            setLoading(false)
-        }
-    }
+                if (!controller.signal.aborted) setChannels(data.channels)
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) setChannelsFailed(true)
+            })
+        return () => controller.abort()
+    }, [open, serverId, channelRetry])
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
         setBusy(true)
@@ -175,6 +195,7 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
             })
             const response = await fetch(base, {
                 method: "PUT",
+                signal: AbortSignal.timeout(90_000),
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     settings,
@@ -245,6 +266,37 @@ export function LeagueAutoImportSettings({ serverId }: { serverId: string }) {
                         <DialogTitle>{t.title}</DialogTitle>
                         <DialogDescription>{t.intro}</DialogDescription>
                     </DialogHeader>
+                    {loading && <p role="status">{g.loading}</p>}
+                    {!loading && !state && (
+                        <div role="alert" className="space-y-2">
+                            <p>{t.loadFailed}</p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => void edit(true)}
+                            >
+                                {g.retry}
+                            </Button>
+                        </div>
+                    )}
+                    {!loading && state && !state.available && (
+                        <p role="alert">{g.unavailable}</p>
+                    )}
+                    {channelsFailed && state?.available && (
+                        <div role="status" className="space-y-2">
+                            <p>{g.channelsFailed}</p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setChannelsFailed(false)
+                                    setChannelRetry((value) => value + 1)
+                                }}
+                            >
+                                {g.retry}
+                            </Button>
+                        </div>
+                    )}
                     <form onSubmit={save} className="space-y-4">
                         <fieldset
                             disabled={busy || loading || !state?.available}

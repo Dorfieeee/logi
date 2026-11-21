@@ -23,7 +23,7 @@ export function gwlFixture(match: GwlMatch): TeamFixture {
             [match.layer, match.weather].filter(Boolean).join(" · ") || null,
         competition: {
             competition: "Global Wardogs League",
-            season: match.season,
+            season: match.season?.trim() || null,
             division: match.region,
             round: null,
         },

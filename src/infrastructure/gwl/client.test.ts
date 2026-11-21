@@ -58,3 +58,52 @@ test("ETag 304 returns no fabricated data", async () => {
     })
     assert.equal(result.data, null)
 })
+
+test("invalid live payloads report schema paths without leaking values", async () => {
+    const secret = "gwl_live_private_example_never_return"
+    await assert.rejects(
+        gwlGet(secret, "/team/fixtures", gwlFixturesSchema, {
+            fetcher: async () =>
+                Response.json({ upcoming: [{ number: secret }], recent: [] }),
+        }),
+        (error) => {
+            assert.ok(error instanceof GwlError)
+            assert.equal(error.diagnostic?.endpoint, "fixtures")
+            assert.equal(error.diagnostic?.status, 200)
+            assert.equal(error.diagnostic?.reason, "invalid_shape")
+            assert.ok(error.diagnostic?.fields?.includes("upcoming.[].number"))
+            assert.ok(!JSON.stringify(error.diagnostic).includes(secret))
+            return true
+        }
+    )
+})
+test("non-JSON responses retain status and format, never response text", async () => {
+    const secret = "gwl_live_private_example_never_return"
+    await assert.rejects(
+        gwlGet(secret, "/team/fixtures", gwlFixturesSchema, {
+            fetcher: async () =>
+                new Response(`<html>${secret}</html>`, {
+                    status: 403,
+                    headers: { "Content-Type": "text/html" },
+                }),
+        }),
+        (error) =>
+            error instanceof GwlError &&
+            error.diagnostic?.status === 403 &&
+            error.diagnostic?.format === "html" &&
+            !JSON.stringify(error).includes(secret)
+    )
+})
+test("unknown provider error codes cannot echo key material", async () => {
+    const secret = "gwl_live_private_example_never_return"
+    await assert.rejects(
+        gwlGet(secret, "/team/fixtures", gwlFixturesSchema, {
+            fetcher: async () =>
+                Response.json({ error: { code: secret } }, { status: 500 }),
+        }),
+        (error) =>
+            error instanceof GwlError &&
+            error.code === "unavailable" &&
+            !error.message.includes(secret)
+    )
+})

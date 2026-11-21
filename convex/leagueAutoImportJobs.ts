@@ -116,6 +116,12 @@ export const save = action({
             )
             return { ok: true }
         } catch (error) {
+            if (error instanceof GwlError)
+                console.warn("GWL connection validation failed", {
+                    code: error.code,
+                    scope: error.scope ?? null,
+                    diagnostic: error.diagnostic ?? null,
+                })
             throw new ConvexError(gwlSaveFailure(error))
         }
     },
@@ -492,5 +498,43 @@ export const encryptionStatus = internalAction({
         } catch {
             return { status: "invalid" }
         }
+    },
+})
+
+/** Operator-only egress/schema check using the explicitly sandbox-only environment key. */
+export const diagnoseSandbox = internalAction({
+    args: {},
+    handler: async () => {
+        const key = process.env.GWL_API_KEY
+        if (!key?.startsWith("gwl_test_"))
+            return { available: false, checks: [] }
+        const checks: Array<{
+            endpoint: string
+            ok: boolean
+            code?: string
+            diagnostic?: import("../src/domain/gwl/diagnostics").GwlDiagnostic
+        }> = []
+        for (const [path, schema] of [
+            ["/team", gwlTeamSchema],
+            ["/team/fixtures?limit=1", gwlFixturesSchema],
+            ["/team/events?limit=1", gwlEventsSchema],
+            ["/team/slots", gwlSlotsSchema],
+            ["/team/matches/9103/file", gwlFileSchema],
+        ] as const) {
+            try {
+                await gwlGet(key, path, schema as z.ZodType<unknown>)
+                checks.push({ endpoint: path.split("?")[0], ok: true })
+            } catch (error) {
+                checks.push({
+                    endpoint: path.split("?")[0],
+                    ok: false,
+                    code: error instanceof GwlError ? error.code : "unexpected",
+                    ...(error instanceof GwlError && error.diagnostic
+                        ? { diagnostic: error.diagnostic }
+                        : {}),
+                })
+            }
+        }
+        return { available: true, checks }
     },
 })

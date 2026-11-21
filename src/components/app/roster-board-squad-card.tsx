@@ -22,7 +22,7 @@ import {
     LockKeyholeOpen,
     Trash2,
 } from "lucide-react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import Image from "next/image"
 
 import {
@@ -340,14 +340,88 @@ export function SquadCard({
     const filledSlotCount = squad.players.filter((player) =>
         Boolean(player.id || getCustomPlayerName(player))
     ).length
-    const rankingContext = {
-        usersById,
-        assignmentsByUserId,
-        groupsById,
-        signupGroupByUserId,
-        participantStatusByUserId,
+    const rankingContext = useMemo(
+        () => ({
+            usersById,
+            assignmentsByUserId,
+            groupsById,
+            signupGroupByUserId,
+            participantStatusByUserId,
+            serverDiscordId,
+        }),
+        [
+            usersById,
+            assignmentsByUserId,
+            groupsById,
+            signupGroupByUserId,
+            participantStatusByUserId,
+            serverDiscordId,
+        ]
+    )
+    const { assignedElsewhereUserIds, rankedUsers } = useMemo(() => {
+        const playerIndex = slotPickerOpen
+        const player =
+            playerIndex === null ? undefined : squad.players[playerIndex]
+        if (playerIndex === null || !player)
+            return {
+                assignedElsewhereUserIds: new Set<string>(),
+                rankedUsers: [],
+            }
+        const assignedElsewhereUserIds = getAssignedElsewhereUserIds(board, {
+            squadIndex,
+            playerIndex,
+        })
+        const rankedUsers = allUsersSorted
+            .filter((user) => !guest || user.sharedGuildId === serverDiscordId)
+            .filter(
+                (user) =>
+                    !player.allocatedGuildId ||
+                    user.sharedEligibleGuildIds?.includes(
+                        player.allocatedGuildId
+                    )
+            )
+            .sort((a, b) =>
+                compareRosterCandidates(
+                    a.discordId,
+                    b.discordId,
+                    rankingContext,
+                    {
+                        squadGroup: squad.group,
+                        roleName: player.roleName,
+                        roleIcon: player.roleIcon,
+                    },
+                    {
+                        assignedElsewhereUserIds,
+                        sort: candidateSort,
+                        gameId: board.gameId,
+                    }
+                )
+            )
+
+        return { assignedElsewhereUserIds, rankedUsers }
+    }, [
+        slotPickerOpen,
+        squad,
+        board,
+        squadIndex,
+        guest,
         serverDiscordId,
-    }
+        allUsersSorted,
+        candidateSort,
+        rankingContext,
+    ])
+    const normalizedSlotSearch = (
+        slotPickerOpen === null ? "" : (slotSearches[slotPickerOpen] ?? "")
+    )
+        .trim()
+        .toLowerCase()
+    const filteredUsers = useMemo(
+        () =>
+            rankedUsers.filter((user) =>
+                user.name.toLowerCase().includes(normalizedSlotSearch)
+            ),
+        [rankedUsers, normalizedSlotSearch]
+    )
 
     return (
         <Card
@@ -425,6 +499,7 @@ export function SquadCard({
                             </Button>
                         ) : null}
                         <DropdownMenu
+                            modal={false}
                             open={contextMenuOpen}
                             onOpenChange={setContextMenuOpen}
                         >
@@ -686,49 +761,6 @@ export function SquadCard({
                               signupGroupByUserId
                           )
                         : null
-                    const assignedElsewhereUserIds =
-                        getAssignedElsewhereUserIds(board, {
-                            squadIndex,
-                            playerIndex,
-                        })
-                    const filteredUsers = allUsersSorted
-                        .filter(
-                            (user) =>
-                                !guest || user.sharedGuildId === serverDiscordId
-                        )
-                        .filter(
-                            (user) =>
-                                !player.allocatedGuildId ||
-                                user.sharedEligibleGuildIds?.includes(
-                                    player.allocatedGuildId
-                                )
-                        )
-                        .filter((user) =>
-                            user.name
-                                .toLowerCase()
-                                .includes(
-                                    (slotSearches[playerIndex] ?? "")
-                                        .trim()
-                                        .toLowerCase()
-                                )
-                        )
-                        .sort((a, b) =>
-                            compareRosterCandidates(
-                                a.discordId,
-                                b.discordId,
-                                rankingContext,
-                                {
-                                    squadGroup: squad.group,
-                                    roleName: player.roleName,
-                                    roleIcon: player.roleIcon,
-                                },
-                                {
-                                    assignedElsewhereUserIds,
-                                    sort: candidateSort,
-                                    gameId: board.gameId,
-                                }
-                            )
-                        )
                     const visibleCount = slotVisibleCounts[playerIndex] ?? 5
                     // "Pustit sem: {name}" while a player is dragged over a
                     // free slot (design D3).
@@ -741,7 +773,7 @@ export function SquadCard({
 
                     return (
                         <div
-                            key={`${squadIndex}-${playerIndex}`}
+                            key={playerIndex}
                             data-testid="roster-slot"
                             data-slot-index={playerIndex}
                             onDragOver={(event) => {
@@ -1582,6 +1614,7 @@ function RoleIconSelect({
     value?: string
     onChange: (value: string) => void
 }) {
+    const [open, setOpen] = useState(false)
     const customEmoji = value ? parseDiscordCustomEmoji(value) : null
     const selectedValue =
         value &&
@@ -1592,7 +1625,12 @@ function RoleIconSelect({
     const customEmojiValue = value ?? ""
 
     return (
-        <Select value={selectedValue} onValueChange={onChange}>
+        <Select
+            value={selectedValue}
+            onValueChange={onChange}
+            open={open}
+            onOpenChange={setOpen}
+        >
             <SelectTrigger className="h-7 min-h-7 w-16 rounded-lg px-1.5 py-0 [&_svg]:size-3 [&_svg]:shrink-0">
                 <SelectValue>
                     <RoleIconPreview value={selectedValue} />
@@ -1604,7 +1642,10 @@ function RoleIconSelect({
                         <RoleIconPreview value={customEmojiValue} />
                     </SelectItem>
                 ) : null}
-                {roleIconOptions.map((iconPath) => (
+                {(open
+                    ? roleIconOptions
+                    : roleIconOptions.filter((icon) => icon === selectedValue)
+                ).map((iconPath) => (
                     <SelectItem key={iconPath} value={iconPath}>
                         <RoleIconPreview value={iconPath} />
                     </SelectItem>

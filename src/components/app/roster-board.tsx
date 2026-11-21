@@ -38,6 +38,18 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import {
+    removeDraftSquad,
+    nextDraftSquadOrder,
+    draftSquadKey,
+    cloneDraftRoster,
+    preserveDraftSquadKeys,
+    cloneDraftSquad,
+    cloneDraftSquads,
+    cloneDraftUserPlacement,
+    moveDraftSquad as moveRosterSquad,
+    moveDraftSection as moveRosterSection,
+} from "./roster-board-state"
+import {
     autoFillRosterAssignments,
     compareRosterCandidates,
     getSignupGroupByUserId,
@@ -58,12 +70,6 @@ import {
     type RosterPublishChoice,
     type RosterPublishContext,
 } from "@/components/app/roster-publish-dialog"
-import {
-    firstAvailableRosterSlot,
-    moveRosterSection,
-    moveRosterSquad,
-    rosterSectionOrder,
-} from "@/domain/rosters/layout"
 import {
     Select,
     SelectContent,
@@ -91,6 +97,10 @@ import {
     getAttendanceIcon,
     SquadCard,
 } from "@/components/app/roster-board-squad-card"
+import {
+    firstAvailableRosterSlot,
+    rosterSectionOrder,
+} from "@/domain/rosters/layout"
 import {
     Tooltip,
     TooltipContent,
@@ -216,7 +226,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex].players[playerIndex]
             if (slot.id && !next.reservePlayerIds.includes(slot.id))
                 next.reservePlayerIds.push(slot.id)
@@ -231,7 +241,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex].players[playerIndex]
             slot.locked = !slot.locked
             return next
@@ -491,7 +501,7 @@ export function RosterBoard({
         .toLowerCase()
     const sortedSquads = useMemo(
         () => board?.squads.slice().sort((a, b) => a.order - b.order) ?? [],
-        [board]
+        [board?.squads]
     )
 
     const squadGroups = useMemo(() => {
@@ -733,7 +743,10 @@ export function RosterBoard({
         [userAssignments]
     )
 
-    const changeCount = isDirty ? countRosterChanges(roster, board) : 0
+    const changeCount = useMemo(
+        () => (isDirty ? countRosterChanges(roster, board) : 0),
+        [isDirty, roster, board]
+    )
     const draggedUserId =
         dragState?.type === "slot"
             ? board?.squads[dragState.squadIndex]?.players[
@@ -833,7 +846,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftUserPlacement(current, userId, squadIndex)
             const slot = next.squads[squadIndex]?.players[playerIndex]
             if (!slot) return current
 
@@ -887,7 +900,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex]?.players[playerIndex]
             if (!slot) return current
 
@@ -914,7 +927,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex]?.players[playerIndex]
             if (!slot?.id) return current
             const reserveIds =
@@ -937,7 +950,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex]?.players[playerIndex]
             if (!slot?.id) return current
             const notAttendingIds =
@@ -954,7 +967,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquads(current, [])
             next.reservePlayerIds = (next.reservePlayerIds || []).filter(
                 (id) => id !== userId
             )
@@ -974,7 +987,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquads(current, [])
             next.notAttendingPlayerIds = (
                 next.notAttendingPlayerIds || []
             ).filter((id) => id !== userId)
@@ -996,7 +1009,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftUserPlacement(current, userId)
             next.notAttendingPlayerIds = (
                 next.notAttendingPlayerIds || []
             ).filter((id) => id !== userId)
@@ -1020,7 +1033,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftUserPlacement(current, userId)
             next.reservePlayerIds = (next.reservePlayerIds || []).filter(
                 (id) => id !== userId
             )
@@ -1044,7 +1057,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current || sourceUserId === targetUserId) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquads(current, [])
             const sourceIndex = next.reservePlayerIds.indexOf(sourceUserId)
             const targetIndex = next.reservePlayerIds.indexOf(targetUserId)
             if (sourceIndex < 0 || targetIndex < 0) return current
@@ -1068,7 +1081,10 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquads(current, [
+                sourceSquadIndex,
+                targetSquadIndex,
+            ])
             const source =
                 next.squads[sourceSquadIndex]?.players[sourcePlayerIndex]
             const target =
@@ -1105,7 +1121,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex]?.players[playerIndex]
             if (!slot) return current
             slot[field] = value
@@ -1122,7 +1138,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex]?.players[playerIndex]
             if (!slot) return current
             slot.roleIcon = roleIcon
@@ -1139,7 +1155,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex]?.players[playerIndex]
             if (!slot || !slot.id) return current
             slot.ack = status !== "pending"
@@ -1153,7 +1169,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const slot = next.squads[squadIndex]?.players[playerIndex]
             if (!slot || (!slot.id && !getCustomPlayerName(slot)))
                 return current
@@ -1180,7 +1196,6 @@ export function RosterBoard({
         const siblingIndex = siblings.indexOf(currentSquad)
         const target = siblings[siblingIndex + direction]
         if (!target) return
-        setLayoutRevision((value) => value + 1)
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
@@ -1205,7 +1220,6 @@ export function RosterBoard({
         const source = squadGroups[groupIndex]
         const target = squadGroups[groupIndex + direction]
         if (!source || !target) return
-        setLayoutRevision((value) => value + 1)
         setIsDirty(true)
         setBoard((current) =>
             current
@@ -1231,7 +1245,6 @@ export function RosterBoard({
     function handleDropOnSection(groupName: string, childGroups: string[]) {
         if (!canAdmin || !dragState) return
         if (dragState.type === "squad") {
-            setLayoutRevision((value) => value + 1)
             setIsDirty(true)
             setBoard((current) =>
                 current
@@ -1246,7 +1259,6 @@ export function RosterBoard({
                     : current
             )
         } else if (dragState.type === "section") {
-            setLayoutRevision((value) => value + 1)
             setIsDirty(true)
             setBoard((current) =>
                 current
@@ -1268,7 +1280,6 @@ export function RosterBoard({
         if (!canAdmin || !dragState || !board) return
         if (dragState.type === "section") return
         if (dragState.type === "squad") {
-            setLayoutRevision((value) => value + 1)
             setIsDirty(true)
             setBoard((current) =>
                 current
@@ -1304,11 +1315,8 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
-            next.squads[squadIndex] = {
-                ...next.squads[squadIndex],
-                [field]: value,
-            }
+            const next = cloneDraftSquad(current, squadIndex)
+            next.squads[squadIndex][field] = value
             return next
         })
     }
@@ -1318,7 +1326,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             next.squads[squadIndex].players.push({
                 ack: false,
                 confirmed: false,
@@ -1337,11 +1345,11 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = { ...current, squads: [...current.squads] }
             next.squads.push({
                 name: `${dictionary.roster.newSquadName} ${next.squads.length + 1}`,
                 group,
-                order: next.squads.length,
+                order: nextDraftSquadOrder(next.squads),
                 color: "#64748b",
                 players: [
                     {
@@ -1359,22 +1367,10 @@ export function RosterBoard({
 
     function removeRosterSquad(squadIndex: number) {
         if (isGuest) return
-        setLayoutRevision((value) => value + 1)
         setIsDirty(true)
-        setBoard((current) => {
-            if (!current || current.squads.length <= 1) return current
-            const next = structuredClone(current)
-            const removedSquad = next.squads[squadIndex]
-            for (const player of removedSquad.players) {
-                if (player.id) next.reservePlayerIds.push(player.id)
-            }
-            next.squads.splice(squadIndex, 1)
-            next.squads = next.squads.map((squad, order) => ({
-                ...squad,
-                order,
-            }))
-            return next
-        })
+        setBoard((current) =>
+            current ? removeDraftSquad(current, squadIndex) : current
+        )
     }
 
     function removeRosterSlot(squadIndex: number, playerIndex: number) {
@@ -1382,7 +1378,7 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            const next = structuredClone(current)
+            const next = cloneDraftSquad(current, squadIndex)
             const player = next.squads[squadIndex].players[playerIndex]
             if (player?.id) next.reservePlayerIds.push(player.id)
             next.squads[squadIndex].players.splice(playerIndex, 1)
@@ -1445,7 +1441,10 @@ export function RosterBoard({
         setIsDirty(true)
         setBoard((current) => {
             if (!current) return current
-            return autoFillRosterAssignments(current, rankingContext)
+            return preserveDraftSquadKeys(
+                current,
+                autoFillRosterAssignments(current, rankingContext)
+            )
         })
 
         setAutoFillDialogOpen(false)
@@ -1844,7 +1843,7 @@ export function RosterBoard({
                 setBoard((current) => {
                     if (!current) return current
 
-                    const next = structuredClone(current)
+                    const next = cloneDraftRoster(current)
                     const confirmedUserIds = new Set<string>(
                         body.updatedUserIds
                     )
@@ -2433,7 +2432,7 @@ export function RosterBoard({
                             ) : null}
                             {squadGroups.map((groupEntry, groupIndex) => (
                                 <div
-                                    key={`${groupEntry.group.name}-${groupIndex}`}
+                                    key={groupEntry.group.name}
                                     className={cn(
                                         "space-y-2 rounded-xl",
                                         dragState?.type === "section" &&
@@ -2596,7 +2595,7 @@ export function RosterBoard({
                                                     toggleSlotLock={
                                                         toggleSlotLock
                                                     }
-                                                    key={`${mode}-${layoutRevision}-${squad.order}`}
+                                                    key={`${mode}-${layoutRevision}-${draftSquadKey(squad)}`}
                                                     squad={squad}
                                                     board={board}
                                                     squadIndex={board.squads.indexOf(
