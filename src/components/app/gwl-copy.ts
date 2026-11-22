@@ -1,5 +1,12 @@
 const copy = {
     en: {
+        loading: "Loading GWL settings…",
+        retry: "Retry",
+        unavailable:
+            "Enable Wardogs for this clan before configuring GWL synchronization.",
+        channelsFailed:
+            "Discord channels could not be loaded. You can still enter the API key and edit settings. Retry to load the channel choices.",
+
         secret: "Saved keys cannot be viewed or copied. Leave this field blank to keep the saved key, or enter a new key to replace it.",
         docs: "GWL key setup and permissions",
         sync: "Enable GWL synchronization",
@@ -14,6 +21,13 @@ const copy = {
         help: "Choose a fixture or paste a GWL match link. GWL controls linked match facts and confirmed results.",
     },
     cs: {
+        loading: "Načítání nastavení GWL…",
+        retry: "Zkusit znovu",
+        unavailable:
+            "Před nastavením synchronizace GWL zapněte klanu hru Wardogs.",
+        channelsFailed:
+            "Kanály Discordu se nepodařilo načíst. API klíč a nastavení můžete upravovat. Opakováním načtete výběr kanálů.",
+
         secret: "Uložené klíče nelze zobrazit ani zkopírovat. Pro zachování klíče nechte pole prázdné; nový klíč nahradí uložený.",
         docs: "Nastavení klíče a oprávnění GWL",
         sync: "Zapnout synchronizaci GWL",
@@ -28,6 +42,13 @@ const copy = {
         help: "Vyberte utkání nebo vložte odkaz GWL. GWL řídí údaje propojeného zápasu a potvrzené výsledky.",
     },
     de: {
+        loading: "GWL-Einstellungen werden geladen…",
+        retry: "Erneut versuchen",
+        unavailable:
+            "Wardogs für diesen Clan aktivieren, bevor GWL eingerichtet wird.",
+        channelsFailed:
+            "Discord-Kanäle konnten nicht geladen werden. API-Schlüssel und Einstellungen bleiben bearbeitbar. Erneut versuchen, um Kanäle zu laden.",
+
         secret: "Gespeicherte Schlüssel können nicht angezeigt oder kopiert werden. Leer lassen, um den Schlüssel zu behalten, oder einen neuen zum Ersetzen eingeben.",
         docs: "GWL-Schlüssel und Berechtigungen",
         sync: "GWL-Synchronisierung aktivieren",
@@ -42,6 +63,12 @@ const copy = {
         help: "Begegnung auswählen oder GWL-Link einfügen. GWL steuert verknüpfte Spieldaten und bestätigte Ergebnisse.",
     },
     fr: {
+        loading: "Chargement des paramètres GWL…",
+        retry: "Réessayer",
+        unavailable: "Activez Wardogs pour ce clan avant de configurer GWL.",
+        channelsFailed:
+            "Impossible de charger les salons Discord. La clé API et les réglages restent modifiables. Réessayez pour charger les salons.",
+
         secret: "Les clés enregistrées ne peuvent être affichées ni copiées. Laissez le champ vide pour conserver la clé, ou saisissez une nouvelle clé pour la remplacer.",
         docs: "Clés GWL et autorisations",
         sync: "Activer la synchronisation GWL",
@@ -56,6 +83,12 @@ const copy = {
         help: "Choisissez une rencontre ou collez un lien GWL. GWL contrôle les détails liés et les résultats confirmés.",
     },
     pl: {
+        loading: "Wczytywanie ustawień GWL…",
+        retry: "Ponów",
+        unavailable: "Włącz Wardogs dla tego klanu przed konfiguracją GWL.",
+        channelsFailed:
+            "Nie można wczytać kanałów Discorda. Klucz API i ustawienia pozostają dostępne do edycji. Ponów, aby wczytać listę kanałów.",
+
         secret: "Zapisanych kluczy nie można wyświetlić ani skopiować. Pozostaw pole puste, aby zachować klucz, lub wprowadź nowy, aby go zastąpić.",
         docs: "Klucze GWL i uprawnienia",
         sync: "Włącz synchronizację GWL",

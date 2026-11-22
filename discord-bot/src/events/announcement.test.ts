@@ -21,8 +21,8 @@ import {
     withLimits,
 } from "./board-example.fixture"
 import { ANNOUNCEMENT_LAYOUT_VERSION } from "../../../src/domain/events/announcement-migration"
+import { announcementRevision, decideAnnouncement } from "./announcement-sync"
 import { publicationFiles } from "../sync/publication-files"
-import { decideAnnouncement } from "./announcement-sync"
 
 function json(message: ReturnType<typeof announcementMessage>) {
     return JSON.parse(
@@ -153,6 +153,17 @@ test("an open registration card includes the published roster image", () => {
     assert.doesNotMatch(
         JSON.stringify(draft.view),
         /attachment:\/\/roster\.png/
+    )
+})
+
+test("a roster publish advances the managed announcement revision", () => {
+    assert.equal(
+        announcementRevision(
+            "2026-11-16T20:33:00.000Z",
+            "2026-11-01T00:00:00.000Z",
+            "2026-11-22T18:00:00.000Z"
+        ),
+        Date.parse("2026-11-22T18:00:00.000Z")
     )
 })
 

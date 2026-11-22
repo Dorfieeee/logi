@@ -15,7 +15,7 @@ import {
     Search,
     UserPlus,
 } from "lucide-react"
-import type { ReactNode } from "react"
+import { useState, useMemo, type ReactNode } from "react"
 
 import {
     Command,
@@ -137,17 +137,21 @@ export function RosterBoardAttendeeLists({
         playerIndex: number
     ) => void
 }) {
-    const slotOptions = board.squads.flatMap((squad, squadIndex) =>
-        squad.players.flatMap((player, playerIndex) =>
-            player.id || player.customName?.trim()
-                ? []
-                : [
-                      {
-                          value: `${squadIndex}:${playerIndex}`,
-                          label: `${squad.name} · ${player.roleName || dictionary.roster.role} (${playerIndex + 1})`,
-                      },
-                  ]
-        )
+    const slotOptions = useMemo(
+        () =>
+            board.squads.flatMap((squad, squadIndex) =>
+                squad.players.flatMap((player, playerIndex) =>
+                    player.id || player.customName?.trim()
+                        ? []
+                        : [
+                              {
+                                  value: `${squadIndex}:${playerIndex}`,
+                                  label: `${squad.name} · ${player.roleName || dictionary.roster.role} (${playerIndex + 1})`,
+                              },
+                          ]
+                )
+            ),
+        [board.squads, dictionary.roster.role]
     )
     return (
         <div className="grid gap-4 md:grid-cols-2 xl:h-full xl:min-h-0 xl:grid-cols-1 xl:grid-rows-2">
@@ -212,7 +216,10 @@ export function RosterBoardAttendeeLists({
                                                 }
                                             </CommandEmpty>
                                             <CommandGroup>
-                                                {allUsersSorted.map((user) => (
+                                                {(userPickerOpen
+                                                    ? allUsersSorted
+                                                    : []
+                                                ).map((user) => (
                                                     <CommandItem
                                                         key={user.id}
                                                         value={user.name}
@@ -372,7 +379,10 @@ export function RosterBoardAttendeeLists({
                                                 }
                                             </CommandEmpty>
                                             <CommandGroup>
-                                                {allUsersSorted.map((user) => (
+                                                {(notAttendingPickerOpen
+                                                    ? allUsersSorted
+                                                    : []
+                                                ).map((user) => (
                                                     <CommandItem
                                                         key={user.id}
                                                         value={user.name}
@@ -762,51 +772,17 @@ function GroupedUserList({
                                             </span>
                                         ) : null}
                                         {isAssignmentMode && canAdmin ? (
-                                            <Select
-                                                value=""
-                                                onValueChange={(value) => {
-                                                    const [
-                                                        squadIndex,
-                                                        playerIndex,
-                                                    ] = value
-                                                        .split(":")
-                                                        .map(Number)
-                                                    assignUserToSlot(
-                                                        user.discordId,
-                                                        squadIndex,
-                                                        playerIndex
-                                                    )
-                                                }}
-                                            >
-                                                <SelectTrigger
-                                                    className="size-7 shrink-0 gap-0 px-1 [&>svg:last-child]:hidden"
-                                                    aria-label={`${dictionary.roster.assignReserve}: ${user.name}`}
-                                                    disabled={
-                                                        !slotOptions.length
-                                                    }
-                                                >
-                                                    <UserPlus className="size-4" />
-                                                    <span className="sr-only">
-                                                        <SelectValue
-                                                            placeholder={
-                                                                dictionary
-                                                                    .roster
-                                                                    .chooseSlot
-                                                            }
-                                                        />
-                                                    </span>
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {slotOptions.map((slot) => (
-                                                        <SelectItem
-                                                            key={slot.value}
-                                                            value={slot.value}
-                                                        >
-                                                            {slot.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <AssignSlotSelect
+                                                userId={user.discordId}
+                                                label={`${dictionary.roster.assignReserve}: ${user.name}`}
+                                                placeholder={
+                                                    dictionary.roster.chooseSlot
+                                                }
+                                                slotOptions={slotOptions}
+                                                assignUserToSlot={
+                                                    assignUserToSlot
+                                                }
+                                            />
                                         ) : null}
                                     </div>
                                 </div>
@@ -836,4 +812,57 @@ function formatRosterScoreline(
     }
 
     return `${score} ${dictionary.navUser.scoreSuffix} • ${dictionary.userManagement.matchKd} ${formatKd(kd)}`
+}
+
+/** Closed Radix selects mount their children in a hidden fragment. Keep the
+ * per-player slot catalogue out of that fragment until it is actually needed. */
+function AssignSlotSelect({
+    userId,
+    label,
+    placeholder,
+    slotOptions,
+    assignUserToSlot,
+}: {
+    userId: string
+    label: string
+    placeholder: string
+    slotOptions: Array<{ value: string; label: string }>
+    assignUserToSlot: (
+        userId: string,
+        squadIndex: number,
+        playerIndex: number
+    ) => void
+}) {
+    const [open, setOpen] = useState(false)
+    return (
+        <Select
+            value=""
+            open={open}
+            onOpenChange={setOpen}
+            onValueChange={(value) => {
+                const [squadIndex, playerIndex] = value.split(":").map(Number)
+                assignUserToSlot(userId, squadIndex, playerIndex)
+            }}
+        >
+            <SelectTrigger
+                className="size-7 shrink-0 gap-0 px-1 [&>svg:last-child]:hidden"
+                aria-label={label}
+                disabled={!slotOptions.length}
+            >
+                <UserPlus className="size-4" />
+                <span className="sr-only">
+                    <SelectValue placeholder={placeholder} />
+                </span>
+            </SelectTrigger>
+            {open ? (
+                <SelectContent>
+                    {slotOptions.map((slot) => (
+                        <SelectItem key={slot.value} value={slot.value}>
+                            {slot.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            ) : null}
+        </Select>
+    )
 }

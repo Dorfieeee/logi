@@ -107,3 +107,17 @@ cannot replace a team key on this screen.
 These errors contain fixed messages and permission names only; provider error
 bodies and key values are never returned. The password field clears after every
 submission, including failed attempts, so enter the key again when retrying.
+
+Connection checks run in Convex, so provider diagnostics appear in **Convex
+function logs**, not the website's journal or the browser console. Failed checks
+record only a fixed error code, the endpoint category, HTTP status, response
+format and schema field paths. They never record API keys or response bodies.
+
+Settings loading is bounded by a ten-second timeout. A failed settings request
+shows a **Retry** button; a clan without Wardogs enabled sees the prerequisite
+instead of an unexplained disabled form. Discord channel choices load separately
+and never block typing the API key. Channel-load failures have their own retry.
+The detected team field is intentionally read-only.
+
+GWL fixtures without a season label can still synchronize; Logi leaves the
+season unspecified instead of rejecting the connection or inventing a season.

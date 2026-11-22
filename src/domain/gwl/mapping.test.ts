@@ -91,3 +91,25 @@ test("GWL engine map IDs map to Logi's actual map selections", async () => {
     assert.equal(gwlMap("north-america"), "zestafona")
     assert.equal(gwlMap("sabatulo"), "sabatulo")
 })
+
+test("fixtures without a season label remain importable without inventing a season", async () => {
+    const { gwlMatchSchema } = await import("./contracts")
+    const { gwlFixture } = await import("./mapping")
+    const { default: data } =
+        await import("../../infrastructure/gwl/fixtures/fixtures.json")
+    const fixture = { ...data.upcoming[0] }
+    delete (fixture as { season?: string }).season
+    for (const season of [undefined, null, "", "   ", "Season 1"]) {
+        const match = gwlMatchSchema.parse({
+            ...fixture,
+            ...(season === undefined ? {} : { season }),
+        })
+        assert.equal(
+            gwlFixture(match).competition?.season,
+            season?.trim() || null
+        )
+    }
+    assert.throws(() =>
+        gwlMatchSchema.parse({ ...fixture, season: { name: "Season 1" } })
+    )
+})

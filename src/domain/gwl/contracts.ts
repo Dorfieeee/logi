@@ -10,7 +10,7 @@ export const gwlMatchSchema = z.object({
     map: text,
     layer: text.nullable(),
     weather: text.nullable(),
-    season: text,
+    season: z.string().trim().max(300).nullish(),
     startsAt: z.iso.datetime(),
     concludedAt: z.iso.datetime().nullable(),
     durationSeconds: z.number().nonnegative().nullable(),
