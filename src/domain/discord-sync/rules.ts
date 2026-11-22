@@ -82,7 +82,10 @@ export function deriveScheduledEventLifecycle(
     return "scheduled"
 }
 
-/** Shared-channel matches keep their original card through the result. */
+/**
+ * Registration cards are transient: conclusion always retires them, whether
+ * the announcement and match information share a channel or not.
+ */
 export function shouldKeepRegistrationMessage(
     input: {
         kind: "match" | "training"
@@ -94,7 +97,7 @@ export function shouldKeepRegistrationMessage(
 ) {
     return (
         isRegistrationAnnouncementDue(input, now) &&
-        (input.kind === "match" || input.status !== "concluded") &&
+        input.status !== "concluded" &&
         (!input.splitChannels || input.status === "registration")
     )
 }

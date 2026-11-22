@@ -232,7 +232,9 @@ for (const status of [
     "starting",
     "concluded",
 ] as const) {
-    test(`shared-channel ${status} edits the original registration card`, () => {
+    test(`shared-channel ${status} ${
+        status === "concluded" ? "retires" : "keeps"
+    } its registration card`, () => {
         assert.equal(
             shouldKeepRegistrationMessage(
                 {
@@ -243,7 +245,7 @@ for (const status of [
                 },
                 new Date("2026-11-03T12:00:00Z")
             ),
-            true
+            status !== "concluded"
         )
     })
     test(`split-channel ${status} keeps registration only while open`, () => {

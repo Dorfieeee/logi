@@ -184,12 +184,12 @@ attended.
 
 ## Event timeline and automation
 
-| Status       | When it applies                                                                                                        | What changes for members                                                                                                                                                                                   |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Registration | Before the registration deadline                                                                                       | Eligible people can sign up.                                                                                                                                                                               |
-| Closed       | After registration closes, before the event is starting                                                                | Eligible players can sign up late before the meeting if enabled; a reason is required and they start in reserves.                                                                                                                                                                                  |
-| Starting     | From the later of the registration deadline and 24 hours before the meeting time, until the duration plus reserve ends | Late match signups remain available before the meeting if enabled; training retains the exception above. Published-roster attendance acknowledgement is available.                                                                             |
-| Concluded    | When a manager concludes it after the meeting has started, or 15 minutes after the planned duration ends               | The announcement becomes the **Played** card (or **Cancelled**, see below), the roster card is removed, temporary event roles and squad voice channels are cleaned up, and event scoring is resolved once. |
+| Status       | When it applies                                                                                                        | What changes for members                                                                                                                                           |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Registration | Before the registration deadline                                                                                       | Eligible people can sign up.                                                                                                                                       |
+| Closed       | After registration closes, before the event is starting                                                                | Eligible players can sign up late before the meeting if enabled; a reason is required and they start in reserves.                                                  |
+| Starting     | From the later of the registration deadline and 24 hours before the meeting time, until the duration plus reserve ends | Late match signups remain available before the meeting if enabled; training retains the exception above. Published-roster attendance acknowledgement is available. |
+| Concluded    | When a manager concludes it after the meeting has started, or 15 minutes after the planned duration ends               | Event announcement and roster cards are removed, temporary event roles and squad voice channels are cleaned up, and event scoring is resolved once.                |
 
 The dashboard/bot background work reconciles time-based statuses; it is not a
 promise that every visual update happens at the exact second. Editing an event
@@ -221,11 +221,12 @@ scheduled event.
 Once an event concludes, the bot can update its existing match forum but never
 recreates a missing or deleted forum channel.
 
-When announcement and match information use the same text channel, the original
-match sign-up card stays there after conclusion, updated to **Played** or
-**Cancelled**. The confirmed result and its debrief remain separate messages.
-With separate announcement and information channels, the sign-up card is removed
-when registration closes. Concluded trainings do not retain their sign-up card.
+When a match concludes, Logi removes its announcement card from the Discord
+channel, whether announcement and match information share a channel or use
+separate channels. The confirmed result and its debrief remain separate messages.
+With separate announcement and information channels, the sign-up card is also
+removed when registration closes. Concluded trainings do not retain their sign-up
+card.
 
 **Match forum**, **Delete the forum after the match**, and **Create a debrief
 thread after the match** are separate choices. Creating a match forum also
@@ -381,8 +382,8 @@ When a match uses separate announcement and event-info channels, the
 registration card is removed from the announcement channel after registration
 closes. One compact event-info card keeps the basic match details and published
 roster image, without the sign-up list. With one shared channel, Logi keeps a
-single evolving registration card instead, editing the original message through
-registration closing, roster publication and the final Played or Cancelled card.
+single evolving registration card through registration closing and roster
+publication, then removes it when the match concludes.
 Once the host publishes a roster, the registration card shows its image directly
 after the match banner, even while sign-ups are still open. Unpublishing removes
 the roster image; drafts are never included in the Discord card.

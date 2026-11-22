@@ -97,6 +97,19 @@ export type AnnouncementDecision =
     | { kind: "skip"; reason: "not-posted" | "migration-deferred" }
     | { kind: "publish"; ping: boolean; migrating: boolean }
 
+/** A published roster changes the card's attachment as well as its content. */
+export function announcementRevision(
+    eventUpdatedAt: string,
+    configUpdatedAt: string,
+    rosterUpdatedAt?: string
+) {
+    return Math.max(
+        Date.parse(configUpdatedAt),
+        Date.parse(eventUpdatedAt),
+        Date.parse(rosterUpdatedAt ?? "") || 0
+    )
+}
+
 /**
  * Whether the card is drawn now and whether it pings. A card is created only
  * when sign-ups open, or again in place when a card of the current layout was
@@ -209,9 +222,10 @@ export async function syncAnnouncement(input: {
         guildId: guild.id,
         key: `event:${event.id}:announcement`,
         allowCreate: cardState !== "played" && cardState !== "cancelled",
-        revision: Math.max(
-            Date.parse(payload.config.updatedAt),
-            Date.parse(event.updatedAt)
+        revision: announcementRevision(
+            event.updatedAt,
+            payload.config.updatedAt,
+            input.roster?.updatedAt
         ),
         channelId: input.channel.id,
         legacyChannelId: state?.announcementChannelId ?? input.channel.id,
