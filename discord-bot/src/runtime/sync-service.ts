@@ -438,6 +438,9 @@ export class DiscordSyncService {
             this.queuedEventIds.add(eventId)
         }
 
+        for (const [id, event] of this.eventIndexById)
+            if (!nextEventIndexById.has(id))
+                this.queuedGuildIds.add(event.guildId)
         this.eventIdsByGuild.clear()
         this.eventIndexById.clear()
         this.rosterIndexByEventId.clear()

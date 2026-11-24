@@ -136,6 +136,7 @@ export type DiscordConfig = {
         Record<
             string,
             {
+                announcementsChannelId?: string
                 eventDiscussionDefaults?: import("../../src/domain/events/discussion").EventDiscussionSettings
                 membershipSettings?: MembershipSettings
                 membershipPanelMessageId?: string
@@ -604,7 +605,10 @@ export type EventInteractionContext = {
         status?: "pending" | "recruit" | "active"
     }>
     roster: Roster | null
-    syncState?: Pick<SyncState, "signupThreadId"> | null
+    syncState?: Pick<
+        SyncState,
+        "signupThreadId" | "announcementChannelId"
+    > | null
     /** Colour of the event's category; absent from older backends. */
     categoryColor?: string | null
 }

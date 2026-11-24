@@ -4,6 +4,10 @@ import {
     type Guild,
     type TextChannel,
 } from "discord.js"
+import {
+    rememberRegistration,
+    refreshRegistration,
+} from "../events/registration-summary"
 import { matchImageAttachment } from "../events/match-image"
 import { syncMatchResult } from "../events/match-result"
 import { makeFunctionReference } from "convex/server"
@@ -891,6 +895,18 @@ async function syncEvent(
         resourceProtocol: 1,
         lastSyncedAt: new Date().toISOString(),
     })
+    rememberRegistration(
+        payload,
+        event,
+        announcementChannelId,
+        announcementMessageId
+    )
+    for (const channel of new Set([
+        state?.announcementChannelId,
+        announcementChannelId,
+    ]))
+        if (channel && (announcementMessageId || state?.announcementMessageId))
+            await refreshRegistration(client, event.guildId, channel)
     logInfo("event-sync", "Persisted event sync state", {
         eventId: event.id,
         guildId: payload.config.guildId,

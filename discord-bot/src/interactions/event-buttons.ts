@@ -283,10 +283,13 @@ function pickerOptions(context: EventInteractionContext): SignupPickerOption[] {
  * L1-88, L1-89). Who may not sign up at all reads why right away.
  */
 export async function handleEventSignupPickerInteraction(
-    interaction: ButtonInteraction,
-    handlers?: InteractionHandlerOptions
+    interaction: SignupInteraction,
+    handlers?: InteractionHandlerOptions,
+    selectedEventId?: string
 ) {
-    const [, eventId, thirdPart, fourthPart] = interaction.customId.split(":")
+    const [, eventId, thirdPart, fourthPart] = selectedEventId
+        ? ["", selectedEventId, interaction.guildId ?? ""]
+        : interaction.customId.split(":")
     // A legacy announcement's single signup button has an extra action
     // segment (`signup:<event>:PRIMARY_GROUP:<guild>`).
     const editing = thirdPart !== SIGNUP_PRIMARY_GROUP && fourthPart === "edit"
@@ -331,7 +334,7 @@ export async function handleEventSignupPickerInteraction(
                     person.status === "attending"
             )
         ) {
-            await handleCheckSignupInteraction(interaction)
+            await handleCheckSignupInteraction(interaction, eventId)
             return
         }
         const preferred = [
@@ -416,9 +419,12 @@ function groupNameOf(
  * or, without one, "Přihlásit se" (L1-20, L1-92).
  */
 export async function handleCheckSignupInteraction(
-    interaction: ButtonInteraction
+    interaction: SignupInteraction,
+    selectedEventId?: string
 ) {
-    const [, eventId, customIdGuildId] = interaction.customId.split(":")
+    const [, eventId, customIdGuildId] = selectedEventId
+        ? ["", selectedEventId, interaction.guildId ?? ""]
+        : interaction.customId.split(":")
     const context = await loadSignupContext(
         interaction,
         eventId ?? "",
@@ -814,7 +820,10 @@ export async function handleEventButtonInteraction(
                     .lateSignup.saved,
             })
         else {
-            if (ranked && result.appliedSignupLabel !== SIGNUP_NOT_ATTENDING)
+            if (
+                ranked?.choices.length &&
+                result.appliedSignupLabel !== SIGNUP_NOT_ATTENDING
+            )
                 view.blocks.unshift({
                     kind: "text",
                     markdown: ranked.choices
@@ -1118,4 +1127,51 @@ export async function handleRankedSignupInteraction(
         }),
         { ...kitOptions(context), replaceCard: true }
     )
+}
+
+export async function registrationChoice(
+    interaction: SignupInteraction,
+    eventId: string
+) {
+    const context = await loadSignupContext(interaction, eventId)
+    if (
+        !context ||
+        context.event.status !== "registration" ||
+        context.syncState?.announcementChannelId !== interaction.channelId
+    )
+        return null
+    const member = await resolveInteractionMember(
+        interaction,
+        await eventGuild(interaction, context.event.guildId)
+    )
+    const membership = membershipOf(context, interaction.user.id)
+    const eligible = buildEventSignupActions(
+        context.event,
+        context.groups,
+        getEventMessages(context.config.defaultLanguage).buttons
+    ).some(
+        (action) =>
+            action.kind !== "decline" &&
+            resolveEventSignupSelection({
+                event: context.event,
+                groups: context.groups,
+                memberRoleIds: member ? [...member.roles.cache.keys()] : null,
+                assignedGroupIds: membership.assignedGroupIds,
+                membershipStatus: membership.membershipStatus,
+                actionId: action.id,
+                labels: selectionLabels(context),
+            }).ok
+    )
+    if (!eligible) return null
+    const participant = context.event.participants.find(
+        (p) => p.userId === interaction.user.id
+    )
+    return {
+        training: context.event.kind === "training",
+        signed: participant
+            ? participant.status === "attending"
+            : context.event.signUps.some(
+                  (p) => p.userId === interaction.user.id
+              ),
+    }
 }

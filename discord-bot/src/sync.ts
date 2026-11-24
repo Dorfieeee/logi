@@ -1,3 +1,4 @@
+import { syncRegistrationSnapshot } from "./events/registration-summary"
 import type { Client } from "discord.js"
 
 import {
@@ -30,6 +31,9 @@ export async function syncGuildPayload(
         mode,
     })
 
+    await runGuildSyncStep(client, "registration summary", payload, () =>
+        syncRegistrationSnapshot(client, payload, mode === "full")
+    )
     if (mode === "full") {
         await runGuildSyncStep(client, "managed member roles", payload, () =>
             syncManagedMemberRoles(client, payload.config.guildId)

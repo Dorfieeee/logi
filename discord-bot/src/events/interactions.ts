@@ -16,7 +16,12 @@ import {
     handleAttendeesPage,
     handleAttendeesRemind,
 } from "./attendees"
+import {
+    showRegistrationSelect,
+    selectRegistration,
+} from "./registration-select"
 import type { InteractionFeature } from "../interactions/registry"
+import { summaryButton } from "./registration-summary"
 
 /**
  * The buttons and selects of the match announcement and its private replies
@@ -28,6 +33,11 @@ export const matchAnnouncementInteractions: InteractionFeature = {
     name: "match-announcements",
     register(registry, context) {
         registry
+            .button(summaryButton, showRegistrationSelect)
+            .stringSelect("choose-registration:", (i) =>
+                selectRegistration(i, context)
+            )
+            .button("registration-page:", showRegistrationSelect)
             .button("ranked-signup:", (interaction) =>
                 handleRankedSignupInteraction(interaction, context)
             )
