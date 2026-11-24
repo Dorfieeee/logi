@@ -165,7 +165,12 @@ export function hasConfiguredClanDiscordTarget(
         config.membershipPanelMessageId,
     ]
 
-    if (topLevelIds.some(Boolean)) {
+    if (
+        topLevelIds.some(Boolean) ||
+        Object.values(config.gameOverrides ?? {}).some((game) =>
+            Boolean(game?.announcementsChannelId)
+        )
+    ) {
         return true
     }
 

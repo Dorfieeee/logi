@@ -20,10 +20,13 @@ test("the announcement's buttons and selects route to the match feature", () => 
         "button:attendees-remind:",
         "button:attendees:",
         "button:check-signup:",
+        "button:open-registration-select",
         "button:ranked-signup:",
+        "button:registration-page:",
         "button:signup-picker:",
         "button:signup:",
         "stringSelect:attendees-filter:",
+        "stringSelect:choose-registration:",
         "stringSelect:ranked-signup:",
         "stringSelect:signup:",
     ])
